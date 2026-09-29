@@ -37,12 +37,12 @@
       "passwordHash": "default_pass",
       "name": "baluch.arek",
       "avatar": "",
-      "lastSyncTime": "2026-09-29T17:00:46.218Z",
+      "lastSyncTime": "2026-09-29T18:06:06.403Z",
       "petCount": 1,
-      "token": "tok_app_1790701246218",
+      "token": "tok_app_1790705166403",
       "payload": {
         "version": "2.5.0",
-        "exportDate": "2026-09-29T17:00:45.560Z",
+        "exportDate": "2026-09-29T18:06:05.406Z",
         "pets": [
           {
             "id": "pet-1",
