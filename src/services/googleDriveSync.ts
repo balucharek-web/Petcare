@@ -16,6 +16,9 @@ export const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive.file');
+provider.setCustomParameters({
+  prompt: 'select_account',
+});
 
 // In-memory token cache (NEVER in localStorage/sessionStorage per security guidelines)
 let cachedAccessToken: string | null = null;

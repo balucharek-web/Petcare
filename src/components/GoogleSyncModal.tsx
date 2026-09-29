@@ -29,6 +29,7 @@ import {
   parseGoogleJwt,
   CloudSession
 } from '../services/cloudSyncService';
+import { googleSignIn } from '../services/googleDriveSync';
 
 interface GoogleSyncModalProps {
   isOpen: boolean;
@@ -60,6 +61,17 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [session, setSession] = useState<CloudSession>(getStoredSession());
   const [showPinTab, setShowPinTab] = useState(false);
   
+  // Custom Google account input & remembered accounts
+  const [customEmail, setCustomEmail] = useState('');
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState<{ email: string; name: string; avatar?: string }[]>(() => {
+    try {
+      const raw = localStorage.getItem('petcare_saved_google_accounts');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
+
   // Quick PIN pairing
   const [pinInput, setPinInput] = useState('');
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -135,16 +147,35 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   if (!isOpen) return null;
 
-  // 1-Click Google Sign-In (Standard Google Login, ZERO PASSWORDS)
+  // Google Sign-In with any chosen email
   const handleGoogleAccountLogin = async (email: string, name?: string, avatar?: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setFeedback({ type: 'error', message: 'Wpisz poprawny adres e-mail konta Google.' });
+      return;
+    }
     setIsLoading(true);
     setFeedback(null);
     try {
-      const res = await signInWithGoogle(email, name, avatar);
+      const res = await signInWithGoogle(cleanEmail, name, avatar);
+      
+      // Save this account to remembered accounts list on this device
+      const accountName = name || cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+      const formattedName = accountName.charAt(0).toUpperCase() + accountName.slice(1);
+      const newAccount = { email: cleanEmail, name: formattedName, avatar };
+      const updated = [newAccount, ...savedAccounts.filter(a => a.email.toLowerCase() !== cleanEmail)].slice(0, 6);
+      setSavedAccounts(updated);
+      try {
+        localStorage.setItem('petcare_saved_google_accounts', JSON.stringify(updated));
+      } catch {}
+
       setFeedback({
         type: 'success',
-        message: `Zalogowano pomyślnie z kontem Google (${email})! Twoja kopia zapasowa została zsynchronizowana w chmurze.`
+        message: `Zalogowano jako ${cleanEmail}! Twoje zwierzaki są połączone z kontem.`
       });
+      if (onDataRestored) {
+        onDataRestored();
+      }
     } catch (err: any) {
       setFeedback({
         type: 'error',
@@ -155,22 +186,41 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     }
   };
 
-  // Official Standard Google Login Click
-  const handleOfficialGoogleLogin = () => {
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            handleGoogleAccountLogin('marciniakk018@gmail.com', 'Krzysztof');
-          }
-        });
+  // Official Standard Google Login Click: opens Google Account Chooser
+  const handleOfficialGoogleLogin = async () => {
+    setIsLoading(true);
+    setFeedback(null);
+    try {
+      // 1. Try Firebase Popup with prompt: 'select_account'
+      const { user } = await googleSignIn();
+      if (user?.email) {
+        await handleGoogleAccountLogin(user.email, user.displayName || undefined, user.photoURL || undefined);
         return;
-      } catch (err) {
-        console.warn('GSI prompt notice:', err);
       }
+    } catch (popupErr: any) {
+      console.warn('Firebase popup sign-in:', popupErr);
+      if (popupErr?.code === 'auth/popup-closed-by-user') {
+        setIsLoading(false);
+        return;
+      }
+      // If popup is blocked (e.g. in WebView or Android), show email picker
+      setShowEmailInput(true);
+      setFeedback({
+        type: 'info',
+        message: 'Wybierz zapisane konto lub wpisz swój adres e-mail konta Google poniżej.'
+      });
+    } finally {
+      setIsLoading(false);
     }
-    // Fallback: seamless direct Google login
-    handleGoogleAccountLogin('marciniakk018@gmail.com', 'Krzysztof');
+  };
+
+  const handleRemoveSavedAccount = (emailToRemove: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = savedAccounts.filter(a => a.email.toLowerCase() !== emailToRemove.toLowerCase());
+    setSavedAccounts(updated);
+    try {
+      localStorage.setItem('petcare_saved_google_accounts', JSON.stringify(updated));
+    } catch {}
   };
 
   const handleSignOut = () => {
@@ -178,7 +228,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     setGeneratedCode(null);
     setFeedback({
       type: 'info',
-      message: 'Wylogowano z konta Google.'
+      message: 'Wylogowano z konta Google. Możesz teraz wybrać lub zalogować inne konto.'
     });
   };
 
@@ -361,15 +411,25 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={handleSignOut}
-                  disabled={isLoading}
-                  className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Wyloguj się z Google"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Wyloguj
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleSignOut}
+                    disabled={isLoading}
+                    className="px-2.5 py-1.5 text-xs text-teal-700 dark:text-teal-300 hover:text-teal-900 dark:hover:text-teal-100 hover:bg-teal-100/60 dark:hover:bg-teal-900/40 border border-teal-200 dark:border-teal-700 bg-white dark:bg-slate-800 rounded-xl transition-colors flex items-center gap-1 cursor-pointer font-medium shadow-2xs"
+                    title="Przełącz na inne konto Google"
+                  >
+                    <span>Zmień konto</span>
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    disabled={isLoading}
+                    className="px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                    title="Wyloguj się z Google"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Wyloguj</span>
+                  </button>
+                </div>
               </div>
 
               {/* Status Details */}
@@ -497,59 +557,142 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
               )}
             </div>
           ) : (
-            /* STATE 2: NOT SIGNED IN (True Standard Google Sign-In with ZERO Passwords, NO forms, NO inputs) */
+            /* STATE 2: NOT SIGNED IN (True Multi-User Google Sign-In with Account Selection) */
             <div className="space-y-4">
-              <div className="text-center space-y-2 py-2">
-                <div className="w-16 h-16 rounded-3xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 flex items-center justify-center mx-auto shadow-xs">
-                  <GoogleGIcon className="w-9 h-9" />
+              <div className="text-center space-y-1.5 py-1">
+                <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 flex items-center justify-center mx-auto shadow-xs">
+                  <GoogleGIcon className="w-8 h-8" />
                 </div>
                 <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
-                  Logowanie z kontem Google
+                  Wybierz konto Google
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                  Synchronizuj zwierzaki, dawkowanie leków i historię badań bez wpisywania haseł.
+                  Zaloguj się swoim kontem Google, aby zarządzać swoimi zwierzakami, lekami i badaniami w chmurze.
                 </p>
               </div>
 
               {/* Standard Official Google Sign-In Button */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1">
                 {/* Official GIS container if rendered by Google */}
                 <div ref={googleBtnContainerRef} className="flex justify-center min-h-[44px]"></div>
 
-                {/* Main Prominent Standard Google Login Button */}
+                {/* Main Prominent Standard Google Login Button with Account Chooser */}
                 <button
                   type="button"
                   onClick={handleOfficialGoogleLogin}
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.99] border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 rounded-2xl flex items-center justify-center gap-3 transition shadow-xs group cursor-pointer text-slate-800 dark:text-white font-bold text-sm sm:text-base disabled:opacity-50"
+                  className="w-full py-3.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.99] border-2 border-slate-300 dark:border-slate-600 hover:border-teal-500 dark:hover:border-teal-500 rounded-2xl flex items-center justify-center gap-3 transition shadow-xs group cursor-pointer text-slate-800 dark:text-white font-bold text-sm sm:text-base disabled:opacity-50"
                 >
-                  <GoogleGIcon className="w-6 h-6 shrink-0" />
-                  <span>{isLoading ? 'Łączenie z Google...' : 'Zaloguj z Google'}</span>
+                  <GoogleGIcon className="w-5 h-5 shrink-0" />
+                  <span>{isLoading ? 'Wybieranie konta...' : 'Zaloguj przez konto Google'}</span>
                 </button>
 
-                {/* Instant 1-tap Google Account quick button */}
-                <button
-                  type="button"
-                  onClick={() => handleGoogleAccountLogin('marciniakk018@gmail.com', 'Krzysztof')}
-                  disabled={isLoading}
-                  className="w-full p-3 bg-teal-50/60 dark:bg-teal-950/40 hover:bg-teal-100/60 dark:hover:bg-teal-900/40 border border-teal-200 dark:border-teal-800 rounded-2xl flex items-center justify-between text-left transition group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-teal-600 text-white font-bold text-xs flex items-center justify-center">
-                      K
+                {/* List of previously used accounts on this device */}
+                {savedAccounts.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Zapisane konta na tym telefonie:
+                      </span>
+                      <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">
+                        Wybierz swoje
+                      </span>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        marciniakk018@gmail.com
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal-200 dark:bg-teal-800 text-teal-900 dark:text-teal-100 font-semibold">Twoje konto</span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Kliknij, aby zalogować od razu (1 kliknięcie)
-                      </div>
+                    <div className="space-y-1.5">
+                      {savedAccounts.map((acc) => (
+                        <div
+                          key={acc.email}
+                          onClick={() => handleGoogleAccountLogin(acc.email, acc.name, acc.avatar)}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-teal-50 dark:hover:bg-teal-950/40 border border-slate-200 dark:border-slate-700 hover:border-teal-300 rounded-2xl flex items-center justify-between text-left transition group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-teal-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                              {acc.name ? acc.name.charAt(0).toUpperCase() : acc.email.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                {acc.name}
+                              </p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                {acc.email}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-semibold text-teal-700 dark:text-teal-300 group-hover:translate-x-0.5 transition hidden sm:inline">
+                              Zaloguj
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleRemoveSavedAccount(acc.email, e)}
+                              className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
+                              title="Usuń to konto z listy"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition" />
-                </button>
+                )}
+
+                {/* Direct Google email entry for any user */}
+                <div className="pt-1">
+                  {!showEmailInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailInput(true)}
+                      className="w-full text-center text-xs text-teal-700 dark:text-teal-400 hover:underline font-bold py-1.5 cursor-pointer transition flex items-center justify-center gap-1.5"
+                    >
+                      <span>+ Wpisz inny adres e-mail konta Google</span>
+                    </button>
+                  ) : (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (customEmail && customEmail.includes('@')) {
+                          handleGoogleAccountLogin(customEmail);
+                          setCustomEmail('');
+                        }
+                      }}
+                      className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-teal-300 dark:border-teal-700 rounded-2xl space-y-2.5 animate-fadeIn"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Wpisz swoje konto Google:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowEmailInput(false)}
+                          className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          Schowaj
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          placeholder="twoj-email@gmail.com"
+                          value={customEmail}
+                          onChange={(e) => setCustomEmail(e.target.value)}
+                          required
+                          className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:border-teal-500"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isLoading || !customEmail.includes('@')}
+                          className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                        >
+                          Zaloguj
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Każdy użytkownik i telefon ma swoje własne, niezależne dane zwierzaków.
+                      </p>
+                    </form>
+                  )}
+                </div>
               </div>
 
               {/* PIN Code option for second phone transfer */}

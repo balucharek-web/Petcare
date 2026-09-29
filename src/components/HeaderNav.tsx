@@ -158,32 +158,32 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs pt-[env(safe-area-inset-top,0px)]">
-        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
           {/* Pet Selector Button */}
-          <div className="relative">
+          <div className="relative min-w-0 flex-shrink">
             <button
               onClick={() => setShowPetDropdown(!showPetDropdown)}
-              className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 transition active:scale-98 border border-slate-200/90 dark:border-slate-700/80 shadow-xs"
+              className="flex items-center gap-2 p-1 pr-2.5 rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 transition active:scale-98 border border-slate-200/90 dark:border-slate-700/80 shadow-xs max-w-[170px] sm:max-w-none text-left"
             >
               <div className="relative shrink-0">
                 <img
                   src={activePet?.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
                   alt={activePet?.name}
-                  className="w-10 h-10 rounded-xl object-cover ring-2 ring-teal-500 shadow-xs bg-white"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover ring-2 ring-teal-500 shadow-xs bg-white shrink-0"
                 />
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-xs">
+                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-teal-600 text-white rounded-full flex items-center justify-center text-[9px] sm:text-[10px] shadow-xs">
                   {activePet?.species === 'dog' ? '🐶' : activePet?.species === 'cat' ? '🐱' : '🐾'}
                 </span>
               </div>
-              <div className="text-left">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="flex items-center gap-1">
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
+                  <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight truncate">
                     {activePet?.name || 'Wybierz'}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </div>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 block leading-none">
-                  {activePet?.breed || 'Zwierzak'}
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block leading-tight truncate font-medium">
+                  {activePet?.breed || 'Mieszaniec'}
                 </span>
               </div>
             </button>
@@ -243,27 +243,27 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
           </div>
 
           {/* Quick Action Badges */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Cloud Sync & Manual Trigger */}
             <div className="relative flex items-center">
               {session.user ? (
-                <div className="flex items-center bg-emerald-50 border border-emerald-300 rounded-2xl p-0.5 shadow-xs">
+                <div className="flex items-center bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-xl p-0.5 shadow-2xs">
                   <button
                     onClick={onOpenGoogleSync}
                     title={`Konto Google: ${session.user.email} (kliknij, aby otworzyć panel)`}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-emerald-800 hover:text-emerald-950 text-xs font-bold transition rounded-xl"
+                    className="flex items-center gap-1 px-2 py-1 text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 text-xs font-bold transition rounded-lg"
                   >
                     <div className="relative">
-                      <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                      <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                     </div>
-                    <span className="hidden sm:inline">Chmura</span>
+                    <span className="hidden sm:inline text-[11px]">Chmura</span>
                   </button>
                   <button
                     onClick={handleQuickSync}
                     disabled={isQuickSyncing}
                     title="Ręczna synchronizacja: kliknij, aby zsynchronizować teraz"
-                    className="p-1.5 text-emerald-700 hover:text-emerald-950 hover:bg-emerald-100 rounded-xl transition cursor-pointer"
+                    className="p-1 text-emerald-700 dark:text-emerald-400 hover:text-emerald-950 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg transition cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isQuickSyncing ? 'animate-spin text-teal-600' : ''}`} />
                   </button>
@@ -272,10 +272,10 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 <button
                   onClick={onOpenGoogleSync}
                   title="Zaloguj się kontem Google bez hasła, aby włączyć synchronizację"
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 active:scale-95 transition text-xs font-bold shadow-xs cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition text-xs font-bold shadow-2xs cursor-pointer"
                 >
-                  <Cloud className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="hidden sm:inline">Konto Google</span>
+                  <Cloud className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <span className="hidden sm:inline text-[11px]">Konto Google</span>
                 </button>
               )}
 
@@ -288,57 +288,58 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               )}
             </div>
 
-            {/* AI Scanner Button */}
-            <button
-              onClick={onOpenAIScanner}
-              title="Inteligentny Skaner AI (Recepty, leki, krew)"
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white active:scale-95 transition text-xs font-bold shadow-xs"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Skaner AI</span>
-            </button>
+            {/* Quick action buttons on larger screens (hidden on mobile to keep header clean and prevent overlapping) */}
+            <div className="hidden lg:flex items-center gap-1.5">
+              <button
+                onClick={onOpenAIScanner}
+                title="Inteligentny Skaner AI (Recepty, leki, krew)"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white active:scale-95 transition text-xs font-bold shadow-2xs cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Skaner AI</span>
+              </button>
 
-            {/* Medical Report / Passport PDF */}
-            <button
-              onClick={onOpenMedicalReport}
-              title="Raport Medyczny & Książeczka PDF"
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-teal-50 text-teal-800 hover:bg-teal-100 active:scale-95 transition text-xs font-bold border border-teal-200 shadow-xs"
-            >
-              <FileText className="w-3.5 h-3.5 text-teal-600" />
-              <span className="hidden sm:inline">Raport PDF</span>
-            </button>
+              <button
+                onClick={onOpenMedicalReport}
+                title="Raport Medyczny & Książeczka PDF"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200 hover:bg-teal-100 dark:hover:bg-teal-900/60 active:scale-95 transition text-xs font-bold border border-teal-200 dark:border-teal-800 shadow-2xs cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                <span>Raport PDF</span>
+              </button>
 
-            {/* SOS Emergency button */}
-            <button
-              onClick={onOpenSOSModal}
-              title="Karta Ratunkowa SOS"
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-rose-50 text-rose-700 hover:bg-rose-100 active:scale-95 transition text-xs font-bold border border-rose-200 shadow-xs"
-            >
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
-              <span className="hidden sm:inline">SOS</span>
-            </button>
+              <button
+                onClick={onOpenSOSModal}
+                title="Karta Ratunkowa SOS"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 active:scale-95 transition text-xs font-bold border border-rose-200 dark:border-rose-800 shadow-2xs cursor-pointer"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse" />
+                <span>SOS</span>
+              </button>
+            </div>
 
             {/* Tools Menu Hub */}
             <button
               onClick={onOpenToolsHub}
-              title="Wszystkie Narzędzia (Toksyczność, Kalkulator, Petsitter, Wydatki)"
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 active:scale-95 transition text-xs font-bold border border-slate-200 shadow-xs"
+              title="Wszystkie Narzędzia (Toksyczność, Skaner AI, Kalkulator, Petsitter, Wydatki)"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 active:scale-95 transition text-xs font-bold border border-teal-200/80 dark:border-teal-800/80 shadow-2xs cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>Menu</span>
             </button>
 
-            {/* Theme Toggle (Light / Dark mode) */}
+            {/* Subtler Theme Toggle (Light / Dark mode) */}
             {onToggleTheme && (
               <button
                 onClick={onToggleTheme}
                 title={theme === 'dark' ? 'Przełącz na tryb jasny' : 'Przełącz na tryb ciemny'}
-                className="p-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition cursor-pointer border border-slate-200 dark:border-slate-700 shadow-xs"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer"
+                aria-label="Przełącz tryb motywu"
               >
                 {theme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-amber-400" />
+                  <Sun className="w-4 h-4 text-amber-400 animate-fadeIn" />
                 ) : (
-                  <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                  <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors" />
                 )}
               </button>
             )}
@@ -347,7 +348,8 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             <button
               onClick={() => setShowSettingsModal(true)}
               title="Kopia zapasowa i opcje"
-              className="p-2 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer"
+              aria-label="Ustawienia"
             >
               <Settings className="w-4 h-4" />
             </button>

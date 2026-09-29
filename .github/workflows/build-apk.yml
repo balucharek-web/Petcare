@@ -56,8 +56,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.5.0
-          name: "PetCare v2.5.0 - Logowanie Google i Tryb Ciemny"
+          tag_name: v2.6.0
+          name: "PetCare v2.6.0 - Wybór Konta Google i Poprawki Interfejsu"
           files: android/app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
