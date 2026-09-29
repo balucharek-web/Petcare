@@ -29,6 +29,8 @@ interface ToolsHubModalProps {
   onOpenDashboardCustomizer: () => void;
   onOpenGoogleSync: () => void;
   onOpenNotifications: () => void;
+  onOpenAgeCalculator?: () => void;
+  onOpenEmergencyVetFinder?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -45,11 +47,31 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenDashboardCustomizer,
   onOpenGoogleSync,
   onOpenNotifications,
+  onOpenAgeCalculator,
+  onOpenEmergencyVetFinder,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
 
   const tools = [
+    {
+      id: 'emergency-vets',
+      label: 'Dyżury Weterynaryjne 24h & SOS',
+      desc: 'Wyszukiwarka całodobowych klinik z odległością GPS i szybkim telefonem',
+      icon: ShieldAlert,
+      color: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+      badge: 'SOS 24/7',
+      action: onOpenEmergencyVetFinder,
+    },
+    {
+      id: 'age-calc',
+      label: 'Kalkulator Wieku na Ludzkie Lata',
+      desc: 'Przelicznik biologiczny wg rasy i wagi oraz przewodnik profilaktyki seniora',
+      icon: Sparkles,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      badge: 'Profilaktyka',
+      action: onOpenAgeCalculator,
+    },
     {
       id: 'notifications',
       label: 'Powiadomienia Push w Telefonie',
@@ -169,7 +191,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
                 key={tool.id}
                 onClick={() => {
                   onClose();
-                  tool.action();
+                  tool.action?.();
                 }}
                 className="w-full p-3.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-teal-300 flex items-center justify-between gap-3 text-left transition shadow-xs active:scale-98"
               >

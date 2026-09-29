@@ -45,18 +45,15 @@ import { ExpensesModal } from './components/ExpensesModal';
 import { PetsitterModal } from './components/PetsitterModal';
 import { DashboardCustomizerModal } from './components/DashboardCustomizerModal';
 import { ToolsHubModal } from './components/ToolsHubModal';
+import { AgeCalculatorModal } from './components/AgeCalculatorModal';
+import { EmergencyVetFinderModal } from './components/EmergencyVetFinderModal';
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
   const [pets, setPets] = useState<Pet[]>(() => {
-    const sess = getStoredSession();
-    // When logged out, do not read or display local data
-    if (!sess.user) return [];
     return storage.getPets();
   });
   const [activePetId, setActivePetId] = useState<string>(() => {
-    const sess = getStoredSession();
-    if (!sess.user) return '';
     return storage.getActivePetId();
   });
   const [currentTab, setCurrentTab] = useState<NavTab>('profile');
@@ -80,6 +77,8 @@ export default function App() {
   const [isToolsHubOpen, setIsToolsHubOpen] = useState(false);
   const [isGoogleSyncOpen, setIsGoogleSyncOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAgeCalculatorOpen, setIsAgeCalculatorOpen] = useState(false);
+  const [isEmergencyVetFinderOpen, setIsEmergencyVetFinderOpen] = useState(false);
 
   // Preview Mode: Android phone frame vs Full screen
   const [deviceFrameMode, setDeviceFrameMode] = useState<'mobile' | 'full'>('mobile');
@@ -162,17 +161,6 @@ export default function App() {
 
   // Load active pet data whenever activePet changes or cloud session changes
   const reloadData = () => {
-    const sess = getStoredSession();
-    if (!sess.user) {
-      setPets([]);
-      setActivePetId('');
-      setVaccinations([]);
-      setMedications([]);
-      setExams([]);
-      setConditions([]);
-      setVisits([]);
-      return;
-    }
     const currentPets = storage.getPets();
     setPets(currentPets);
     const targetPetId = activePetId || currentPets[0]?.id || '';
@@ -188,31 +176,21 @@ export default function App() {
 
   // Subscribe to Cloud Sync session changes (instant logout / login reaction)
   useEffect(() => {
-    const unsubscribe = subscribeToCloudSync((sess) => {
-      if (!sess.user) {
-        setPets([]);
-        setActivePetId('');
-        setVaccinations([]);
-        setMedications([]);
-        setExams([]);
-        setConditions([]);
-        setVisits([]);
-      } else {
-        const currentPets = storage.getPets();
-        setPets(currentPets);
-        const targetPetId = currentPets[0]?.id || '';
-        setActivePetId(targetPetId);
-        if (targetPetId) {
-          setVaccinations(storage.getVaccinations(targetPetId));
-          setMedications(storage.getMedications(targetPetId));
-          setExams(storage.getExams(targetPetId));
-          setConditions(storage.getConditions(targetPetId));
-          setVisits(storage.getVisits(targetPetId));
-        }
+    const unsubscribe = subscribeToCloudSync(() => {
+      const currentPets = storage.getPets();
+      setPets(currentPets);
+      const targetPetId = activePetId || currentPets[0]?.id || '';
+      setActivePetId(targetPetId);
+      if (targetPetId) {
+        setVaccinations(storage.getVaccinations(targetPetId));
+        setMedications(storage.getMedications(targetPetId));
+        setExams(storage.getExams(targetPetId));
+        setConditions(storage.getConditions(targetPetId));
+        setVisits(storage.getVisits(targetPetId));
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [activePetId]);
 
   useEffect(() => {
     if (activePet?.id) {
@@ -458,6 +436,7 @@ export default function App() {
               activeMedicationsCount={activeMedsCount}
               onNavigateToTab={(tab) => setCurrentTab(tab)}
               dashboardConfig={dashboardConfig}
+              onSaveDashboardConfig={handleSaveDashboardConfig}
               onOpenDashboardCustomizer={() => setIsCustomizerOpen(true)}
               onOpenMedicalReport={() => setIsMedicalReportOpen(true)}
               onOpenToxicityChecker={() => setIsToxicityOpen(true)}
@@ -465,6 +444,8 @@ export default function App() {
               onOpenNutritionCalculator={() => setIsNutritionOpen(true)}
               onOpenExpenses={() => setIsExpensesOpen(true)}
               onOpenPetsitter={() => setIsPetsitterOpen(true)}
+              onOpenAgeCalculator={() => setIsAgeCalculatorOpen(true)}
+              onOpenEmergencyVetFinder={() => setIsEmergencyVetFinderOpen(true)}
             />
           )}
 
@@ -528,6 +509,10 @@ export default function App() {
           isOpen={isSOSOpen}
           onClose={() => setIsSOSOpen(false)}
           pet={activePet}
+          onOpenEmergencyVetFinder={() => {
+            setIsSOSOpen(false);
+            setIsEmergencyVetFinderOpen(true);
+          }}
         />
       )}
 
@@ -643,10 +628,37 @@ export default function App() {
             setIsToolsHubOpen(false);
             setIsNotificationsOpen(true);
           }}
+          onOpenAgeCalculator={() => {
+            setIsToolsHubOpen(false);
+            setIsAgeCalculatorOpen(true);
+          }}
+          onOpenEmergencyVetFinder={() => {
+            setIsToolsHubOpen(false);
+            setIsEmergencyVetFinderOpen(true);
+          }}
           onOpenSettings={() => {
             // Can be opened from HeaderNav
             setIsToolsHubOpen(false);
           }}
+        />
+      )}
+
+      {/* Feature 7: Human Age Calculator & Senior Care */}
+      {isAgeCalculatorOpen && (
+        <AgeCalculatorModal
+          isOpen={isAgeCalculatorOpen}
+          onClose={() => setIsAgeCalculatorOpen(false)}
+          pet={activePet}
+        />
+      )}
+
+      {/* Feature 8: 24/7 Veterinary Emergency Clinics & SOS */}
+      {isEmergencyVetFinderOpen && (
+        <EmergencyVetFinderModal
+          isOpen={isEmergencyVetFinderOpen}
+          onClose={() => setIsEmergencyVetFinderOpen(false)}
+          pet={activePet}
+          onUpdatePet={handleUpdatePet}
         />
       )}
 

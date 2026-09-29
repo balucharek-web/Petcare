@@ -9,7 +9,9 @@ import {
   PetExpense,
   PetsitterPlan,
   DashboardConfig,
-  DEFAULT_DASHBOARD_CONFIG
+  DEFAULT_DASHBOARD_CONFIG,
+  DEFAULT_WIDGET_ORDER,
+  DashboardWidgetKey
 } from '../types/pet';
 
 const STORAGE_KEYS = {
@@ -27,31 +29,99 @@ const STORAGE_KEYS = {
   CLEAN_INITIALIZED: 'petcare_clean_initialized_v2',
 };
 
+const memoryStore: Record<string, string> = {};
+
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return memoryStore[key] || null;
+  }
+}
+
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    memoryStore[key] = value;
+  }
+}
+
+function safeRemoveItem(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    delete memoryStore[key];
+  }
+}
+
+const DEFAULT_INITIAL_PETS: Pet[] = [
+  {
+    id: 'pet-1',
+    name: 'Baster',
+    species: 'dog',
+    breed: 'Mieszaniec',
+    birthDate: '2021-05-10',
+    gender: 'male',
+    weightKg: 14.5,
+    chipNumber: '616093900012345',
+    color: 'Czarno-podpalany',
+    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    isNeutered: true,
+    weightHistory: [
+      { id: 'w-1', date: '2025-01-10', weightKg: 14.2 },
+      { id: 'w-2', date: '2025-06-15', weightKg: 14.5 }
+    ],
+    createdAt: '2025-01-01',
+  }
+];
+
+const DEFAULT_INITIAL_VACCINATIONS: Vaccination[] = [
+  {
+    id: 'vac-1',
+    petId: 'pet-1',
+    name: 'Wścieklizna (Rabisin)',
+    category: 'rabies',
+    dateAdministered: '2025-06-15',
+    validUntil: '2026-06-15',
+    batchNumber: 'RB-2025-99A',
+    vetClinic: 'Lecznica Weterynaryjna Cztery Łapy',
+    vetDoctor: 'dr Anna Nowak',
+  }
+];
+
 // Automatic migration of old data from previous v1 versions if present
 function ensureCleanInitialization() {
   if (typeof window === 'undefined') return;
   try {
-    const v2Pets = localStorage.getItem(STORAGE_KEYS.PETS);
+    const v2Pets = safeGetItem(STORAGE_KEYS.PETS);
     if (!v2Pets || v2Pets === '[]') {
-      const v1Pets = localStorage.getItem('petcare_pets_v1');
+      const v1Pets = safeGetItem('petcare_pets_v1');
       if (v1Pets) {
         const parsed = JSON.parse(v1Pets);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          localStorage.setItem(STORAGE_KEYS.PETS, v1Pets);
+          safeSetItem(STORAGE_KEYS.PETS, v1Pets);
+        } else {
+          safeSetItem(STORAGE_KEYS.PETS, JSON.stringify(DEFAULT_INITIAL_PETS));
         }
+      } else {
+        safeSetItem(STORAGE_KEYS.PETS, JSON.stringify(DEFAULT_INITIAL_PETS));
       }
     }
 
-    const v2Vaccines = localStorage.getItem(STORAGE_KEYS.VACCINATIONS);
+    const v2Vaccines = safeGetItem(STORAGE_KEYS.VACCINATIONS);
     if (!v2Vaccines || v2Vaccines === '[]') {
-      const v1Vac = localStorage.getItem('petcare_vaccinations_v1');
-      if (v1Vac) localStorage.setItem(STORAGE_KEYS.VACCINATIONS, v1Vac);
+      const v1Vac = safeGetItem('petcare_vaccinations_v1');
+      if (v1Vac) {
+        safeSetItem(STORAGE_KEYS.VACCINATIONS, v1Vac);
+      } else {
+        safeSetItem(STORAGE_KEYS.VACCINATIONS, JSON.stringify(DEFAULT_INITIAL_VACCINATIONS));
+      }
     }
 
-    const v2Meds = localStorage.getItem(STORAGE_KEYS.MEDICATIONS);
-    if (!v2Meds || v2Meds === '[]') {
-      const v1Meds = localStorage.getItem('petcare_medications_v1');
-      if (v1Meds) localStorage.setItem(STORAGE_KEYS.MEDICATIONS, v1Meds);
+    const v2Active = safeGetItem(STORAGE_KEYS.ACTIVE_PET_ID);
+    if (!v2Active) {
+      safeSetItem(STORAGE_KEYS.ACTIVE_PET_ID, 'pet-1');
     }
   } catch (e) {
     console.warn('Migration note:', e);
@@ -63,17 +133,21 @@ ensureCleanInitialization();
 export const storage = {
   // Pets
   getPets(): Pet[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.PETS);
-    if (!raw) return [];
+    const raw = safeGetItem(STORAGE_KEYS.PETS);
+    if (!raw) return DEFAULT_INITIAL_PETS;
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+      return DEFAULT_INITIAL_PETS;
     } catch {
-      return [];
+      return DEFAULT_INITIAL_PETS;
     }
   },
 
   savePets(pets: Pet[]): void {
-    localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(pets));
+    safeSetItem(STORAGE_KEYS.PETS, JSON.stringify(pets));
   },
 
   deletePet(id: string): void {
@@ -91,10 +165,10 @@ export const storage = {
   },
 
   getActivePetId(): string {
-    const active = localStorage.getItem(STORAGE_KEYS.ACTIVE_PET_ID);
+    const active = safeGetItem(STORAGE_KEYS.ACTIVE_PET_ID);
     if (active) return active;
     const pets = this.getPets();
-    const defaultId = pets[0]?.id || '';
+    const defaultId = pets[0]?.id || 'pet-1';
     if (defaultId) {
       this.setActivePetId(defaultId);
     }
@@ -102,12 +176,12 @@ export const storage = {
   },
 
   setActivePetId(id: string): void {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_PET_ID, id);
+    safeSetItem(STORAGE_KEYS.ACTIVE_PET_ID, id);
   },
 
   // Vaccinations
   getVaccinations(petId?: string): Vaccination[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.VACCINATIONS);
+    const raw = safeGetItem(STORAGE_KEYS.VACCINATIONS);
     let all: Vaccination[] = [];
     if (raw) {
       try {
@@ -120,7 +194,7 @@ export const storage = {
   },
 
   saveVaccinations(items: Vaccination[]): void {
-    localStorage.setItem(STORAGE_KEYS.VACCINATIONS, JSON.stringify(items));
+    safeSetItem(STORAGE_KEYS.VACCINATIONS, JSON.stringify(items));
   },
 
   deleteVaccination(id: string): void {
@@ -130,7 +204,7 @@ export const storage = {
 
   // Exams
   getExams(petId?: string): MedicalExam[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.EXAMS);
+    const raw = safeGetItem(STORAGE_KEYS.EXAMS);
     let all: MedicalExam[] = [];
     if (raw) {
       try {
@@ -143,7 +217,7 @@ export const storage = {
   },
 
   saveExams(items: MedicalExam[]): void {
-    localStorage.setItem(STORAGE_KEYS.EXAMS, JSON.stringify(items));
+    safeSetItem(STORAGE_KEYS.EXAMS, JSON.stringify(items));
   },
 
   deleteExam(id: string): void {
@@ -153,7 +227,7 @@ export const storage = {
 
   // Conditions
   getConditions(petId?: string): MedicalCondition[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.CONDITIONS);
+    const raw = safeGetItem(STORAGE_KEYS.CONDITIONS);
     let all: MedicalCondition[] = [];
     if (raw) {
       try {
@@ -166,7 +240,7 @@ export const storage = {
   },
 
   saveConditions(items: MedicalCondition[]): void {
-    localStorage.setItem(STORAGE_KEYS.CONDITIONS, JSON.stringify(items));
+    safeSetItem(STORAGE_KEYS.CONDITIONS, JSON.stringify(items));
   },
 
   deleteCondition(id: string): void {
@@ -176,7 +250,7 @@ export const storage = {
 
   // Visits
   getVisits(petId?: string): VetVisit[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.VISITS);
+    const raw = safeGetItem(STORAGE_KEYS.VISITS);
     let all: VetVisit[] = [];
     if (raw) {
       try {
@@ -189,7 +263,7 @@ export const storage = {
   },
 
   saveVisits(items: VetVisit[]): void {
-    localStorage.setItem(STORAGE_KEYS.VISITS, JSON.stringify(items));
+    safeSetItem(STORAGE_KEYS.VISITS, JSON.stringify(items));
   },
 
   deleteVisit(id: string): void {
@@ -199,7 +273,7 @@ export const storage = {
 
   // Medications
   getMedications(petId?: string): Medication[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.MEDICATIONS);
+    const raw = safeGetItem(STORAGE_KEYS.MEDICATIONS);
     let all: Medication[] = [];
     if (raw) {
       try {
@@ -212,7 +286,7 @@ export const storage = {
   },
 
   saveMedications(items: Medication[]): void {
-    localStorage.setItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(items));
+    safeSetItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(items));
   },
 
   deleteMedication(id: string): void {
@@ -220,12 +294,12 @@ export const storage = {
     this.saveMedications(all);
 
     // Clean up dose logs for this medication
-    const rawLogs = localStorage.getItem(STORAGE_KEYS.DOSE_LOGS);
+    const rawLogs = safeGetItem(STORAGE_KEYS.DOSE_LOGS);
     if (rawLogs) {
       try {
         const logs: DoseLogEntry[] = JSON.parse(rawLogs);
         const filtered = logs.filter(l => l.medicationId !== id);
-        localStorage.setItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(filtered));
+        safeSetItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(filtered));
       } catch {
         // Safe fallback
       }
@@ -234,7 +308,7 @@ export const storage = {
 
   // Dose logs (daily tracker)
   getDoseLogs(petId?: string, dateStr?: string): DoseLogEntry[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.DOSE_LOGS);
+    const raw = safeGetItem(STORAGE_KEYS.DOSE_LOGS);
     let all: DoseLogEntry[] = [];
     if (raw) {
       try {
@@ -247,7 +321,7 @@ export const storage = {
   },
 
   toggleDoseLog(petId: string, medicationId: string, time: string, scheduledDate: string): boolean {
-    const raw = localStorage.getItem(STORAGE_KEYS.DOSE_LOGS);
+    const raw = safeGetItem(STORAGE_KEYS.DOSE_LOGS);
     let all: DoseLogEntry[] = raw ? JSON.parse(raw) : [];
     const index = all.findIndex(
       l => l.petId === petId && l.medicationId === medicationId && l.time === time && l.scheduledDate === scheduledDate
@@ -270,13 +344,13 @@ export const storage = {
       });
       isCompleted = true;
     }
-    localStorage.setItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(all));
+    safeSetItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(all));
     return isCompleted;
   },
 
   // Expenses
   getExpenses(petId?: string): PetExpense[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.EXPENSES);
+    const raw = safeGetItem(STORAGE_KEYS.EXPENSES);
     let all: PetExpense[] = [];
     if (raw) {
       try {
@@ -289,7 +363,7 @@ export const storage = {
   },
 
   saveExpenses(items: PetExpense[]): void {
-    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(items));
+    safeSetItem(STORAGE_KEYS.EXPENSES, JSON.stringify(items));
   },
 
   deleteExpense(id: string): void {
@@ -299,7 +373,7 @@ export const storage = {
 
   // Petsitter Plan
   getPetsitterPlan(petId: string): PetsitterPlan {
-    const raw = localStorage.getItem(STORAGE_KEYS.PETSITTER);
+    const raw = safeGetItem(STORAGE_KEYS.PETSITTER);
     if (raw) {
       try {
         const all: Record<string, PetsitterPlan> = JSON.parse(raw);
@@ -327,7 +401,7 @@ export const storage = {
   },
 
   savePetsitterPlan(plan: PetsitterPlan): void {
-    const raw = localStorage.getItem(STORAGE_KEYS.PETSITTER);
+    const raw = safeGetItem(STORAGE_KEYS.PETSITTER);
     let all: Record<string, PetsitterPlan> = {};
     if (raw) {
       try {
@@ -335,27 +409,37 @@ export const storage = {
       } catch {}
     }
     all[plan.petId] = plan;
-    localStorage.setItem(STORAGE_KEYS.PETSITTER, JSON.stringify(all));
+    safeSetItem(STORAGE_KEYS.PETSITTER, JSON.stringify(all));
   },
 
   // Dashboard customization
   getDashboardConfig(): DashboardConfig {
-    const raw = localStorage.getItem(STORAGE_KEYS.DASHBOARD_CONFIG);
+    const raw = safeGetItem(STORAGE_KEYS.DASHBOARD_CONFIG);
     if (raw) {
       try {
-        return { ...DEFAULT_DASHBOARD_CONFIG, ...JSON.parse(raw) };
+        const parsed = JSON.parse(raw);
+        const existingOrder: DashboardWidgetKey[] = Array.isArray(parsed?.order) ? parsed.order : [];
+        const mergedOrder: DashboardWidgetKey[] = [
+          ...existingOrder.filter((k: DashboardWidgetKey) => DEFAULT_WIDGET_ORDER.includes(k)),
+          ...DEFAULT_WIDGET_ORDER.filter(k => !existingOrder.includes(k)),
+        ];
+        return {
+          ...DEFAULT_DASHBOARD_CONFIG,
+          ...parsed,
+          order: mergedOrder,
+        };
       } catch {}
     }
-    return { ...DEFAULT_DASHBOARD_CONFIG };
+    return { ...DEFAULT_DASHBOARD_CONFIG, order: [...DEFAULT_WIDGET_ORDER] };
   },
 
   saveDashboardConfig(config: DashboardConfig): void {
-    localStorage.setItem(STORAGE_KEYS.DASHBOARD_CONFIG, JSON.stringify(config));
+    safeSetItem(STORAGE_KEYS.DASHBOARD_CONFIG, JSON.stringify(config));
   },
 
   // Full backup & restore
   exportAllData(): string {
-    const rawPetsitter = localStorage.getItem(STORAGE_KEYS.PETSITTER);
+    const rawPetsitter = safeGetItem(STORAGE_KEYS.PETSITTER);
     let petsitterData = {};
     if (rawPetsitter) {
       try { petsitterData = JSON.parse(rawPetsitter); } catch {}
@@ -388,10 +472,10 @@ export const storage = {
       if (Array.isArray(parsed.medications)) this.saveMedications(parsed.medications);
       if (Array.isArray(parsed.expenses)) this.saveExpenses(parsed.expenses);
       if (parsed.petsitter && typeof parsed.petsitter === 'object') {
-        localStorage.setItem(STORAGE_KEYS.PETSITTER, JSON.stringify(parsed.petsitter));
+        safeSetItem(STORAGE_KEYS.PETSITTER, JSON.stringify(parsed.petsitter));
       }
       if (parsed.dashboardConfig) this.saveDashboardConfig(parsed.dashboardConfig);
-      if (Array.isArray(parsed.doseLogs)) localStorage.setItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(parsed.doseLogs));
+      if (Array.isArray(parsed.doseLogs)) safeSetItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(parsed.doseLogs));
       if (parsed.pets?.length > 0) {
         this.setActivePetId(parsed.pets[0].id);
       }
@@ -402,17 +486,17 @@ export const storage = {
   },
 
   clearAllData(): void {
-    localStorage.removeItem(STORAGE_KEYS.PETS);
-    localStorage.removeItem(STORAGE_KEYS.ACTIVE_PET_ID);
-    localStorage.removeItem(STORAGE_KEYS.VACCINATIONS);
-    localStorage.removeItem(STORAGE_KEYS.EXAMS);
-    localStorage.removeItem(STORAGE_KEYS.CONDITIONS);
-    localStorage.removeItem(STORAGE_KEYS.VISITS);
-    localStorage.removeItem(STORAGE_KEYS.MEDICATIONS);
-    localStorage.removeItem(STORAGE_KEYS.DOSE_LOGS);
-    localStorage.removeItem(STORAGE_KEYS.EXPENSES);
-    localStorage.removeItem(STORAGE_KEYS.PETSITTER);
-    localStorage.removeItem(STORAGE_KEYS.DASHBOARD_CONFIG);
-    localStorage.setItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
+    safeRemoveItem(STORAGE_KEYS.PETS);
+    safeRemoveItem(STORAGE_KEYS.ACTIVE_PET_ID);
+    safeRemoveItem(STORAGE_KEYS.VACCINATIONS);
+    safeRemoveItem(STORAGE_KEYS.EXAMS);
+    safeRemoveItem(STORAGE_KEYS.CONDITIONS);
+    safeRemoveItem(STORAGE_KEYS.VISITS);
+    safeRemoveItem(STORAGE_KEYS.MEDICATIONS);
+    safeRemoveItem(STORAGE_KEYS.DOSE_LOGS);
+    safeRemoveItem(STORAGE_KEYS.EXPENSES);
+    safeRemoveItem(STORAGE_KEYS.PETSITTER);
+    safeRemoveItem(STORAGE_KEYS.DASHBOARD_CONFIG);
+    safeSetItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
   }
 };

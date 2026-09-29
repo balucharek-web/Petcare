@@ -2,7 +2,7 @@ import { storage } from './storage';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || 'https://ais-dev-4dhvfmyg4o7eh6qfs5bfts-472843422686.europe-west2.run.app';
+const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || 'https://ais-dev-qkjebwkaiwdhaubzn2k6ik-204842852838.europe-west2.run.app';
 
 export interface CloudUser {
   email: string;

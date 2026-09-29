@@ -57,8 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.15.0
-          name: "PetCare v2.15.0 - Ulepszony skaner AI (pismo odręczne lekarza, blady druk termiczny/igłowy)"
+          tag_name: v2.16.0
+          name: "PetCare v2.16.0 - Wszystkie miasta (dyżury 24h), GPS i przesuwanie kafelków"
+          body: |
+            ### 🐾 PetCare v2.16.0
+            
+            - 🏥 **Wyszukiwarka całodobowych klinik 24h dla wszystkich miast i 16 województw w Polsce** (baza ponad 120 miast, automatyczne wyznaczanie najbliższego ostrego dyżuru i dystansu w km).
+            - 📍 **Ulepszona geolokalizacja:** szybki GPS, lokalizacja sieciowa (IP) oraz ręczny wybór własnego miasta.
+            - 🧩 **Przeciąganie i własna kolejność kafelków na pulpicie (Drag & Drop)** dla myszy i ekranów dotykowych.
+            - 📱 **Plik instalacyjny APK dla Androida.**
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

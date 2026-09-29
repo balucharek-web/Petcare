@@ -1,21 +1,25 @@
-# Jak wygenerować plik APK na Androida za pomocą GitHub Actions
+# Pobieranie aplikacji PetCare (plik .APK na Androida)
 
-W repozytorium znajduje się już skonfigurowany plik automatyzacji:  
-`.github/workflows/build-apk.yml`
-
-Dzięki temu **GitHub całkowicie za darmo** skompiluje aplikację i wygeneruje gotowy plik `.apk` do zainstalowania na telefonie!
+Plik instalacyjny APK jest automatycznie budowany i publikowany przez GitHub Actions po każdym wysłaniu zmian.
 
 ---
 
-### Instrukcja krok po kroku:
+### 📥 Bezpośrednie linki do pobrania APK:
 
-1. **Wgraj projekt do nowego repozytorium na GitHubie** (np. `petcare`).
-2. Wejdź na stronę swojego repozytorium na GitHub.
-3. Przejdź do zakładki **Actions** (u góry obok Code, Issues, Pull requests).
-4. Po lewej stronie zobaczysz workflow: **"Buduj plik APK na Androida"**.
-   - Jeśli workflow uruchomił się automatycznie po wysłaniu kodu (`push`), poczekaj około 2-3 minuty na zielony znacznik ✅.
-   - Możesz go też wywołać w dowolnej chwili: kliknij nazwę workflow ➔ przycisk **"Run workflow"** ➔ **Run workflow**.
-5. Kliknij w zakończone pomyślnie zadanie (zielony "check").
-6. Na dole strony w sekcji **Artifacts** znajdziesz plik do pobrania:
-   - **`PetCare-App-debug.apk`**
-7. Pobierz archiwum zip, rozpakuj plik `.apk` i prześlij go na telefon (lub pobierz bezpośrednio z przeglądarki w telefonie), a następnie zainstaluj!
+1. **Strona najnowszego wydania (Releases):**  
+   👉 **[Przejdź do wydań PetCare na GitHub](https://github.com/balucharek-web/Petcare/releases)**
+
+2. **Bezpośredni link do pliku APK (v2.16.0):**  
+   👉 **[Pobierz PetCare.apk (v2.16.0)](https://github.com/balucharek-web/Petcare/releases/download/v2.16.0/PetCare.apk)**
+
+3. **Status budowania na żywo (GitHub Actions):**  
+   👉 **[Zobacz postęp kompilacji APK w Actions](https://github.com/balucharek-web/Petcare/actions)**
+
+---
+
+### 📲 Jak zainstalować APK na telefonie z Androidem:
+1. Kliknij w powyższy link do pobrania pliku `PetCare.apk` bezpośrednio na telefonie (lub pobierz na komputer i prześlij na telefon).
+2. Otwórz pobrany plik z powiadomień lub z menedżera plików (`Pobrane / Downloads`).
+3. Jeśli telefon zapyta o zezwolenie na instalowanie aplikacji z nieznanych źródeł dla danej przeglądarki/menedżera plików – kliknij **Zezwól / Ustawienia ➔ Zezwalaj z tego źródła**.
+4. Kliknij **Zainstaluj** (lub **Aktualizuj**).
+5. Aplikacja PetCare jest gotowa do użycia!

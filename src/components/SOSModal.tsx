@@ -6,9 +6,10 @@ interface SOSModalProps {
   isOpen: boolean;
   onClose: () => void;
   pet: Pet;
+  onOpenEmergencyVetFinder?: () => void;
 }
 
-export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose, pet }) => {
+export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose, pet, onOpenEmergencyVetFinder }) => {
   const [copiedChip, setCopiedChip] = useState(false);
 
   if (!isOpen) return null;
@@ -110,25 +111,39 @@ export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose, pet }) => {
             </div>
           )}
 
-          {/* Emergency Call Buttons */}
+          {/* Emergency Call & 24h Finder Buttons */}
           <div className="space-y-3 pt-2">
+            {onOpenEmergencyVetFinder && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenEmergencyVetFinder();
+                }}
+                className="flex items-center justify-center gap-2.5 w-full py-3.5 px-4 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 text-white font-extrabold rounded-2xl shadow-lg shadow-rose-600/30 active:scale-[0.98] transition cursor-pointer text-sm"
+              >
+                <ShieldAlert className="w-5 h-5 text-amber-300 animate-pulse shrink-0" />
+                <span>🚨 Znajdź dyżur weterynaryjny 24h w okolicy</span>
+              </button>
+            )}
+
             {pet.emergencyClinicPhone && (
               <a
                 href={`tel:${pet.emergencyClinicPhone}`}
-                className="flex items-center justify-center gap-3 w-full py-3.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-600/25 active:scale-[0.98] transition"
+                className="flex items-center justify-center gap-3 w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow active:scale-[0.98] transition text-xs"
               >
-                <Phone className="w-5 h-5 animate-pulse" />
-                Zadzwoń: Całodobowy Dyżur ({pet.emergencyClinicPhone})
+                <Phone className="w-4 h-4 text-emerald-400" />
+                <span>Zadzwoń: Mój Dyżur Całodobowy ({pet.emergencyClinicPhone})</span>
               </a>
             )}
 
             {pet.vetPhone && (
               <a
                 href={`tel:${pet.vetPhone}`}
-                className="flex items-center justify-center gap-3 w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-2xl shadow active:scale-[0.98] transition"
+                className="flex items-center justify-center gap-3 w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-2xl border border-slate-200 shadow-xs active:scale-[0.98] transition text-xs"
               >
-                <Phone className="w-4 h-4 text-emerald-400" />
-                Lekarz Prowadzący: {pet.vetDoctorName || 'Weterynarz'} ({pet.vetPhone})
+                <Phone className="w-4 h-4 text-teal-600" />
+                <span>Lekarz Prowadzący: {pet.vetDoctorName || 'Weterynarz'} ({pet.vetPhone})</span>
               </a>
             )}
           </div>

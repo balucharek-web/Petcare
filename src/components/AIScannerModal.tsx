@@ -166,8 +166,34 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Helper: Enhances contrast and strengthens faint handwriting / faded thermal ink
-  const enhanceImageContrast = (dataUrl: string): Promise<string> => {
+  const [deepDecipherMode, setDeepDecipherMode] = useState(true);
+  const [showRawDetectedText, setShowRawDetectedText] = useState(false);
+
+  // Rotate photo 90 degrees clockwise via HTML5 canvas
+  const handleRotateImage = () => {
+    if (!imagePreview) return;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalHeight || img.height;
+      canvas.height = img.naturalWidth || img.width;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      setImagePreview(canvas.toDataURL('image/jpeg', 0.95));
+    };
+    img.src = imagePreview;
+  };
+
+  const [filterPreset, setFilterPreset] = useState<'handwriting' | 'thermal' | 'shadows' | 'original'>('handwriting');
+  const [editingMedIndex, setEditingMedIndex] = useState<number | null>(null);
+
+  // Helper: Enhances contrast, handwriting strokes, or thermal paper ink according to preset
+  const enhanceImageWithPreset = (dataUrl: string, preset: 'handwriting' | 'thermal' | 'shadows' | 'original'): Promise<string> => {
+    if (preset === 'original') return Promise.resolve(dataUrl);
+
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -183,23 +209,40 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         try {
           const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const d = imgData.data;
-          // Adaptive contrast stretching and ink darkening:
+
           for (let i = 0; i < d.length; i += 4) {
             const r = d[i];
             const g = d[i + 1];
             const b = d[i + 2];
             const gray = 0.299 * r + 0.587 * g + 0.114 * b;
             let newGray = gray;
-            if (gray < 165) {
-              // Faint handwriting or faded dot matrix: darken ink
-              newGray = Math.max(0, gray * 0.72 - 18);
-            } else if (gray > 180) {
-              // Whitewash grayish paper background for high contrast
-              newGray = Math.min(255, gray * 1.12 + 15);
+
+            if (preset === 'handwriting') {
+              // Deep handwriting: darken ink strokes, whiten paper background
+              if (gray < 165) {
+                newGray = Math.max(0, gray * 0.65 - 20); // intensify pen ink
+              } else if (gray > 175) {
+                newGray = Math.min(255, gray * 1.15 + 18); // bleach background paper
+              }
+            } else if (preset === 'thermal') {
+              // Thermal receipt & faded dot matrix: steep binarization threshold
+              if (gray < 185) {
+                newGray = Math.max(0, gray * 0.5 - 25); // heavily darken faded dot matrix
+              } else {
+                newGray = 255;
+              }
+            } else if (preset === 'shadows') {
+              // Shadow removal: brighten dark shaded zones while preserving ink
+              if (gray < 90) {
+                newGray = Math.max(0, gray * 0.7); // keep ink dark
+              } else {
+                newGray = Math.min(255, Math.pow(gray / 255, 0.7) * 255 + 20); // lift shadows
+              }
             }
-            d[i] = Math.round((r * 0.25) + (newGray * 0.75));
-            d[i + 1] = Math.round((g * 0.25) + (newGray * 0.75));
-            d[i + 2] = Math.round((b * 0.25) + (newGray * 0.75));
+
+            d[i] = Math.round((r * 0.2) + (newGray * 0.8));
+            d[i + 1] = Math.round((g * 0.2) + (newGray * 0.8));
+            d[i + 2] = Math.round((b * 0.2) + (newGray * 0.8));
           }
           ctx.putImageData(imgData, 0, 0);
           resolve(canvas.toDataURL('image/jpeg', 0.94));
@@ -221,18 +264,18 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     setExtractedData(null);
 
     try {
-      // 0. Preprocess image if enhancement is enabled
+      // 0. Preprocess image with chosen preset
       const imageToSend = isEnhanceEnabled
-        ? await enhanceImageContrast(imagePreview)
+        ? await enhanceImageWithPreset(imagePreview, filterPreset)
         : imagePreview;
 
       const apiUrl = getApiUrl('/api/scan-medical');
       let extracted: ExtractedMedicalData | null = null;
 
-      // 1. Attempt server AI call with 35s timeout for complex handwriting
+      // 1. Attempt server AI call with 45s timeout for complex handwriting
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
 
         const res = await fetch(apiUrl, {
           method: 'POST',
@@ -242,6 +285,8 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
             imageBase64: imageToSend,
             petName: pet.name,
             petSpecies: pet.species,
+            petWeightKg: pet.weightKg,
+            deepDecipherMode,
           }),
         });
         clearTimeout(timeoutId);
@@ -287,22 +332,33 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     if (!extractedData?.medications || extractedData.medications.length === 0) return;
 
     const currentMeds = storage.getMedications(pet.id);
-    const newItems: Medication[] = extractedData.medications.map((m: any, index: number) => ({
-      id: `med-ai-${Date.now()}-${index}`,
-      petId: pet.id,
-      name: m.name || 'Lek z recepty',
-      form: m.form || 'tablet',
-      dosage: m.dosage || '1 dawka',
-      timesOfDay: [
-        { id: `t1-${index}`, label: 'Rano', time: '08:00', amount: m.dosage || '1 tabl.' },
-        { id: `t2-${index}`, label: 'Wieczór', time: '20:00', amount: m.dosage || '1 tabl.' },
-      ],
-      instructions: m.instructions || 'Zgodnie z zaleceniem lekarza',
-      startDate: new Date().toISOString().slice(0, 10),
-      isChronic: !!m.isChronic,
-      isActive: true,
-      notes: `Zeskanowano przez AI: ${extractedData.title || ''}`,
-    }));
+    const newItems: Medication[] = extractedData.medications.map((m: any, index: number) => {
+      const suggestedTimes = Array.isArray(m.suggestedHours) && m.suggestedHours.length > 0
+        ? m.suggestedHours.map((h: string, hi: number) => ({
+            id: `t-${index}-${hi}`,
+            label: h < '12:00' ? 'Rano' : h < '17:00' ? 'Popołudnie' : 'Wieczór',
+            time: h,
+            amount: m.dosage || '1 tabl.',
+          }))
+        : [
+            { id: `t1-${index}`, label: 'Rano', time: '08:00', amount: m.dosage || '1 tabl.' },
+            { id: `t2-${index}`, label: 'Wieczór', time: '20:00', amount: m.dosage || '1 tabl.' },
+          ];
+
+      return {
+        id: `med-ai-${Date.now()}-${index}`,
+        petId: pet.id,
+        name: m.name || 'Lek z recepty',
+        form: m.form || 'tablet',
+        dosage: m.dosage || '1 dawka',
+        timesOfDay: suggestedTimes,
+        instructions: m.instructions || 'Zgodnie z zaleceniem lekarza',
+        startDate: new Date().toISOString().slice(0, 10),
+        isChronic: !!m.isChronic,
+        isActive: true,
+        notes: `Zeskanowano przez AI: ${extractedData.title || ''}`,
+      };
+    });
 
     storage.saveMedications([...storage.getMedications().filter(m => m.petId !== pet.id), ...currentMeds, ...newItems]);
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
@@ -483,41 +539,94 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   alt="Zeskanowany dokument"
                   className="w-full h-full object-contain"
                 />
-                <button
-                  onClick={() => {
-                    setImagePreview(null);
-                    setExtractedData(null);
-                  }}
-                  className="absolute top-2 right-2 p-2 rounded-xl bg-black/70 hover:bg-black text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md"
-                >
-                  <X className="w-4 h-4" />
-                  Zmień zdjęcie
-                </button>
+                <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                  <button
+                    onClick={handleRotateImage}
+                    title="Obróć zdjęcie o 90 stopni (jeśli aparat zrobił je bokiem lub do góry nogami)"
+                    className="p-2 rounded-xl bg-black/70 hover:bg-black text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Obróć 90°</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImagePreview(null);
+                      setExtractedData(null);
+                    }}
+                    className="p-2 rounded-xl bg-black/70 hover:bg-black text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-md"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Zmień</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Handwriting and Faded Print Filter Toggle */}
+              {/* Advanced Handwriting & Faint Print Enhancement Controls */}
               {!extractedData && (
-                <div className="p-3 bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 rounded-2xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                        Filtr AI: Wyostrzanie pisma ręcznego i bladego druku
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Zwiększa kontrast dla trudnych recept, niewyraźnych wydruków i papieru termicznego
-                      </p>
+                <div className="space-y-2.5">
+                  {/* Filter presets tabs */}
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                        Optymalizacja obrazu do trudnych dokumentów:
+                      </span>
+                      <span className="text-[10px] text-teal-700 dark:text-teal-300 font-bold uppercase">
+                        AI Pre-processing
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'handwriting', label: '✍️ Pismo odręczne', desc: 'Wyostrzenie tuszu' },
+                        { id: 'thermal', label: '🧾 Druk termiczny', desc: 'Wyblakły paragon' },
+                        { id: 'shadows', label: '☀️ Cienie / Kąt', desc: 'Wyrównanie światła' },
+                        { id: 'original', label: '📷 Bez filtra', desc: 'Oryginalne foto' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setFilterPreset(preset.id as any)}
+                          className={`p-2 rounded-xl text-left transition border cursor-pointer ${
+                            filterPreset === preset.id
+                              ? 'bg-teal-600 text-white border-teal-700 font-bold shadow-xs'
+                              : 'bg-white dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
+                          }`}
+                        >
+                          <div className="text-xs leading-tight font-semibold">{preset.label}</div>
+                          <div className={`text-[10px] ${filterPreset === preset.id ? 'text-teal-100' : 'text-slate-400'}`}>
+                            {preset.desc}
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsEnhanceEnabled(!isEnhanceEnabled)}
-                    className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
-                      isEnhanceEnabled ? 'bg-teal-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
-                    }`}
-                  >
-                    <div className="w-4 h-4 bg-white rounded-full shadow-xs" />
-                  </button>
+
+                  <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <FileSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                          <span>Rozszyfrowywanie bazgrołów lekarskich (Deep OCR)</span>
+                          <span className="text-[9px] bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.2 rounded font-bold uppercase">
+                            Aktywny
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Automatycznie uzupełnia skróty (Rp., D.S., co 12h, 1/2 tab.) i dopasowuje dawki do wagi {pet.name} ({pet.weightKg} kg)
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeepDecipherMode(!deepDecipherMode)}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
+                        deepDecipherMode ? 'bg-indigo-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
+                      }`}
+                    >
+                      <div className="w-4 h-4 bg-white rounded-full shadow-xs" />
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -575,46 +684,191 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
-                  <div className="flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-[10px] uppercase font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
                       Rozpoznany dokument: {extractedData.type || 'Medyczny'}
                     </span>
+                    {extractedData.confidence && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                        extractedData.confidence === 'high'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                          : extractedData.confidence === 'medium'
+                          ? 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      }`}>
+                        <Sparkles className="w-3 h-3" />
+                        <span>Dokładność AI: {extractedData.confidence === 'high' ? 'Wysoka (100% czytelne)' : extractedData.confidence === 'medium' ? 'Zrekonstruowano z pisma ręcznego' : 'Szacunkowa'}</span>
+                      </span>
+                    )}
                   </div>
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white">{extractedData.title || 'Karta wizyty'}</h4>
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{extractedData.summary}</p>
+
+                  {extractedData.detectedRawText && (
+                    <div className="pt-2 border-t border-slate-200/70 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setShowRawDetectedText(!showRawDetectedText)}
+                        className="text-[11px] font-bold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>{showRawDetectedText ? '▾ Ukryj odczytany tekst lekarski' : '▸ Pokaż odczytany surowy tekst lekarski (OCR)'}</span>
+                      </button>
+                      {showRawDetectedText && (
+                        <div className="mt-1.5 p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-36 overflow-y-auto">
+                          {extractedData.detectedRawText}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Extracted Medications */}
               {extractedData.medications && extractedData.medications.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
                       <Pill className="w-4 h-4 text-teal-600" />
                       Wykryte Leki ({extractedData.medications.length})
                     </h5>
-                    <button
-                      onClick={handleImportMedications}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Dodaj leki do planu {pet.name}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newMed = {
+                            name: 'Nowy lek',
+                            dosage: '1 tabl.',
+                            instructions: '1x dziennie',
+                            form: 'tablet',
+                            suggestedHours: ['08:00', '20:00'],
+                            isChronic: false,
+                          };
+                          const list = extractedData.medications || [];
+                          setExtractedData({ ...extractedData, medications: [...list, newMed] });
+                          setEditingMedIndex(list.length);
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Dodaj wiersz</span>
+                      </button>
+                      <button
+                        onClick={handleImportMedications}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Dodaj leki do planu {pet.name}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    {extractedData.medications.map((med: any, idx: number) => (
-                      <div key={idx} className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-                        <div className="flex justify-between items-center">
-                          <strong className="text-slate-900 dark:text-white text-sm">{med.name}</strong>
-                          <span className="font-bold text-teal-700 dark:text-teal-300">{med.dosage}</span>
+                    {extractedData.medications.map((med: any, idx: number) => {
+                      const isEditing = editingMedIndex === idx;
+
+                      if (isEditing) {
+                        return (
+                          <div key={idx} className="p-3 rounded-xl bg-teal-50/60 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-700 text-xs space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Nazwa leku</label>
+                                <input
+                                  type="text"
+                                  value={med.name}
+                                  onChange={(e) => {
+                                    const updated = [...extractedData.medications];
+                                    updated[idx] = { ...updated[idx], name: e.target.value };
+                                    setExtractedData({ ...extractedData, medications: updated });
+                                  }}
+                                  className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-900 dark:text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Dawkowanie</label>
+                                <input
+                                  type="text"
+                                  value={med.dosage}
+                                  onChange={(e) => {
+                                    const updated = [...extractedData.medications];
+                                    updated[idx] = { ...updated[idx], dosage: e.target.value };
+                                    setExtractedData({ ...extractedData, medications: updated });
+                                  }}
+                                  className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-900 dark:text-white"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Zalecenia i sposób podania</label>
+                              <input
+                                type="text"
+                                value={med.instructions || ''}
+                                onChange={(e) => {
+                                  const updated = [...extractedData.medications];
+                                  updated[idx] = { ...updated[idx], instructions: e.target.value };
+                                  setExtractedData({ ...extractedData, medications: updated });
+                                }}
+                                className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-xs text-slate-800 dark:text-slate-200"
+                              />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = extractedData.medications.filter((_: any, i: number) => i !== idx);
+                                  setExtractedData({ ...extractedData, medications: updated });
+                                  setEditingMedIndex(null);
+                                }}
+                                className="px-2.5 py-1 text-[11px] text-rose-600 font-bold hover:underline"
+                              >
+                                Usuń
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingMedIndex(null)}
+                                className="px-3 py-1 bg-teal-600 text-white rounded-lg text-[11px] font-bold shadow-xs hover:bg-teal-500"
+                              >
+                                Gotowe
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={idx} className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <strong className="text-slate-900 dark:text-white text-sm">{med.name}</strong>
+                              <span className="ml-2 font-bold text-teal-700 dark:text-teal-300">{med.dosage}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setEditingMedIndex(idx)}
+                                className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer"
+                              >
+                                Popraw
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = extractedData.medications.filter((_: any, i: number) => i !== idx);
+                                  setExtractedData({ ...extractedData, medications: updated });
+                                }}
+                                className="text-[11px] text-slate-400 hover:text-rose-600 cursor-pointer"
+                                title="Usuń ten lek z listy"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                          {med.instructions && (
+                            <p className="text-slate-500 dark:text-slate-400 text-[11px]">{med.instructions}</p>
+                          )}
                         </div>
-                        {med.instructions && (
-                          <p className="text-slate-500 dark:text-slate-400 text-[11px]">{med.instructions}</p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

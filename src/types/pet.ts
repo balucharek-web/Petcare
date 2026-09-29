@@ -30,6 +30,7 @@ export interface Pet {
   vetDoctorName?: string;
   vetPhone?: string;
   emergencyClinicPhone?: string;
+  emergencyClinicName?: string;
   bookletScans?: { id: string; url: string; title: string; date: string }[]; // skany fizycznej książeczki zdrowia
   weightHistory: PetWeightEntry[];
   createdAt: string;
@@ -204,7 +205,34 @@ export type DashboardWidgetKey =
   | 'healthAlerts'
   | 'vetContact';
 
-export type DashboardConfig = Record<DashboardWidgetKey, boolean>;
+export const DEFAULT_WIDGET_ORDER: DashboardWidgetKey[] = [
+  'shortcuts',
+  'aiScanner',
+  'nutritionCalculator',
+  'toxicChecker',
+  'expensesWidget',
+  'petsitterCard',
+  'chipAndDocs',
+  'weightTracker',
+  'bookletScans',
+  'healthAlerts',
+  'vetContact',
+];
+
+export interface DashboardConfig {
+  shortcuts: boolean;
+  nutritionCalculator: boolean;
+  weightTracker: boolean;
+  chipAndDocs: boolean;
+  toxicChecker: boolean;
+  expensesWidget: boolean;
+  petsitterCard: boolean;
+  aiScanner: boolean;
+  bookletScans: boolean;
+  healthAlerts: boolean;
+  vetContact: boolean;
+  order?: DashboardWidgetKey[];
+}
 
 export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   shortcuts: true,
@@ -218,4 +246,6 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   bookletScans: true,
   healthAlerts: true,
   vetContact: true,
+  order: DEFAULT_WIDGET_ORDER,
 };
+

@@ -6,16 +6,23 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 
 // Ensure dark status bar icons (clock, battery, signal) are clearly visible on light mode
-if (Capacitor.isNativePlatform()) {
-  StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-  StatusBar.setBackgroundColor({ color: '#ffffff' }).catch(() => {});
-  StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
-  StatusBar.show().catch(() => {});
+try {
+  if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+    StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: '#ffffff' }).catch(() => {});
+    StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+    StatusBar.show().catch(() => {});
+  }
+} catch (e) {
+  console.warn('StatusBar initialization skipped:', e);
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
 

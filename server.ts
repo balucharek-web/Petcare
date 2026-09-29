@@ -322,7 +322,7 @@ async function startServer() {
 
   // API Route: AI Medical & Prescription Scanner
   app.post('/api/scan-medical', async (req, res) => {
-    const { imageBase64, mimeType, petSpecies, petName } = req.body || {};
+    const { imageBase64, mimeType, petSpecies, petName, petWeightKg, deepDecipherMode } = req.body || {};
 
     try {
       if (!imageBase64) {
@@ -351,42 +351,40 @@ async function startServer() {
       const effectiveMime = mimeMatch ? mimeMatch[1] : (mimeType || 'image/jpeg');
       const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
 
-      const prompt = `Jesteś najwyższej klasy weterynaryjnym ekspertem OCR i analizy trudnych dokumentów medycznych, recept oraz opakowań leków.
-Specjalizujesz się w ODCZYTYWANIU BARDZO TRUDNYCH TEKSTÓW:
-1. PISMA RĘCZNEGO LEKARZY WETERYNARII (niedbałe pismo lekarskie, pochyła kursywa, bazgroły, odręczne recepty i kartki z zaleceniami),
-2. BLADEGO, NIEDODRUKOWANEGO LUB ZNISZCZONEGO PISMA KOMPUTEROWEGO (wydruki z papieru termicznego, drukarki igłowe z brakującymi kropkami, kończący się toner, niska jasność/kontrast).
+      const prompt = `Jesteś najwyższej klasy weterynaryjnym ekspertem OCR, transkrypcji i analizy dokumentów medycznych, recept, kart wypisowych oraz opakowań leków.
+Twoim głównym zadaniem jest PRECYZYJNE ROZPOZNANIE I ODCZYTANIE NAWET BARDZO TRUDNYCH MATERIAŁÓW:
+1. PISMA RĘCZNEGO LEKARZY WETERYNARII:
+   - Szybkie, pochyłe bazgroły, zniekształcone litery, połączone znaki kursywy,
+   - Odręczne zalecenia na kartce, recepty lekarskie, odręczne wpisy w książeczce zdrowia.
+2. BLADEGO, ZNISZCZONEGO LUB NIEDODRUKOWANEGO TEKSTU:
+   - Wydruki na papierze termicznym z lecznicy (wyblakły fioletowy/szary tusz, zatarte fragmenty),
+   - Drukarki igłowe z brakującymi igłami/punktami,
+   - Słaby toner, zagięty lub zmięty papier, cienie od dłoni, żółte sztuczne światło, lekki obrót lub pochylenie kadru.
 
-KROK 1 - IDENTYFIKACJA DOKUMENTU:
-Sprawdź czy przesłany obraz to:
-- Odręczna lub drukowana recepta weterynaryjna / lekarska,
-- Karta wizyty, wypis z lecznicy, zalecenia lekarskie (ręczne lub drukowane),
-- Wyniki badań laboratoryjnych lub diagnostycznych,
-- Opakowanie leku, blister, buteleczka, etykieta preparatu.
+KONTEKST PACJENTA:
+- Imię: ${petName || 'pacjent'}
+- Gatunek: ${petSpecies || 'pies/kot'}
+- Waga: ${petWeightKg ? `${petWeightKg} kg` : 'nieznana'}
+${deepDecipherMode ? '- TRYB GŁĘBOKIEGO ROZSZYFROWYWANIA: Włączony. Przeprowadź drobiazgową analizę każdego pociągnięcia długopisu/tuszu.' : ''}
 
-JEŚLI OBRAZ TO CAŁKOWICIE NIEMEDYCZNY PRZEDMIOT (np. gazetka reklamowa, ulotka pizzerii, mebel, ubranie, zdjęcie krajobrazu, paragon ze sklepu spożywczego):
-Zwróć:
-{
-  "isValidMedicalDocument": false,
-  "type": "invalid",
-  "title": "Dokument niemedyczny",
-  "summary": "Przesłany obraz nie przedstawia recepty weterynaryjnej, opakowania leku ani karty informacyjnej z lecznicy.",
-  "medications": [],
-  "examParameters": [],
-  "doctorNotes": ""
-}
+ZASADY TRANSLACJI I ROZPOZNAWANIA WETERYNARYJNEGO:
+- Wykorzystaj wiedzę o skrótach medycznych:
+  * "Rp." (Recipe - weź/przepisano)
+  * "D.S." lub "S." (Da Signa - oznacz dawkowanie)
+  * "tabl.", "tab.", "kaps.", "inj.", "s.c.", "p.o.", "i.m.", "zawiesina", "krople", "maść", "syrop"
+  * "1x1", "2x1", "1x dz.", "2x dz.", "co 12h", "co 24h", "co 8h", "1/2 tab.", "1/4 tab.", "0.5 tabl."
+  * "rano i wieczorem", "z posiłkiem", "na czczo", "przez X dni".
+- Wykorzystaj znajomość leków weterynaryjnych:
+  * Przeciwbólowe/NLPZ: Onsior, Metacam (Meloksykam), Cimalgex, Previcox, Rimadyl, Trocoxil, Cortavet
+  * Antybiotyki: Synulox, Kesium, Clavaseptin, Amotaks, Marbocyl, Enrobioflox, Baytril, Synergal
+  * Dermatologia/Alergie: Apoquel (5.4mg, 16mg), Cytopoint, Atopica, Cortavance, Dexafort
+  * Kardiologia i Nerki: Vetmedin, Cardalis, Cardisure, Benakor, Fortekor, Semintra, Pronefra, RenalVet
+  * Przeciwpasożytnicze: Bravecto, NexGard, Simparica, Credelio, Milpro, Milprazon, Drontal, Dehinel, NexGard Spectra
+  * Gastrologia: Cerenia, Flora Defense, Hepato Force, Zentonil, Venter, Ranigast
+  * Sterydy i inne: Encorton, Prednicortone, Gabapentyna, Pexion.
+  Dopasuj nawet częściowo nieczytelne słowa (np. "Sy...ux 250" -> "Synulox 250 mg", "Apoq... 5.4" -> "Apoquel 5.4 mg").
 
-KROK 2 - DEKODOWANIE PISMA RĘCZNEGO I BLADEGO DRUKU (JEŚLI TO DOKUMENT MEDYCZNY/LEK):
-Wykorzystaj zaawansowane reguły dekodowania:
-A) PISMO RĘCZNE LEKARZA:
-- Rozpoznawaj łacińskie i weterynaryjne skróty: "Rp." (weź), "D.S." lub "S." (dawkowanie), "tabl." / "tab." (tabletki), "kaps." (kapsułki), "op." (opakowanie), "inj." / "i.m." / "s.c." / "p.o." (podanie), "sol." (roztwór), "susp." (zawiesina).
-- Rozszyfruj odręczne zapisy dawkowania, np. "1x1", "2x1", "1/2 tab.", "1/4 tab.", "1x dz.", "co 12h", "rano i wiecz.", "z karmą", "przez 7 dni".
-- Użyj wiedzy o lekach weterynaryjnych (Synulox, Kesium, Amotaks, Metacam, Onsior, Apoquel, Cytopoint, Bravecto, Nexgard, Simparica, Milpro, Milprazon, Vetmedin, Cardisure, Semintra, Cerenia, Gabapentyna, Encorton, Prednicortone, Cimalgex, Flora Defense itp.). Nawet jeśli litery są zniekształcone, połączone lub pośpieszne, dopasuj je do właściwego preparatu na podstawie widocznych liter i kontekstu.
-
-B) BLADY LUB CZĘŚCIOWO WYDRUKOWANY TEKST KOMPUTEROWY:
-- Rozszyfruj wydruki termiczne z lecznic (często wyblakłe po czasie lub z brakującymi fragmentami wierszy).
-- Zrekonstruuj przerwane litery z drukarek igłowych (brakujące kropki w literach i cyfrach) oraz słabego tonera.
-
-Pacjent: ${petName || 'zwierzak'} (${petSpecies || 'pies/kot'}).
+- Wygeneruj sugerowane konkretne godziny podania (np. 2x dziennie -> ["08:00", "20:00"]; 1x rano -> ["08:00"]).
 
 Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
 {
@@ -394,13 +392,16 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
   "type": "medication" | "exam_blood" | "visit_recommendation" | "invalid",
   "title": string,
   "summary": string,
+  "confidence": "high" | "medium" | "estimated",
+  "detectedRawText": string,
   "medications": [
     {
       "name": string,
       "dosage": string,
       "instructions": string,
       "form": "tablet" | "capsule" | "liquid" | "drops" | "ointment" | "injection" | "other",
-      "isChronic": boolean
+      "isChronic": boolean,
+      "suggestedHours": string[]
     }
   ],
   "examParameters": [
@@ -421,7 +422,12 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
 
       for (const modelName of CANDIDATE_MODELS) {
         try {
-          console.log(`[AI Scanner] Próba analizy modelem: ${modelName}`);
+          console.log(`[AI Scanner] Próba zaawansowanej analizy modelem: ${modelName}`);
+          
+          const requestConfig: any = {
+            responseMimeType: 'application/json',
+          };
+
           response = await ai.models.generateContent({
             model: modelName,
             contents: [
@@ -438,9 +444,7 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
                 ],
               },
             ],
-            config: {
-              responseMimeType: 'application/json',
-            },
+            config: requestConfig,
           });
           if (response && response.text) {
             console.log(`[AI Scanner] Sukces z modelem: ${modelName}`);
