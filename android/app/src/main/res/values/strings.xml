@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PetCare</string>
+    <string name="title_activity_main">PetCare</string>
+    <string name="package_name">pl.petcare.asystent</string>
+    <string name="custom_url_scheme">pl.petcare.asystent</string>
+</resources>

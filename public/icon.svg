@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="petGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="50%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#0891b2" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#047857" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#petGrad)"/>
+  
+  <!-- Main paw pad with health cross -->
+  <g filter="url(#shadow)" fill="#ffffff">
+    <!-- Center main pad -->
+    <path d="M256 220 C200 220 160 270 160 330 C160 380 200 420 256 420 C312 420 352 380 352 330 C352 270 312 220 256 220 Z"/>
+    <!-- Paw toe 1 -->
+    <circle cx="160" cy="180" r="42"/>
+    <!-- Paw toe 2 -->
+    <circle cx="225" cy="135" r="42"/>
+    <!-- Paw toe 3 -->
+    <circle cx="287" cy="135" r="42"/>
+    <!-- Paw toe 4 -->
+    <circle cx="352" cy="180" r="42"/>
+  </g>
+  
+  <!-- Red/Emerald Cross inside main pad -->
+  <g fill="#0d9488">
+    <rect x="238" y="275" width="36" height="100" rx="10"/>
+    <rect x="206" y="307" width="100" height="36" rx="10"/>
+    <!-- Heart pulse or sparkle -->
+    <circle cx="256" cy="325" r="8" fill="#ffffff"/>
+  </g>
+</svg>

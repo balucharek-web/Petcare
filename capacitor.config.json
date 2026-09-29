@@ -1,0 +1,13 @@
+{
+  "appId": "pl.petcare.asystent",
+  "appName": "PetCare",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#ffffff",
+      "overlaysWebView": false
+    }
+  }
+}

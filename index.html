@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>PetCare - Zdrowie i Leki Zwierzaka</title>
+    <meta name="description" content="Aplikacja mobilna dla opiekuna zwierzaka: książeczka zdrowia, historia szczepień, badań i chorób, dawkowanie leków oraz integracja z kalendarzem Google i telefonem." />
+    <meta property="og:title" content="PetCare - Zdrowie i Leki Zwierzaka" />
+    <meta property="og:description" content="Aplikacja mobilna dla opiekuna zwierzaka: książeczka zdrowia, historia szczepień, badań i chorób, dawkowanie leków oraz integracja z kalendarzem Google i telefonem." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- PWA & Mobile Meta -->
+    <meta name="application-name" content="PetCare" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="PetCare" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Early PWA Prompt & SW Setup -->
+    <script>
+      // Capture beforeinstallprompt immediately on page load
+      window.deferredPWAInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.deferredPWAInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready', { detail: e }));
+        console.log('PWA installation prompt captured and ready');
+      });
+
+      // Ensure fresh code in preview by clearing service workers
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var reg of registrations) {
+            reg.unregister();
+          }
+        });
+        if ('caches' in window) {
+          caches.keys().then(function(keys) {
+            keys.forEach(function(key) { caches.delete(key); });
+          });
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-slate-100 text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
