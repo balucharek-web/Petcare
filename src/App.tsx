@@ -30,9 +30,9 @@ import { AlertsBanner } from './components/AlertsBanner';
 import { getUpcomingAlerts } from './services/notifications';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
-// Google Drive Sync
+// Cloud Sync
 import { GoogleSyncModal } from './components/GoogleSyncModal';
-import { initAuth, checkDailyAutoSync } from './services/googleDriveSync';
+import { checkDailyAutoSync } from './services/cloudSyncService';
 
 // New Feature Modals
 import { MedicalReportModal } from './components/MedicalReportModal';
@@ -88,21 +88,12 @@ export default function App() {
     };
   }, []);
 
-  // Initialize Google Auth and daily background synchronization
+  // Initialize daily background synchronization
   useEffect(() => {
-    // 1. Initialize auth listener
-    initAuth(
-      () => {
-        // Trigger auto-sync check if 24 hours have passed
-        checkDailyAutoSync().catch(() => {});
-      },
-      () => {}
-    );
-
-    // 2. Perform background auto-sync check on app startup
+    // 1. Perform background auto-sync check on app startup
     checkDailyAutoSync().catch(() => {});
 
-    // 3. Periodic check every 1 hour and on app visibility change
+    // 2. Periodic check every 1 hour and on app visibility change
     const interval = setInterval(() => {
       checkDailyAutoSync().catch(() => {});
     }, 60 * 60 * 1000);
@@ -262,7 +253,7 @@ export default function App() {
                 className="w-full py-3 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-2xl font-bold text-xs shadow-xs active:scale-95 transition flex items-center justify-center gap-2"
               >
                 <Cloud className="w-4 h-4 text-emerald-600" />
-                <span>Pobierz zwierzaki z Dysku Google</span>
+                <span>Pobierz zwierzaki z chmury</span>
               </button>
             </div>
           </div>

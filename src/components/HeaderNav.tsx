@@ -20,7 +20,7 @@ import {
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { getStoredSyncMetadata, subscribeToSyncUpdates } from '../services/googleDriveSync';
+import { getStoredSession, subscribeToCloudSync, CloudSession } from '../services/cloudSyncService';
 
 interface HeaderNavProps {
   pets: Pet[];
@@ -54,12 +54,12 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   const [showPetDropdown, setShowPetDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [syncMeta, setSyncMeta] = useState(getStoredSyncMetadata());
+  const [session, setSession] = useState<CloudSession>(getStoredSession());
   const { install, isInstalled } = usePWAInstall();
 
   useEffect(() => {
-    const unsub = subscribeToSyncUpdates((meta) => {
-      setSyncMeta(meta);
+    const unsub = subscribeToCloudSync((s) => {
+      setSession(s);
     });
     return () => unsub();
   }, []);
@@ -216,24 +216,24 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
           {/* Quick Action Badges */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Google Drive Cloud Sync */}
+            {/* Cloud Sync */}
             <button
               onClick={onOpenGoogleSync}
-              title={syncMeta.userEmail ? `Dysk Google: Połączono (${syncMeta.userEmail})` : 'Synchronizacja z Dyskiem Google'}
+              title={session.user?.email ? `Chmura PetCare: Połączono (${session.user.email})` : 'Synchronizacja w Chmurze'}
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl active:scale-95 transition text-xs font-bold border shadow-xs ${
-                syncMeta.userEmail 
+                session.user 
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' 
                   : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
               }`}
             >
               <div className="relative">
-                <Cloud className={`w-3.5 h-3.5 ${syncMeta.userEmail ? 'text-emerald-600' : 'text-slate-500'}`} />
-                {syncMeta.userEmail && (
+                <Cloud className={`w-3.5 h-3.5 ${session.user ? 'text-emerald-600' : 'text-slate-500'}`} />
+                {session.user && (
                   <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                 )}
               </div>
               <span className="hidden sm:inline">
-                {syncMeta.userEmail ? 'Chmura' : 'Sync'}
+                {session.user ? 'Chmura' : 'Sync'}
               </span>
             </button>
 
@@ -311,7 +311,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             </p>
 
             <div className="space-y-3">
-              {/* Google Drive Sync Option in Settings */}
+              {/* Cloud Sync Option in Settings */}
               <button
                 onClick={() => {
                   setShowSettingsModal(false);
@@ -321,10 +321,10 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <Cloud className="w-4 h-4 text-emerald-600" />
-                  <span>Synchronizacja z Dyskiem Google</span>
+                  <span>Synchronizacja w Chmurze</span>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800">
-                  {syncMeta.userEmail ? 'Połączono' : 'Auto 24h'}
+                  {session.user ? 'Połączono' : 'Auto 24h'}
                 </span>
               </button>
 

@@ -50,11 +50,11 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   const tools = [
     {
       id: 'google-sync',
-      label: 'Synchronizacja z Dyskiem Google',
+      label: 'Synchronizacja w Chmurze (PetCare Cloud)',
       desc: 'Automatyczna kopia w chmurze (24h) i dostęp z wielu urządzeń',
       icon: Cloud,
       color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-      badge: 'Chmura Google',
+      badge: 'Chmura PetCare',
       action: onOpenGoogleSync,
     },
     {
