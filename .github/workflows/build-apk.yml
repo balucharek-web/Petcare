@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch: # Umożliwia ręczne uruchomienie w zakładce Actions jednym kliknięciem
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Budowanie APK
