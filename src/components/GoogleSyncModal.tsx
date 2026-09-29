@@ -79,9 +79,16 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     return () => unsubscribe();
   }, [isOpen]);
 
-  // Initialize Google Identity Services (GIS) when modal opens and user is not signed in
+  // Cancel Google floating One-Tap prompt when modal is closed or user is signed in
   useEffect(() => {
-    if (!isOpen || session.user) return;
+    if (!isOpen || session.user) {
+      if (window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.cancel();
+        } catch {}
+      }
+      return;
+    }
 
     const setupGoogleGsi = () => {
       if (window.google?.accounts?.id && googleBtnContainerRef.current) {
@@ -118,7 +125,12 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     };
 
     const timer = setTimeout(setupGoogleGsi, 150);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      try {
+        window.google?.accounts?.id?.cancel();
+      } catch {}
+    };
   }, [isOpen, session.user]);
 
   if (!isOpen) return null;

@@ -163,15 +163,15 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowPetDropdown(!showPetDropdown)}
-              className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-98 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 transition active:scale-98 border border-slate-200/90 dark:border-slate-700/80 shadow-xs"
             >
-              <div className="relative">
+              <div className="relative shrink-0">
                 <img
                   src={activePet?.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
                   alt={activePet?.name}
-                  className="w-10 h-10 rounded-xl object-cover ring-2 ring-teal-500 shadow-xs"
+                  className="w-10 h-10 rounded-xl object-cover ring-2 ring-teal-500 shadow-xs bg-white"
                 />
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-600 text-white rounded-full flex items-center justify-center text-[10px]">
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-600 text-white rounded-full flex items-center justify-center text-[10px] shadow-xs">
                   {activePet?.species === 'dog' ? '🐶' : activePet?.species === 'cat' ? '🐱' : '🐾'}
                 </span>
               </div>

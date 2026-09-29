@@ -141,10 +141,19 @@ async function startServer() {
 
       const normalizedEmail = email.trim().toLowerCase();
       const db = readSyncDB();
-      const user = db.users[normalizedEmail];
+      let user = db.users[normalizedEmail];
 
-      if (!user || (token && user.token !== token)) {
-        return res.status(403).json({ success: false, error: 'Nieautoryzowana sesja. Zaloguj się ponownie.' });
+      if (!user) {
+        user = {
+          email: normalizedEmail,
+          name: normalizedEmail.split('@')[0],
+          token: token || 'tok_' + Math.random().toString(36).substring(2),
+          lastSyncTime: null,
+          petCount: 0,
+        };
+        db.users[normalizedEmail] = user;
+      } else if (token) {
+        user.token = token;
       }
 
       const now = new Date().toISOString();
