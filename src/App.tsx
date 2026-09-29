@@ -33,6 +33,8 @@ import { usePWAInstall } from './hooks/usePWAInstall';
 // Cloud Sync
 import { GoogleSyncModal } from './components/GoogleSyncModal';
 import { checkDailyAutoSync, getStoredSession, subscribeToCloudSync } from './services/cloudSyncService';
+import { NotificationSettingsModal } from './components/NotificationSettingsModal';
+import { syncAllScheduledNotifications } from './services/notificationService';
 
 // New Feature Modals
 import { MedicalReportModal } from './components/MedicalReportModal';
@@ -77,6 +79,7 @@ export default function App() {
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
   const [isToolsHubOpen, setIsToolsHubOpen] = useState(false);
   const [isGoogleSyncOpen, setIsGoogleSyncOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Preview Mode: Android phone frame vs Full screen
   const [deviceFrameMode, setDeviceFrameMode] = useState<'mobile' | 'full'>('mobile');
@@ -123,14 +126,16 @@ export default function App() {
     };
   }, []);
 
-  // Initialize daily background synchronization
+  // Initialize daily background synchronization and push notifications
   useEffect(() => {
     // 1. Perform background auto-sync check on app startup
     checkDailyAutoSync().catch(() => {});
+    syncAllScheduledNotifications().catch(() => {});
 
     // 2. Periodic check every 1 hour and on app visibility change
     const interval = setInterval(() => {
       checkDailyAutoSync().catch(() => {});
+      syncAllScheduledNotifications().catch(() => {});
     }, 60 * 60 * 1000);
 
     const handleVisibility = () => {
@@ -432,6 +437,7 @@ export default function App() {
           onOpenAIScanner={() => setIsAIScannerOpen(true)}
           onOpenToolsHub={() => setIsToolsHubOpen(true)}
           onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
           onDataChanged={reloadData}
         />
 
@@ -633,6 +639,10 @@ export default function App() {
           onOpenPetsitter={() => setIsPetsitterOpen(true)}
           onOpenDashboardCustomizer={() => setIsCustomizerOpen(true)}
           onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
+          onOpenNotifications={() => {
+            setIsToolsHubOpen(false);
+            setIsNotificationsOpen(true);
+          }}
           onOpenSettings={() => {
             // Can be opened from HeaderNav
             setIsToolsHubOpen(false);
@@ -646,6 +656,14 @@ export default function App() {
           isOpen={isGoogleSyncOpen}
           onClose={() => setIsGoogleSyncOpen(false)}
           onDataRestored={reloadData}
+        />
+      )}
+
+      {/* Push Notifications Settings & Test Modal */}
+      {isNotificationsOpen && (
+        <NotificationSettingsModal
+          isOpen={isNotificationsOpen}
+          onClose={() => setIsNotificationsOpen(false)}
         />
       )}
     </div>

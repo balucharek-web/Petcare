@@ -18,7 +18,8 @@ import {
   Cloud,
   RefreshCw,
   Sun,
-  Moon
+  Moon,
+  Bell
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
@@ -39,6 +40,7 @@ interface HeaderNavProps {
   onOpenAIScanner: () => void;
   onOpenToolsHub: () => void;
   onOpenGoogleSync: () => void;
+  onOpenNotifications: () => void;
   onDataChanged: () => void;
 }
 
@@ -56,6 +58,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onOpenAIScanner,
   onOpenToolsHub,
   onOpenGoogleSync,
+  onOpenNotifications,
   onDataChanged,
 }) => {
   const [showPetDropdown, setShowPetDropdown] = useState(false);
@@ -328,6 +331,17 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               <span>Menu</span>
             </button>
 
+            {/* Notifications Button */}
+            <button
+              onClick={onOpenNotifications}
+              title="Powiadomienia w telefonie (Leki, szczepienia, wizyty)"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer relative"
+              aria-label="Powiadomienia"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-teal-500 rounded-full" />
+            </button>
+
             {/* Subtler Theme Toggle (Light / Dark mode) */}
             {onToggleTheme && (
               <button
@@ -379,6 +393,23 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             </p>
 
             <div className="space-y-3">
+              {/* Notifications Option in Settings */}
+              <button
+                onClick={() => {
+                  setShowSettingsModal(false);
+                  onOpenNotifications();
+                }}
+                className="w-full flex items-center justify-between py-3 px-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-900 rounded-2xl text-xs font-bold transition active:scale-98"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Bell className="w-4 h-4 text-teal-600" />
+                  <span>Powiadomienia w telefonie (Alerty)</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-teal-200 text-teal-800">
+                  Ustawienia
+                </span>
+              </button>
+
               {/* Cloud Sync Option in Settings */}
               <button
                 onClick={() => {

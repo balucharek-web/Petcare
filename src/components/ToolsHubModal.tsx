@@ -28,6 +28,7 @@ interface ToolsHubModalProps {
   onOpenPetsitter: () => void;
   onOpenDashboardCustomizer: () => void;
   onOpenGoogleSync: () => void;
+  onOpenNotifications: () => void;
   onOpenSettings: () => void;
 }
 
@@ -43,18 +44,28 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenPetsitter,
   onOpenDashboardCustomizer,
   onOpenGoogleSync,
+  onOpenNotifications,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
 
   const tools = [
     {
+      id: 'notifications',
+      label: 'Powiadomienia Push w Telefonie',
+      desc: 'Alerty na pasku telefonu: leki, szczepienia, wizyty weterynaryjne',
+      icon: Sparkles,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      badge: 'Alerty Android',
+      action: onOpenNotifications,
+    },
+    {
       id: 'google-sync',
-      label: 'Synchronizacja w Chmurze (PetCare Cloud)',
-      desc: 'Automatyczna kopia w chmurze (24h) i dostęp z wielu urządzeń',
+      label: 'Dysk Google i Chmura PetCare',
+      desc: 'Trwała kopia na Twoim Dysku Google i synchronizacja urządzeń',
       icon: Cloud,
       color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-      badge: 'Chmura PetCare',
+      badge: 'Google Drive',
       action: onOpenGoogleSync,
     },
     {
