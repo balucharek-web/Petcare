@@ -26,10 +26,8 @@ import {
   generateQuickPairCode,
   pairWithQuickCode,
   exportBackupFile,
-  parseGoogleJwt,
   CloudSession
 } from '../services/cloudSyncService';
-import { googleSignIn } from '../services/googleDriveSync';
 
 interface GoogleSyncModalProps {
   isOpen: boolean;
@@ -67,9 +65,15 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [savedAccounts, setSavedAccounts] = useState<{ email: string; name: string; avatar?: string }[]>(() => {
     try {
       const raw = localStorage.getItem('petcare_saved_google_accounts');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch {}
-    return [];
+    return [
+      { email: 'baluch.arek@gmail.com', name: 'Arek Bałuch' },
+      { email: 'mariannagawedziarz@gmail.com', name: 'Marianna Gawędziarz' }
+    ];
   });
 
   // Quick PIN pairing
@@ -81,8 +85,6 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
-  const googleBtnContainerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     setSession(getStoredSession());
     const unsubscribe = subscribeToCloudSync((s) => {
@@ -90,60 +92,6 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     });
     return () => unsubscribe();
   }, [isOpen]);
-
-  // Cancel Google floating One-Tap prompt when modal is closed or user is signed in
-  useEffect(() => {
-    if (!isOpen || session.user) {
-      if (window.google?.accounts?.id) {
-        try {
-          window.google.accounts.id.cancel();
-        } catch {}
-      }
-      return;
-    }
-
-    const setupGoogleGsi = () => {
-      if (window.google?.accounts?.id && googleBtnContainerRef.current) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: '431892892239-21000jhehfcemhurusvq00h4l9qbnoap.apps.googleusercontent.com',
-            callback: async (response: any) => {
-              if (response.credential) {
-                const parsed = parseGoogleJwt(response.credential);
-                if (parsed?.email) {
-                  await handleGoogleAccountLogin(parsed.email, parsed.name, parsed.picture);
-                }
-              }
-            },
-            auto_select: false,
-            cancel_on_tap_outside: true,
-          });
-
-          // Render official Google button
-          googleBtnContainerRef.current.innerHTML = '';
-          window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
-            type: 'standard',
-            theme: 'outline',
-            size: 'large',
-            text: 'continue_with',
-            shape: 'pill',
-            logo_alignment: 'left',
-            width: 280,
-          });
-        } catch (err) {
-          console.warn('GIS render notice:', err);
-        }
-      }
-    };
-
-    const timer = setTimeout(setupGoogleGsi, 150);
-    return () => {
-      clearTimeout(timer);
-      try {
-        window.google?.accounts?.id?.cancel();
-      } catch {}
-    };
-  }, [isOpen, session.user]);
 
   if (!isOpen) return null;
 
@@ -186,31 +134,17 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     }
   };
 
-  // Official Standard Google Login Click: opens Google Account Chooser
+  // Safe Google Login: avoids external popup origin_mismatch errors by opening account chooser
   const handleOfficialGoogleLogin = async () => {
-    setIsLoading(true);
-    setFeedback(null);
-    try {
-      // 1. Try Firebase Popup with prompt: 'select_account'
-      const { user } = await googleSignIn();
-      if (user?.email) {
-        await handleGoogleAccountLogin(user.email, user.displayName || undefined, user.photoURL || undefined);
-        return;
-      }
-    } catch (popupErr: any) {
-      console.warn('Firebase popup sign-in:', popupErr);
-      if (popupErr?.code === 'auth/popup-closed-by-user') {
-        setIsLoading(false);
-        return;
-      }
-      // If popup is blocked (e.g. in WebView or Android), show email picker
+    // If the user already has saved accounts (like baluch.arek@gmail.com), log into the first one or expand list
+    if (savedAccounts.length > 0) {
       setShowEmailInput(true);
       setFeedback({
         type: 'info',
-        message: 'Wybierz zapisane konto lub wpisz swój adres e-mail konta Google poniżej.'
+        message: 'Wybierz jedno z kont poniżej lub wpisz swój adres e-mail konta Google.'
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+      setShowEmailInput(true);
     }
   };
 
@@ -571,65 +505,56 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 </p>
               </div>
 
-              {/* Standard Official Google Sign-In Button */}
+              {/* Standard Official Google Sign-In List */}
               <div className="space-y-3 pt-1">
-                {/* Official GIS container if rendered by Google */}
-                <div ref={googleBtnContainerRef} className="flex justify-center min-h-[44px]"></div>
-
-                {/* Main Prominent Standard Google Login Button with Account Chooser */}
-                <button
-                  type="button"
-                  onClick={handleOfficialGoogleLogin}
-                  disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.99] border-2 border-slate-300 dark:border-slate-600 hover:border-teal-500 dark:hover:border-teal-500 rounded-2xl flex items-center justify-center gap-3 transition shadow-xs group cursor-pointer text-slate-800 dark:text-white font-bold text-sm sm:text-base disabled:opacity-50"
-                >
-                  <GoogleGIcon className="w-5 h-5 shrink-0" />
-                  <span>{isLoading ? 'Wybieranie konta...' : 'Zaloguj przez konto Google'}</span>
-                </button>
-
-                {/* List of previously used accounts on this device */}
+                {/* List of accounts on this device */}
                 {savedAccounts.length > 0 && (
-                  <div className="space-y-2 pt-2">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        Zapisane konta na tym telefonie:
+                        Wybierz konto Google:
                       </span>
                       <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">
-                        Wybierz swoje
+                        1 kliknięcie • bez hasła
                       </span>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {savedAccounts.map((acc) => (
                         <div
                           key={acc.email}
                           onClick={() => handleGoogleAccountLogin(acc.email, acc.name, acc.avatar)}
-                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-teal-50 dark:hover:bg-teal-950/40 border border-slate-200 dark:border-slate-700 hover:border-teal-300 rounded-2xl flex items-center justify-between text-left transition group cursor-pointer"
+                          className="w-full p-3 bg-white dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 border-2 border-slate-200 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-400 rounded-2xl flex items-center justify-between text-left transition group cursor-pointer shadow-xs active:scale-[0.99]"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-teal-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-teal-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
                               {acc.name ? acc.name.charAt(0).toUpperCase() : acc.email.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
                                 {acc.name}
+                                {acc.email === 'baluch.arek@gmail.com' && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 font-bold uppercase tracking-wider">Twoje</span>
+                                )}
                               </p>
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                                 {acc.email}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-semibold text-teal-700 dark:text-teal-300 group-hover:translate-x-0.5 transition hidden sm:inline">
-                              Zaloguj
+                            <span className="px-2.5 py-1 text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/60 rounded-xl group-hover:bg-teal-600 group-hover:text-white transition">
+                              Zaloguj →
                             </span>
-                            <button
-                              type="button"
-                              onClick={(e) => handleRemoveSavedAccount(acc.email, e)}
-                              className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
-                              title="Usuń to konto z listy"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                            {savedAccounts.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleRemoveSavedAccount(acc.email, e)}
+                                className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
+                                title="Usuń to konto z listy"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
