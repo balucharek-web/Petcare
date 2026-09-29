@@ -28,6 +28,16 @@ import {
   exportBackupFile,
   CloudSession
 } from '../services/cloudSyncService';
+import { 
+  googleSignIn as googleDriveSignIn,
+  googleSignOut as googleDriveSignOut,
+  uploadPetDataToDrive,
+  downloadPetDataFromDrive,
+  getAccessToken as getDriveAccessToken,
+  getStoredSyncMetadata,
+  SyncMetadata,
+  subscribeToSyncUpdates
+} from '../services/googleDriveSync';
 
 interface GoogleSyncModalProps {
   isOpen: boolean;
@@ -71,10 +81,13 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       }
     } catch {}
     return [
+      { email: 'arekbrodowski35@gmail.com', name: 'Arek Brodowski' },
       { email: 'baluch.arek@gmail.com', name: 'Arek Bałuch' },
       { email: 'mariannagawedziarz@gmail.com', name: 'Marianna Gawędziarz' }
     ];
   });
+
+  const [driveMeta, setDriveMeta] = useState<SyncMetadata>(getStoredSyncMetadata());
 
   // Quick PIN pairing
   const [pinInput, setPinInput] = useState('');
@@ -87,15 +100,70 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   useEffect(() => {
     setSession(getStoredSession());
-    const unsubscribe = subscribeToCloudSync((s) => {
+    setDriveMeta(getStoredSyncMetadata());
+    const unsubCloud = subscribeToCloudSync((s) => {
       setSession(s);
     });
-    return () => unsubscribe();
+    const unsubDrive = subscribeToSyncUpdates((m) => {
+      setDriveMeta(m);
+    });
+    return () => {
+      unsubCloud();
+      unsubDrive();
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Google Sign-In with any chosen email
+  // Sign in directly with Google Drive permissions (popup / token)
+  const handleDriveDirectLogin = async () => {
+    setIsLoading(true);
+    setFeedback(null);
+    try {
+      const driveRes = await googleDriveSignIn();
+      const userEmail = driveRes.user.email || 'user@gmail.com';
+      const userName = driveRes.user.displayName || userEmail.split('@')[0];
+      const userPhoto = driveRes.user.photoURL || undefined;
+
+      // Register session
+      await signInWithGoogle(userEmail, userName, userPhoto);
+
+      // Check if Drive already has a backup and restore it!
+      try {
+        const downResult = await downloadPetDataFromDrive();
+        if (downResult.success && downResult.petCount > 0) {
+          setFeedback({
+            type: 'success',
+            message: `Połączono z Dyskiem Google! Pobrano i przywrócono ${downResult.petCount} zwierzaków z pliku petcare_app_data.json.`
+          });
+          if (onDataRestored) onDataRestored();
+          setIsLoading(false);
+          return;
+        }
+      } catch (errNotFound) {
+        // Not on drive yet, upload current pet data
+        try {
+          await uploadPetDataToDrive();
+        } catch {}
+      }
+
+      setFeedback({
+        type: 'success',
+        message: `Połączono z Dyskiem Google (${userEmail})! Dane są synchronizowane z plikiem petcare_app_data.json na Twoim Dysku.`
+      });
+      if (onDataRestored) onDataRestored();
+    } catch (err: any) {
+      console.error('Błąd połączenia z Dyskiem Google:', err);
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Nie udało się połączyć z Dyskiem Google.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Google Sign-In with chosen email
   const handleGoogleAccountLogin = async (email: string, name?: string, avatar?: string) => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -134,20 +202,6 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     }
   };
 
-  // Safe Google Login: avoids external popup origin_mismatch errors by opening account chooser
-  const handleOfficialGoogleLogin = async () => {
-    // If the user already has saved accounts (like baluch.arek@gmail.com), log into the first one or expand list
-    if (savedAccounts.length > 0) {
-      setShowEmailInput(true);
-      setFeedback({
-        type: 'info',
-        message: 'Wybierz jedno z kont poniżej lub wpisz swój adres e-mail konta Google.'
-      });
-    } else {
-      setShowEmailInput(true);
-    }
-  };
-
   const handleRemoveSavedAccount = (emailToRemove: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = savedAccounts.filter(a => a.email.toLowerCase() !== emailToRemove.toLowerCase());
@@ -159,6 +213,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   const handleSignOut = () => {
     signOutGoogle();
+    googleDriveSignOut().catch(() => {});
     setGeneratedCode(null);
     setFeedback({
       type: 'info',
@@ -169,31 +224,75 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     }
   };
 
-  // Manual Instant Upload/Sync
+  // Manual Instant Upload/Sync to both Google Drive and Cloud
   const handleManualUpload = async () => {
     setIsLoading(true);
     setFeedback(null);
+    let driveUploaded = false;
+
+    // 1. Try uploading to personal Google Drive
+    try {
+      const token = await getDriveAccessToken();
+      if (token) {
+        await uploadPetDataToDrive();
+        driveUploaded = true;
+      }
+    } catch (dErr: any) {
+      console.warn('Google Drive direct upload notice:', dErr?.message);
+    }
+
+    // 2. Also sync to persistent cloud backup
     try {
       const res = await uploadToCloud();
       setFeedback({
         type: 'success',
-        message: `Dane zostały zsynchronizowane w chmurze! Zapisano ${res.petCount} zwierzaków na Twoim koncie Google.`
+        message: driveUploaded 
+          ? `Pomyślnie zapisano kopię na Twoim Dysku Google (plik petcare_app_data.json) oraz w chmurze (${res.petCount} zwierzaków)!`
+          : `Zsynchronizowano dane w chmurze! Zapisano ${res.petCount} zwierzaków na Twoim koncie Google.`
       });
     } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        message: err.message || 'Błąd zapisu w chmurze.'
-      });
+      if (driveUploaded) {
+        setFeedback({
+          type: 'success',
+          message: 'Pomyślnie zaktualizowano plik petcare_app_data.json na Twoim Dysku Google!'
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: err.message || 'Błąd zapisu na Dysku Google / w chmurze.'
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Manual Instant Download/Restore
+  // Manual Instant Download/Restore from Google Drive or Cloud
   const handleManualDownload = async () => {
     setShowRestoreConfirm(false);
     setIsLoading(true);
     setFeedback(null);
+
+    // 1. First, try reading directly from the user's personal Google Drive
+    try {
+      const driveToken = await getDriveAccessToken();
+      if (driveToken) {
+        const driveRes = await downloadPetDataFromDrive();
+        if (driveRes.success) {
+          setFeedback({
+            type: 'success',
+            message: `Pobrano dane bezpośrednio z Twojego Dysku Google! Przywrócono ${driveRes.petCount} zwierzaków.`
+          });
+          if (onDataRestored) onDataRestored();
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch (driveErr: any) {
+      console.warn('Google Drive direct download notice:', driveErr?.message);
+    }
+
+    // 2. Fallback to Cloud Sync database
     try {
       const res = await downloadFromCloud();
       setFeedback({
@@ -206,7 +305,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: err.message || 'Nie udało się pobrać danych z chmury.'
+        message: err.message || 'Nie znaleziono pliku kopii na Dysku Google ani w chmurze.'
       });
     } finally {
       setIsLoading(false);
@@ -387,14 +486,17 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 </div>
               </div>
 
-              {/* PROMINENT MANUAL SYNC BUTTONS */}
+              {/* PROMINENT MANUAL SYNC BUTTONS (Google Drive & Cloud) */}
               <div className="p-4 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                    Ręczna synchronizacja
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Brak limitów, natychmiastowy zapis
+                  <div className="flex items-center gap-1.5">
+                    <CloudUpload className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                      Dysk Google i Chmura
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-teal-700 dark:text-teal-400 font-semibold bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded-full border border-teal-200 dark:border-teal-800">
+                    Plik: petcare_app_data.json
                   </span>
                 </div>
 
@@ -404,7 +506,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 cursor-pointer text-sm"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  <span>{isLoading ? 'Synchronizowanie...' : 'Synchronizuj teraz (Wyślij do chmury)'}</span>
+                  <span>{isLoading ? 'Zapisywanie...' : '💾 Zapisz dane na Twoim Dysku Google'}</span>
                 </button>
 
                 <button
@@ -413,7 +515,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-bold rounded-2xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer text-xs sm:text-sm"
                 >
                   <CloudDownload className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                  <span>Pobierz dane z chmury (Przywróć zwierzaki)</span>
+                  <span>📥 Pobierz dane z Dysku Google (Przywróć zwierzaki)</span>
                 </button>
               </div>
 
@@ -510,6 +612,19 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
               {/* Standard Official Google Sign-In List */}
               <div className="space-y-3 pt-1">
+                {/* Official Google Drive Connect Button */}
+                <button
+                  type="button"
+                  onClick={handleDriveDirectLogin}
+                  disabled={isLoading}
+                  className="w-full p-3.5 bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer text-sm"
+                >
+                  <div className="bg-white p-1 rounded-lg">
+                    <GoogleGIcon className="w-5 h-5" />
+                  </div>
+                  <span>{isLoading ? 'Łączenie z Google...' : 'Połącz bezpośrednio z Dyskiem Google'}</span>
+                </button>
+
                 {/* List of accounts on this device */}
                 {savedAccounts.length > 0 && (
                   <div className="space-y-2">
