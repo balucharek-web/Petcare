@@ -72,6 +72,32 @@ export default function App() {
   // Preview Mode: Android phone frame vs Full screen
   const [deviceFrameMode, setDeviceFrameMode] = useState<'mobile' | 'full'>('mobile');
 
+  // Theme Mode: Light / Dark
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('petcare_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('petcare_theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // Network status
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true
@@ -279,7 +305,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 sm:bg-slate-900 text-slate-800 flex flex-col items-center justify-start sm:p-4 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 sm:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col items-center justify-start sm:p-4 selection:bg-teal-500 selection:text-white transition-colors duration-200">
       {/* Top Device View Mode Switcher on desktop */}
       <div className="hidden sm:flex items-center justify-between w-full max-w-4xl py-2 px-4 text-xs text-slate-300">
         <div className="flex items-center gap-2">
@@ -315,7 +341,7 @@ export default function App() {
 
       {/* Main Container / Mobile Frame */}
       <div
-        className={`w-full bg-slate-100 flex flex-col relative transition-all duration-300 ${
+        className={`w-full bg-slate-100 dark:bg-slate-900 flex flex-col relative transition-all duration-300 ${
           deviceFrameMode === 'mobile'
             ? 'max-w-md min-h-screen sm:min-h-[860px] sm:max-h-[920px] sm:rounded-[44px] sm:border-[8px] sm:border-slate-800 sm:shadow-2xl overflow-y-auto sm:ring-1 sm:ring-slate-700/50'
             : 'max-w-4xl min-h-screen sm:rounded-3xl sm:shadow-2xl overflow-hidden'
@@ -346,6 +372,8 @@ export default function App() {
         <HeaderNav
           pets={pets}
           activePet={activePet}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onSelectPet={handleSelectPet}
           onOpenNewPetModal={() => setIsNewPetOpen(true)}
           onOpenSOSModal={() => setIsSOSOpen(true)}

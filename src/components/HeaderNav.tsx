@@ -16,7 +16,9 @@ import {
   Camera,
   Grid,
   Cloud,
-  RefreshCw
+  RefreshCw,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
@@ -26,6 +28,8 @@ import { getStoredSession, subscribeToCloudSync, manualSyncNow, CloudSession } f
 interface HeaderNavProps {
   pets: Pet[];
   activePet: Pet | null;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
   onSelectPet: (petId: string) => void;
   onOpenNewPetModal: () => void;
   onOpenSOSModal: () => void;
@@ -41,6 +45,8 @@ interface HeaderNavProps {
 export const HeaderNav: React.FC<HeaderNavProps> = ({
   pets,
   activePet,
+  theme = 'light',
+  onToggleTheme,
   onSelectPet,
   onOpenNewPetModal,
   onOpenSOSModal,
@@ -151,13 +157,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs pt-[env(safe-area-inset-top,0px)]">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
           {/* Pet Selector Button */}
           <div className="relative">
             <button
               onClick={() => setShowPetDropdown(!showPetDropdown)}
-              className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl hover:bg-slate-100 transition active:scale-98 border border-transparent hover:border-slate-200"
+              className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-98 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
             >
               <div className="relative">
                 <img
@@ -171,12 +177,12 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               </div>
               <div className="text-left">
                 <div className="flex items-center gap-1">
-                  <span className="font-extrabold text-sm text-slate-900 leading-tight">
+                  <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
                     {activePet?.name || 'Wybierz'}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 </div>
-                <span className="text-[11px] text-slate-500 block leading-none">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block leading-none">
                   {activePet?.breed || 'Zwierzak'}
                 </span>
               </div>
@@ -189,7 +195,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                   className="fixed inset-0 z-30" 
                   onClick={() => setShowPetDropdown(false)} 
                 />
-                <div className="absolute left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-40 animate-fadeIn">
+                <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 py-2 z-40 animate-fadeIn">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Twoje zwierzaki
                   </div>
@@ -200,14 +206,14 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                         onSelectPet(p.id);
                         setShowPetDropdown(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50 transition ${
-                        p.id === activePet?.id ? 'bg-teal-50/70 text-teal-900 font-semibold' : 'text-slate-700'
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition ${
+                        p.id === activePet?.id ? 'bg-teal-50/70 dark:bg-teal-950/50 text-teal-900 dark:text-teal-200 font-semibold' : 'text-slate-700 dark:text-slate-200'
                       }`}
                     >
                       <img
                         src={p.photoUrl}
                         alt={p.name}
-                        className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200"
+                        className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-700"
                       />
                       <div className="truncate flex-1">
                         <p className="text-sm truncate">{p.name}</p>
@@ -219,13 +225,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                     </button>
                   ))}
 
-                  <div className="border-t border-slate-100 mt-2 pt-2 px-2">
+                  <div className="border-t border-slate-100 dark:border-slate-800 mt-2 pt-2 px-2">
                     <button
                       onClick={() => {
                         setShowPetDropdown(false);
                         onOpenNewPetModal();
                       }}
-                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-100 text-xs font-semibold transition"
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-xs font-semibold transition"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Dodaj nowego zwierzaka
@@ -322,11 +328,26 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               <span>Menu</span>
             </button>
 
+            {/* Theme Toggle (Light / Dark mode) */}
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                title={theme === 'dark' ? 'Przełącz na tryb jasny' : 'Przełącz na tryb ciemny'}
+                className="p-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition cursor-pointer border border-slate-200 dark:border-slate-700 shadow-xs"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                )}
+              </button>
+            )}
+
             {/* Settings & Backup */}
             <button
               onClick={() => setShowSettingsModal(true)}
               title="Kopia zapasowa i opcje"
-              className="p-2 rounded-2xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition"
+              className="p-2 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition"
             >
               <Settings className="w-4 h-4" />
             </button>

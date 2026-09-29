@@ -33,7 +33,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-lg pb-[env(safe-area-inset-bottom,0px)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 shadow-lg pb-[env(safe-area-inset-bottom,0px)] transition-colors">
       <div className="max-w-md mx-auto grid grid-cols-6 h-[4.25rem] px-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -50,7 +50,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 className={`relative p-1.5 px-3 rounded-2xl transition-all duration-200 ${
                   isActive 
                     ? 'bg-teal-600 text-white shadow-sm -translate-y-0.5' 
-                    : 'text-slate-500 hover:text-slate-800'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[2]'}`} />
@@ -62,7 +62,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               </div>
               <span
                 className={`text-[11px] leading-tight transition-colors ${
-                  isActive ? 'font-extrabold text-teal-700' : 'font-semibold text-slate-600'
+                  isActive ? 'font-extrabold text-teal-700 dark:text-teal-400' : 'font-semibold text-slate-600 dark:text-slate-400'
                 }`}
               >
                 {tab.label}
