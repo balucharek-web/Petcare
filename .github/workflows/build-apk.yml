@@ -3,7 +3,7 @@ name: Buduj plik APK na Androida
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch: # Umożliwia ręczne uruchomienie w zakładce Actions jednym kliknięciem
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -44,6 +44,7 @@ jobs:
         run: |
           cd android
           ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/*.apk app/build/outputs/apk/debug/PetCare.apk
 
       - name: Publikacja gotowego pliku APK do pobrania (Artifact)
         uses: actions/upload-artifact@v4
@@ -56,9 +57,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.6.0
-          name: "PetCare v2.6.0 - Wybór Konta Google i Poprawki Interfejsu"
-          files: android/app/build/outputs/apk/debug/*.apk
+          tag_name: v2.7.0
+          name: "PetCare v2.7.0 - Nowa Zwierzęca Ikona (Pies i Kot) & Gotowy APK"
+          files: |
+            android/app/build/outputs/apk/debug/PetCare.apk
+            android/app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

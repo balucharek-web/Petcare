@@ -1,35 +1,168 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="petGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#059669" />
-      <stop offset="50%" stop-color="#0d9488" />
-      <stop offset="100%" stop-color="#0891b2" />
+      <stop offset="45%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#0284c7" />
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#047857" flood-opacity="0.25"/>
+
+    <!-- Dog Fur Gradients -->
+    <linearGradient id="dogFur" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <linearGradient id="dogEarLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="dogEarRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#92400E" />
+    </linearGradient>
+
+    <!-- Cat Fur Gradients -->
+    <linearGradient id="catFur" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+
+    <!-- Soft Drop Shadow -->
+    <filter id="petShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#064E3B" flood-opacity="0.35" />
+    </filter>
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.25" />
     </filter>
   </defs>
-  <rect width="512" height="512" rx="128" fill="url(#petGrad)"/>
-  
-  <!-- Main paw pad with health cross -->
-  <g filter="url(#shadow)" fill="#ffffff">
-    <!-- Center main pad -->
-    <path d="M256 220 C200 220 160 270 160 330 C160 380 200 420 256 420 C312 420 352 380 352 330 C352 270 312 220 256 220 Z"/>
-    <!-- Paw toe 1 -->
-    <circle cx="160" cy="180" r="42"/>
-    <!-- Paw toe 2 -->
-    <circle cx="225" cy="135" r="42"/>
-    <!-- Paw toe 3 -->
-    <circle cx="287" cy="135" r="42"/>
-    <!-- Paw toe 4 -->
-    <circle cx="352" cy="180" r="42"/>
-  </g>
-  
-  <!-- Red/Emerald Cross inside main pad -->
-  <g fill="#0d9488">
-    <rect x="238" y="275" width="36" height="100" rx="10"/>
-    <rect x="206" y="307" width="100" height="36" rx="10"/>
-    <!-- Heart pulse or sparkle -->
-    <circle cx="256" cy="325" r="8" fill="#ffffff"/>
+
+  <!-- Background App Squircle -->
+  <rect width="512" height="512" rx="122" fill="url(#bgGrad)" />
+
+  <!-- Subtle Ambient Glow -->
+  <circle cx="256" cy="270" r="200" fill="#ffffff" opacity="0.08" />
+
+  <!-- Animal Characters Group -->
+  <g filter="url(#petShadow)">
+
+    <!-- ==================== CAT (Left) ==================== -->
+    <g id="cat">
+      <!-- Cat Left Pointy Ear -->
+      <polygon points="110,210 135,115 175,195" fill="#CBD5E1" />
+      <polygon points="122,200 138,135 165,190" fill="#F472B6" opacity="0.75" />
+
+      <!-- Cat Right Pointy Ear -->
+      <polygon points="190,195 220,120 240,210" fill="#CBD5E1" />
+      <polygon points="198,190 220,138 232,198" fill="#F472B6" opacity="0.75" />
+
+      <!-- Cat Head Base -->
+      <ellipse cx="178" cy="255" rx="72" ry="68" fill="url(#catFur)" />
+
+      <!-- Cat Patch on Left Eye -->
+      <path d="M 125 210 C 135 190 170 195 180 225 C 185 245 160 265 135 255 C 120 248 115 225 125 210 Z" fill="#94A3B8" opacity="0.28" />
+
+      <!-- Cat Eyes (Large, Expressive & Sparkling Emerald/Teal) -->
+      <ellipse cx="148" cy="245" rx="11" ry="14" fill="#047857" />
+      <ellipse cx="148" cy="245" rx="7" ry="13" fill="#064E3B" />
+      <circle cx="145" cy="240" r="4.5" fill="#FFFFFF" />
+      <circle cx="152" cy="249" r="2" fill="#FFFFFF" />
+
+      <ellipse cx="198" cy="245" rx="11" ry="14" fill="#047857" />
+      <ellipse cx="198" cy="245" rx="7" ry="13" fill="#064E3B" />
+      <circle cx="195" cy="240" r="4.5" fill="#FFFFFF" />
+      <circle cx="202" cy="249" r="2" fill="#FFFFFF" />
+
+      <!-- Cat Pink Nose -->
+      <polygon points="167,262 179,262 173,269" fill="#FB7185" />
+
+      <!-- Cat Cute Mouth -->
+      <path d="M 165 272 C 168 276 173 276 173 272 C 173 276 178 276 181 272" fill="none" stroke="#64748B" stroke-width="2.8" stroke-linecap="round" />
+
+      <!-- Cat Cheeks Blush -->
+      <ellipse cx="132" cy="265" rx="9" ry="6" fill="#FDA4AF" opacity="0.6" />
+
+      <!-- Cat Whiskers -->
+      <line x1="110" y1="262" x2="135" y2="265" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="110" y1="274" x2="135" y2="271" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round" />
+    </g>
+
+    <!-- ==================== DOG (Right / Center) ==================== -->
+    <g id="dog">
+      <!-- Dog Floppy Ears -->
+      <!-- Left Ear (resting behind) -->
+      <path d="M 265 170 C 240 145 220 200 225 255 C 228 280 245 295 262 280 C 275 270 278 210 272 175 Z" fill="url(#dogEarLeft)" />
+      
+      <!-- Right Ear (drooping cheerfully) -->
+      <path d="M 385 175 C 425 155 450 215 440 280 C 435 315 410 335 385 315 C 365 300 365 225 372 185 Z" fill="url(#dogEarRight)" />
+      <path d="M 390 195 C 418 180 435 225 428 272 C 424 295 408 310 392 295 C 380 285 378 235 382 205 Z" fill="#92400E" opacity="0.4" />
+
+      <!-- Dog Main Head -->
+      <ellipse cx="325" cy="255" rx="88" ry="82" fill="url(#dogFur)" />
+
+      <!-- Dog Forehead White Blaze -->
+      <path d="M 314 175 C 322 173 332 173 340 175 C 336 205 338 225 348 238 C 336 242 316 242 304 238 C 314 225 316 205 314 175 Z" fill="#FEF3C7" />
+
+      <!-- Dog Big Loving Eyes -->
+      <ellipse cx="290" cy="235" rx="14" ry="18" fill="#1E293B" />
+      <circle cx="285" cy="228" r="6" fill="#FFFFFF" />
+      <circle cx="295" cy="242" r="2.5" fill="#FFFFFF" />
+
+      <ellipse cx="365" cy="235" rx="14" ry="18" fill="#1E293B" />
+      <circle cx="359" cy="228" r="6" fill="#FFFFFF" />
+      <circle cx="370" cy="242" r="2.5" fill="#FFFFFF" />
+
+      <!-- Dog Eyebrow dots (Very Puppy-like!) -->
+      <circle cx="288" cy="210" r="4.5" fill="#FDE68A" />
+      <circle cx="368" cy="210" r="4.5" fill="#FDE68A" />
+
+      <!-- Dog Snout & Muzzle (Cream Colored) -->
+      <ellipse cx="328" cy="278" rx="48" ry="38" fill="#FFFBEB" />
+
+      <!-- Dog Cute Dark Button Nose -->
+      <path d="M 317 258 C 317 254 323 251 328 254 C 333 251 339 254 339 258 C 339 266 328 274 328 274 C 328 274 317 266 317 258 Z" fill="#0F172A" />
+      <ellipse cx="325" cy="257" rx="3" ry="1.5" fill="#FFFFFF" opacity="0.85" />
+
+      <!-- Dog Smiling Mouth Line -->
+      <path d="M 318 277 C 323 285 333 285 338 277" fill="none" stroke="#0F172A" stroke-width="3.5" stroke-linecap="round" />
+      <line x1="328" y1="272" x2="328" y2="280" stroke="#0F172A" stroke-width="3" stroke-linecap="round" />
+
+      <!-- Happy Pink Tongue -->
+      <path d="M 323 282 C 323 296 333 296 333 282 Z" fill="#F43F5E" />
+
+      <!-- Rosy Cheeks -->
+      <ellipse cx="268" cy="265" rx="12" ry="8" fill="#FB7185" opacity="0.5" />
+      <ellipse cx="388" cy="265" rx="12" ry="8" fill="#FB7185" opacity="0.5" />
+    </g>
+
+    <!-- Friendly Cat Paw Peeking in the Front -->
+    <g id="catPaw" transform="translate(185, 335)">
+      <ellipse cx="0" cy="0" rx="28" ry="24" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" />
+      <!-- Pink Paw Pads -->
+      <ellipse cx="0" cy="4" rx="12" ry="9" fill="#FB7185" />
+      <circle cx="-13" cy="-7" r="5" fill="#FB7185" />
+      <circle cx="-4" cy="-13" r="5.5" fill="#FB7185" />
+      <circle cx="6" cy="-13" r="5.5" fill="#FB7185" />
+      <circle cx="14" cy="-7" r="5" fill="#FB7185" />
+    </g>
+
+    <!-- Loving Heart Above the Pets -->
+    <g filter="url(#badgeShadow)">
+      <path d="M 256 122 C 248 108 230 108 222 118 C 212 130 220 148 256 172 C 292 148 300 130 290 118 C 282 108 264 108 256 122 Z" fill="#EF4444" />
+      <!-- Heart shine -->
+      <circle cx="236" cy="119" r="3" fill="#FFFFFF" opacity="0.8" />
+    </g>
+
+    <!-- Bottom Health & Care Banner / Collar Tag -->
+    <g filter="url(#badgeShadow)" transform="translate(256, 420)">
+      <rect x="-85" y="-22" width="170" height="44" rx="22" fill="#FFFFFF" stroke="#0D9488" stroke-width="3.5" />
+      <!-- Green Cross / Paw inside banner -->
+      <g fill="#0D9488">
+        <rect x="-65" y="-12" width="6" height="24" rx="2" />
+        <rect x="-74" y="-3" width="24" height="6" rx="2" />
+      </g>
+      <!-- PetCare Text -->
+      <text x="10" y="7" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="900" fill="#0F172A" text-anchor="middle" letter-spacing="1">PetCare</text>
+    </g>
+
   </g>
 </svg>
