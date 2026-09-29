@@ -35,13 +35,14 @@
     "baluch.arek@gmail.com": {
       "email": "baluch.arek@gmail.com",
       "passwordHash": "default_pass",
-      "name": "Arek Bałuch",
+      "name": "baluch.arek",
       "avatar": "",
-      "lastSyncTime": "2026-09-29T15:30:00.000Z",
+      "lastSyncTime": "2026-09-29T17:00:46.218Z",
       "petCount": 1,
-      "token": "tok_8x9x1tpwn05mumvrd7r",
+      "token": "tok_app_1790701246218",
       "payload": {
         "version": "2.5.0",
+        "exportDate": "2026-09-29T17:00:45.560Z",
         "pets": [
           {
             "id": "pet-1",
@@ -61,7 +62,12 @@
         "exams": [],
         "conditions": [],
         "visits": [],
-        "activePetId": "pet-1"
+        "activePetId": "pet-1",
+        "additional": {
+          "expenses": [],
+          "petsitterNotes": {},
+          "dashboardConfig": {}
+        }
       }
     },
     "arekbrodowski35@gmail.com": {
