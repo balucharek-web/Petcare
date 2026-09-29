@@ -16,6 +16,18 @@
           }
         ]
       }
+    },
+    "marciniakk018@gmail.com": {
+      "email": "marciniakk018@gmail.com",
+      "passwordHash": "default_pass",
+      "name": "Krzysztof",
+      "avatar": "",
+      "lastSyncTime": "2026-09-29T14:09:35.986Z",
+      "petCount": 0,
+      "token": "tok_qaay2jxzby8mumr664z",
+      "payload": {
+        "pets": []
+      }
     }
   }
 }

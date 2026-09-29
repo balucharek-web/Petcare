@@ -390,6 +390,17 @@ Wyodrębnij wszystkie kluczowe informacje medyczne i zwróć WYŁĄCZNIE poprawn
     res.json({ status: 'ok', service: 'PetCare API' });
   });
 
+  // Direct APK download route
+  app.get(['/PetCare.apk', '/download-apk', '/api/download-apk'], (req, res) => {
+    const apkPath = path.resolve(__dirname, 'public', 'PetCare.apk');
+    if (fs.existsSync(apkPath)) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', 'attachment; filename="PetCare.apk"');
+      return res.sendFile(apkPath);
+    }
+    return res.status(404).json({ error: 'Plik APK nie został znaleziony.' });
+  });
+
   // Vite middleware in dev or static files in production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

@@ -1,6 +1,6 @@
 {
-  "name": "PetCare - Zdrowie i Leki Zwierzaka",
-  "description": "Aplikacja mobilna dla opiekuna zwierzaka: książeczka zdrowia, historia szczepień, badań i chorób, dawkowanie leków oraz integracja z kalendarzem Google i telefonem.",
+  "name": "App Workspace",
+  "description": "Aplikacja i środowisko projektowe zintegrowane z repozytorium GitHub.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

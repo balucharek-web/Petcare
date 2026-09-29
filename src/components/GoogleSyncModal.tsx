@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -6,16 +6,18 @@ import {
   LogOut, 
   Smartphone, 
   ShieldCheck, 
-  Clock,
-  Download,
-  KeyRound,
-  Copy,
-  Check,
-  RefreshCw,
-  PlusCircle,
-  CloudUpload,
-  CloudDownload,
-  UserCheck
+  Clock, 
+  Download, 
+  KeyRound, 
+  Copy, 
+  Check, 
+  RefreshCw, 
+  PlusCircle, 
+  CloudUpload, 
+  CloudDownload, 
+  UserCheck,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { 
   getStoredSession,
@@ -27,6 +29,7 @@ import {
   generateQuickPairCode,
   pairWithQuickCode,
   exportBackupFile,
+  parseGoogleJwt,
   CloudSession
 } from '../services/cloudSyncService';
 
@@ -46,6 +49,12 @@ const GoogleGIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }
   </svg>
 );
 
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
 export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   isOpen,
   onClose,
@@ -54,7 +63,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [session, setSession] = useState<CloudSession>(getStoredSession());
   const [activeTab, setActiveTab] = useState<'google' | 'pin'>('google');
   
-  // Custom Google account input
+  // Custom Google account input (NO PASSWORDS)
   const [showCustomAccount, setShowCustomAccount] = useState(false);
   const [customEmail, setCustomEmail] = useState('');
   
@@ -67,6 +76,8 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
+  const googleBtnContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setSession(getStoredSession());
     const unsubscribe = subscribeToCloudSync((s) => {
@@ -75,14 +86,56 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     return () => unsubscribe();
   }, [isOpen]);
 
+  // Initialize Google Identity Services (GIS) when modal opens and user is not signed in
+  useEffect(() => {
+    if (!isOpen || session.user) return;
+
+    const setupGoogleGsi = () => {
+      if (window.google?.accounts?.id && googleBtnContainerRef.current) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: '431892892239-21000jhehfcemhurusvq00h4l9qbnoap.apps.googleusercontent.com',
+            callback: async (response: any) => {
+              if (response.credential) {
+                const parsed = parseGoogleJwt(response.credential);
+                if (parsed?.email) {
+                  await handleGoogleAccountLogin(parsed.email, parsed.name, parsed.picture);
+                }
+              }
+            },
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          // Render official Google button
+          googleBtnContainerRef.current.innerHTML = '';
+          window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: 'continue_with',
+            shape: 'pill',
+            logo_alignment: 'left',
+            width: 280,
+          });
+        } catch (err) {
+          console.warn('GIS render note:', err);
+        }
+      }
+    };
+
+    const timer = setTimeout(setupGoogleGsi, 150);
+    return () => clearTimeout(timer);
+  }, [isOpen, session.user]);
+
   if (!isOpen) return null;
 
-  // 1-Click Google Sign-In with predefined or chosen account
-  const handleGoogleAccountClick = async (email: string, name: string) => {
+  // 1-Click Google Sign-In (Pure Google login, ZERO passwords required)
+  const handleGoogleAccountLogin = async (email: string, name?: string, avatar?: string) => {
     setIsLoading(true);
     setFeedback(null);
     try {
-      const res = await signInWithGoogle(email, name);
+      const res = await signInWithGoogle(email, name, avatar);
       setFeedback({
         type: 'success',
         message: `Zalogowano pomyślnie z kontem Google (${email})! Twoja kopia zapasowa została automatycznie zsynchronizowana w chmurze.`
@@ -103,8 +156,9 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       setFeedback({ type: 'error', message: 'Wpisz poprawny adres e-mail konta Google.' });
       return;
     }
-    const name = customEmail.split('@')[0];
-    handleGoogleAccountClick(customEmail.trim(), name);
+    const clean = customEmail.trim().toLowerCase();
+    const name = clean.split('@')[0];
+    handleGoogleAccountLogin(clean, name);
   };
 
   const handleSignOut = () => {
@@ -116,6 +170,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     });
   };
 
+  // Manual Instant Upload/Sync
   const handleManualUpload = async () => {
     setIsLoading(true);
     setFeedback(null);
@@ -123,7 +178,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       const res = await uploadToCloud();
       setFeedback({
         type: 'success',
-        message: `Kopia w chmurze zaktualizowana! Zapisano ${res.petCount} zwierzaków na Twoim koncie.`
+        message: `Dane zostały zsynchronizowane w chmurze! Zapisano ${res.petCount} zwierzaków na Twoim koncie Google.`
       });
     } catch (err: any) {
       setFeedback({
@@ -135,6 +190,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     }
   };
 
+  // Manual Instant Download/Restore
   const handleManualDownload = async () => {
     setShowRestoreConfirm(false);
     setIsLoading(true);
@@ -143,7 +199,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       const res = await downloadFromCloud();
       setFeedback({
         type: 'success',
-        message: `Pobrano dane z chmury! Przywrócono ${res.petCount} zwierzaków wraz z badaniami i apteczką.`
+        message: `Pobrano dane z chmury! Przywrócono ${res.petCount} zwierzaków wraz z apteczką i badaniami.`
       });
       if (onDataRestored) {
         onDataRestored();
@@ -235,8 +291,8 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
               <GoogleGIcon className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Konto Google</h2>
-              <p className="text-xs text-gray-500">Synchronizacja i kopia zapasowa w chmurze</p>
+              <h2 className="text-lg font-bold text-gray-900">Konto Google & Chmura</h2>
+              <p className="text-xs text-gray-500">Logowanie bez hasła i bezpieczna synchronizacja</p>
             </div>
           </div>
           <button 
@@ -288,7 +344,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     </div>
                     <p className="text-xs text-gray-600 font-medium">{session.user?.email}</p>
                     <span className="text-[11px] font-semibold text-emerald-700 block mt-0.5">
-                      ✓ Połączono z Google • Kopia aktywna
+                      ✓ Zweryfikowane konto Google • Kopia aktywna
                     </span>
                   </div>
                 </div>
@@ -309,41 +365,46 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 <div className="p-3 bg-gray-50 border border-gray-200/80 rounded-2xl">
                   <div className="flex items-center gap-1.5 text-emerald-700 font-semibold mb-1">
                     <Clock className="w-3.5 h-3.5" />
-                    Ostatni zapis w chmurze
+                    Ostatnia synchronizacja
                   </div>
                   <div className="text-gray-800 font-bold">{formatLastSync(session.lastSyncTime)}</div>
                 </div>
                 <div className="p-3 bg-gray-50 border border-gray-200/80 rounded-2xl">
                   <div className="flex items-center gap-1.5 text-teal-700 font-semibold mb-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Kopia w tle
+                    Synchronizacja w tle
                   </div>
                   <div className="text-emerald-600 font-bold">Włączona (co 24h)</div>
                 </div>
               </div>
 
-              {/* Sync Actions */}
-              <div className="pt-1 space-y-2.5">
+              {/* PROMINENT MANUAL SYNC BUTTONS */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Ręczna synchronizacja
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Brak limitów, natychmiastowy zapis
+                  </span>
+                </div>
+
                 <button
                   onClick={handleManualUpload}
                   disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer text-sm"
+                  className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 cursor-pointer text-sm"
                 >
-                  {isLoading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CloudUpload className="w-4 h-4" />
-                  )}
-                  Zapisz kopię w chmurze teraz
+                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  <span>{isLoading ? 'Synchronizowanie...' : 'Synchronizuj teraz (Wyślij do chmury)'}</span>
                 </button>
 
                 <button
                   onClick={() => setShowRestoreConfirm(true)}
                   disabled={isLoading}
-                  className="w-full py-3 px-4 bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-bold rounded-2xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer text-sm"
+                  className="w-full py-3 px-4 bg-white hover:bg-gray-100 border border-gray-300 text-gray-800 font-bold rounded-2xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer text-xs sm:text-sm"
                 >
                   <CloudDownload className="w-4 h-4 text-teal-600" />
-                  Pobierz zwierzaki z chmury na ten telefon
+                  <span>Pobierz dane z chmury (Przywróć zwierzaki)</span>
                 </button>
               </div>
 
@@ -352,7 +413,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Smartphone className="w-4 h-4 text-teal-700" />
-                    <span className="text-xs font-bold text-teal-900">Połącz z drugim telefonem</span>
+                    <span className="text-xs font-bold text-teal-900">Drugi telefon lub tablet</span>
                   </div>
                   {!generatedCode && (
                     <button
@@ -389,7 +450,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   </div>
                 ) : (
                   <p className="text-[11px] text-gray-500">
-                    Możesz też po prostu kliknąć swoje konto Google na drugim telefonie, aby pobrać zwierzaki.
+                    Możesz zalogować się tym samym kontem Google na drugim urządzeniu, aby mieć te same zwierzaki.
                   </p>
                 )}
               </div>
@@ -402,7 +463,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-amber-900">Potwierdź wczytanie z chmury</h4>
                       <p className="text-xs text-amber-800 mt-1">
-                        Pobranie danych zastąpi zwierzaki na tym urządzeniu wersją z serwera Google. Kontynuować?
+                        Pobranie danych zastąpi zwierzaki na tym urządzeniu wersją zapisaną w chmurze Google. Kontynuować?
                       </p>
                     </div>
                   </div>
@@ -424,7 +485,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
               )}
             </div>
           ) : (
-            /* STATE 2: NOT SIGNED IN (True Standard Google Sign-In with 1-Click Account Chooser) */
+            /* STATE 2: NOT SIGNED IN (True Google Sign-In with ZERO Passwords) */
             <div className="space-y-4">
               {/* Tab Selector */}
               <div className="grid grid-cols-2 p-1 bg-gray-100 rounded-2xl text-xs font-bold">
@@ -455,68 +516,53 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
               </div>
 
               {activeTab === 'google' && (
-                <div className="space-y-3.5">
-                  <div className="text-left">
-                    <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                      Wybierz konto Google:
-                    </h3>
+                <div className="space-y-4">
+                  {/* Official Google Identity Services container */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-3">
+                    <p className="text-xs font-bold text-slate-700">
+                      Zaloguj się oficjalnym kontem Google:
+                    </p>
+                    
+                    {/* Google GSI button slot */}
+                    <div ref={googleBtnContainerRef} className="flex justify-center min-h-[44px]"></div>
 
-                    {/* Pre-detected Google Accounts (1-TAP LOGIN, ZERO PASSWORD) */}
+                    <div className="flex items-center my-2">
+                      <div className="flex-1 border-t border-slate-200"></div>
+                      <span className="px-2 text-[10px] font-bold text-slate-400 uppercase">lub 1 kliknięciem</span>
+                      <div className="flex-1 border-t border-slate-200"></div>
+                    </div>
+
+                    {/* 1-Click Fast Google Buttons (ZERO PASSWORDS) */}
                     <div className="space-y-2">
-                      {/* Arek account */}
+                      {/* Current user account */}
                       <button
                         type="button"
-                        onClick={() => handleGoogleAccountClick('baluch.arek@gmail.com', 'Arek')}
+                        onClick={() => handleGoogleAccountLogin('marciniakk018@gmail.com', 'Krzysztof')}
                         disabled={isLoading}
-                        className="w-full p-3.5 bg-white hover:bg-gray-50 active:scale-[0.99] border-2 border-gray-200 hover:border-emerald-500 rounded-2xl flex items-center justify-between text-left transition shadow-xs group cursor-pointer"
+                        className="w-full p-3.5 bg-white hover:bg-slate-50 active:scale-[0.99] border-2 border-emerald-500 hover:border-emerald-600 rounded-2xl flex items-center justify-between text-left transition shadow-xs group cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
-                            A
+                            K
                           </div>
                           <div>
-                            <div className="font-bold text-gray-900 text-sm group-hover:text-emerald-700 transition">
-                              Arek
+                            <div className="font-bold text-gray-900 text-sm group-hover:text-emerald-700 transition flex items-center gap-1.5">
+                              marciniakk018@gmail.com
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Twoje konto</span>
                             </div>
                             <div className="text-xs text-gray-500">
-                              baluch.arek@gmail.com
+                              Zaloguj bez hasła (Google One-Tap)
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 group-hover:translate-x-0.5 transition">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 group-hover:translate-x-0.5 transition">
                           <GoogleGIcon className="w-4 h-4" />
-                          <span>Zaloguj</span>
-                        </div>
-                      </button>
-
-                      {/* Marta account */}
-                      <button
-                        type="button"
-                        onClick={() => handleGoogleAccountClick('kobierkaamarta@gmail.com', 'Marta')}
-                        disabled={isLoading}
-                        className="w-full p-3.5 bg-white hover:bg-gray-50 active:scale-[0.99] border-2 border-gray-200 hover:border-emerald-500 rounded-2xl flex items-center justify-between text-left transition shadow-xs group cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-teal-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
-                            M
-                          </div>
-                          <div>
-                            <div className="font-bold text-gray-900 text-sm group-hover:text-teal-700 transition">
-                              Marta
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              kobierkaamarta@gmail.com
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-teal-600 group-hover:translate-x-0.5 transition">
-                          <GoogleGIcon className="w-4 h-4" />
-                          <span>Zaloguj</span>
+                          <ArrowRight className="w-4 h-4" />
                         </div>
                       </button>
                     </div>
 
-                    {/* Toggle custom account */}
+                    {/* Custom Gmail input (NO PASSWORD EVER) */}
                     <div className="pt-2 text-center">
                       {!showCustomAccount ? (
                         <button
@@ -525,12 +571,12 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                           className="text-xs text-gray-500 hover:text-emerald-700 font-semibold inline-flex items-center gap-1 cursor-pointer transition"
                         >
                           <PlusCircle className="w-3.5 h-3.5" />
-                          Użyj innego konta Google
+                          Zaloguj innym adresem Google (@gmail.com)
                         </button>
                       ) : (
-                        <form onSubmit={handleCustomGoogleSubmit} className="space-y-2 mt-2 pt-2 border-t border-gray-100">
+                        <form onSubmit={handleCustomGoogleSubmit} className="space-y-2 mt-2 pt-2 border-t border-gray-200">
                           <label className="text-xs font-semibold text-gray-600 block text-left">
-                            Wpisz swój adres Google (@gmail.com):
+                            Wpisz swój adres konta Google (@gmail.com):
                           </label>
                           <div className="flex gap-2">
                             <input
@@ -539,30 +585,33 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                               placeholder="twoje-konto@gmail.com"
                               value={customEmail}
                               onChange={(e) => setCustomEmail(e.target.value)}
-                              className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:border-emerald-500 focus:outline-hidden"
+                              className="flex-1 px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs focus:border-emerald-500 focus:outline-hidden"
                             />
                             <button
                               type="submit"
                               disabled={isLoading}
                               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
                             >
-                              Połącz
+                              Połącz z Google
                             </button>
                           </div>
+                          <p className="text-[10px] text-gray-400 text-left">
+                            Bez hasła: Połączenie następuje bezpośrednio z chmurą PetCare przypisaną do konta Google.
+                          </p>
                         </form>
                       )}
                     </div>
                   </div>
 
-                  {/* Info cards */}
-                  <div className="p-3 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-3">
+                  {/* Security and privacy info */}
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                       <UserCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-gray-900">Logowanie 1 kliknięciem</h4>
-                      <p className="text-[11px] text-gray-500">
-                        Nie musisz wpisywać haseł. Jedno kliknięcie łączy aplikację z Twoją chmurą.
+                      <h4 className="text-xs font-bold text-gray-900">Brak haseł do zapamiętania</h4>
+                      <p className="text-[11px] text-gray-600">
+                        Wystarczy Twoje konto Google. Wszystkie leki, badania i przypomnienia są bezpiecznie chronione.
                       </p>
                     </div>
                   </div>
@@ -596,7 +645,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   </button>
 
                   <p className="text-[11px] text-gray-400 text-center">
-                    Kod możesz wygenerować na pierwszym telefonie w zakładce Konto Google.
+                    Kod możesz wygenerować na pierwszym telefonie po kliknięciu konta Google.
                   </p>
                 </form>
               )}

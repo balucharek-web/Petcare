@@ -15,12 +15,13 @@ import {
   Minimize2,
   Camera,
   Grid,
-  Cloud
+  Cloud,
+  RefreshCw
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { getStoredSession, subscribeToCloudSync, CloudSession } from '../services/cloudSyncService';
+import { getStoredSession, subscribeToCloudSync, manualSyncNow, CloudSession } from '../services/cloudSyncService';
 
 interface HeaderNavProps {
   pets: Pet[];
@@ -55,7 +56,28 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [session, setSession] = useState<CloudSession>(getStoredSession());
+  const [isQuickSyncing, setIsQuickSyncing] = useState(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
   const { install, isInstalled } = usePWAInstall();
+
+  const handleQuickSync = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!session.user) {
+      onOpenGoogleSync();
+      return;
+    }
+    setIsQuickSyncing(true);
+    try {
+      const res = await manualSyncNow();
+      setSyncToast(`Zsynchronizowano (${res.petCount} zw.)`);
+      setTimeout(() => setSyncToast(null), 3000);
+    } catch {
+      setSyncToast('Błąd synchronizacji');
+      setTimeout(() => setSyncToast(null), 3000);
+    } finally {
+      setIsQuickSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const unsub = subscribeToCloudSync((s) => {
@@ -216,26 +238,49 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
           {/* Quick Action Badges */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Cloud Sync */}
-            <button
-              onClick={onOpenGoogleSync}
-              title={session.user?.email ? `Chmura PetCare: Połączono (${session.user.email})` : 'Synchronizacja w Chmurze'}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl active:scale-95 transition text-xs font-bold border shadow-xs ${
-                session.user 
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' 
-                  : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-              }`}
-            >
-              <div className="relative">
-                <Cloud className={`w-3.5 h-3.5 ${session.user ? 'text-emerald-600' : 'text-slate-500'}`} />
-                {session.user && (
-                  <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                )}
-              </div>
-              <span className="hidden sm:inline">
-                {session.user ? 'Chmura' : 'Sync'}
-              </span>
-            </button>
+            {/* Cloud Sync & Manual Trigger */}
+            <div className="relative flex items-center">
+              {session.user ? (
+                <div className="flex items-center bg-emerald-50 border border-emerald-300 rounded-2xl p-0.5 shadow-xs">
+                  <button
+                    onClick={onOpenGoogleSync}
+                    title={`Konto Google: ${session.user.email} (kliknij, aby otworzyć panel)`}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-emerald-800 hover:text-emerald-950 text-xs font-bold transition rounded-xl"
+                  >
+                    <div className="relative">
+                      <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                    </div>
+                    <span className="hidden sm:inline">Chmura</span>
+                  </button>
+                  <button
+                    onClick={handleQuickSync}
+                    disabled={isQuickSyncing}
+                    title="Ręczna synchronizacja: kliknij, aby zsynchronizować teraz"
+                    className="p-1.5 text-emerald-700 hover:text-emerald-950 hover:bg-emerald-100 rounded-xl transition cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isQuickSyncing ? 'animate-spin text-teal-600' : ''}`} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={onOpenGoogleSync}
+                  title="Zaloguj się kontem Google bez hasła, aby włączyć synchronizację"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 active:scale-95 transition text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="hidden sm:inline">Konto Google</span>
+                </button>
+              )}
+
+              {/* Toast for quick sync */}
+              {syncToast && (
+                <div className="absolute top-full mt-1.5 right-0 whitespace-nowrap px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-lg z-50 animate-fadeIn flex items-center gap-1">
+                  <span>✓</span>
+                  <span>{syncToast}</span>
+                </div>
+              )}
+            </div>
 
             {/* AI Scanner Button */}
             <button

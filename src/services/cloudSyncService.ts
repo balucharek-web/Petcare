@@ -3,12 +3,6 @@ import { storage } from './storage';
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
 
-// GitHub repository API backend for 100% reliable global cloud sync from Android APK & Web
-const GH_OWNER = 'balucharek-web';
-const GH_REPO = 'Petcare';
-// Cloud backend sync token
-const GH_TOKEN = ['g' + 'h' + 'p' + '_', 'QnzK5Zq', 'LxIODk0at7', 'rpGUhJ4kS7KvR1vCG8d'].join('');
-
 export interface CloudUser {
   email: string;
   name: string;
@@ -18,6 +12,7 @@ export interface CloudUser {
 
 export interface CloudSession {
   user: CloudUser | null;
+  authToken?: string;
   lastSyncTime: string | null;
   lastSyncStatus: 'idle' | 'syncing' | 'success' | 'error';
   autoSync: boolean;
@@ -43,7 +38,7 @@ export function saveSession(updates: Partial<CloudSession>): CloudSession {
   const current = getStoredSession();
   const next: CloudSession = { ...current, ...updates };
   localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(next));
-  listeners.forEach(fn => fn(next));
+  listeners.forEach((fn) => fn(next));
   return next;
 }
 
@@ -52,31 +47,25 @@ export function subscribeToCloudSync(listener: CloudSyncListener): () => void {
   return () => listeners.delete(listener);
 }
 
-// Convert string to base64 with full UTF-8 support (emojis, Polish characters)
-function utf8ToBase64(str: string): string {
-  return btoa(
-    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-      String.fromCharCode(parseInt(p1, 16))
-    )
-  );
+// Parse Google JWT ID token from Google Identity Services
+export function parseGoogleJwt(token: string): { email: string; name: string; picture?: string; sub: string } | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (err) {
+    console.error('Błąd dekodowania tokena Google JWT:', err);
+    return null;
+  }
 }
 
-// Convert base64 back to UTF-8 string
-function base64ToUtf8(str: string): string {
-  const clean = str.replace(/\s/g, '');
-  return decodeURIComponent(
-    Array.prototype.map
-      .call(atob(clean), (c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-      .join('')
-  );
-}
-
-function getSanitizedFileName(email: string): string {
-  const clean = email.toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '_');
-  return `sync_${clean}.json`;
-}
-
-// 1-Click Google Sign-In
+// 1-Click Google Sign-In (Zero passwords required)
 export async function signInWithGoogle(
   email: string,
   displayName?: string,
@@ -87,7 +76,7 @@ export async function signInWithGoogle(
     throw new Error('Nieprawidłowy adres konta Google.');
   }
 
-  const name = displayName || (cleanEmail.split('@')[0].replace(/[._]/g, ' '));
+  const name = displayName || cleanEmail.split('@')[0].replace(/[._]/g, ' ');
   const user: CloudUser = {
     email: cleanEmail,
     name: name.charAt(0).toUpperCase() + name.slice(1),
@@ -95,8 +84,45 @@ export async function signInWithGoogle(
     provider: 'google',
   };
 
+  // Register / Authenticate on PetCare Cloud Sync API
+  let authToken = '';
+  try {
+    const authRes = await fetch('/api/cloud-sync/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: cleanEmail,
+        name: user.name,
+        avatar: user.avatar,
+      }),
+    });
+    if (authRes.ok) {
+      const authData = await authRes.json();
+      authToken = authData.token || '';
+      // If server already has saved pets and local is empty, restore them
+      if (authData.hasData && storage.getPets().length === 0) {
+        try {
+          const downloadRes = await fetch('/api/cloud-sync/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, token: authToken }),
+          });
+          if (downloadRes.ok) {
+            const downData = await downloadRes.json();
+            if (downData.payload) {
+              restoreAllPetData(downData.payload);
+            }
+          }
+        } catch {}
+      }
+    }
+  } catch (err) {
+    console.warn('Backend sync auth warning:', err);
+  }
+
   saveSession({
     user,
+    authToken,
     lastSyncStatus: 'syncing',
   });
 
@@ -105,7 +131,6 @@ export async function signInWithGoogle(
     const res = await uploadToCloud();
     return { user, petCount: res.petCount };
   } catch (err) {
-    // Session is still saved even if first upload fails
     saveSession({ lastSyncStatus: 'idle' });
     return { user, petCount: storage.getPets().length };
   }
@@ -115,11 +140,12 @@ export async function signInWithGoogle(
 export function signOutGoogle(): void {
   saveSession({
     user: null,
+    authToken: undefined,
     lastSyncStatus: 'idle',
   });
 }
 
-// Bundle local data
+// Bundle local data into exportable structure
 export function bundleAllPetData() {
   const allPets = storage.getPets();
   const allVaccinations = storage.getVaccinations();
@@ -134,7 +160,7 @@ export function bundleAllPetData() {
   const customizer = localStorage.getItem('petcare_dashboard_config') || '{}';
 
   return {
-    version: '2.3.0',
+    version: '2.4.0',
     exportDate: new Date().toISOString(),
     pets: allPets,
     vaccinations: allVaccinations,
@@ -204,64 +230,46 @@ export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount:
 
   const payload = bundleAllPetData();
   const petCount = payload.pets.length;
-  const fileName = getSanitizedFileName(session.user.email);
-  const filePath = `sync_data/${fileName}`;
-  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
+  const nowIso = new Date().toISOString();
 
   try {
-    // 1. Check if the file already exists to get its SHA
-    let existingSha: string | undefined = undefined;
-    try {
-      const getRes = await fetch(apiUrl, {
-        headers: {
-          Authorization: `token ${GH_TOKEN}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      });
-      if (getRes.ok) {
-        const fileInfo = await getRes.json();
-        existingSha = fileInfo.sha;
-      }
-    } catch {
-      // New file
-    }
-
-    // 2. Put file with updated data
-    const contentBase64 = utf8ToBase64(JSON.stringify(payload, null, 2));
-    const nowIso = new Date().toISOString();
-
-    const putRes = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${GH_TOKEN}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/vnd.github.v3+json',
-      },
+    const res = await fetch('/api/cloud-sync/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: `PetCare Cloud Backup for ${session.user.email} (${petCount} pets)`,
-        content: contentBase64,
-        sha: existingSha,
+        email: session.user.email,
+        token: session.authToken,
+        payload,
+        petCount,
       }),
     });
 
-    if (!putRes.ok) {
-      const errData = await putRes.json().catch(() => ({}));
-      throw new Error(errData.message || `Błąd zapisu w chmurze (${putRes.status})`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Błąd odpowiedzi serwera chmury.');
     }
 
+    const data = await res.json();
+    const syncTime = data.lastSyncTime || nowIso;
+
     saveSession({
-      lastSyncTime: nowIso,
+      lastSyncTime: syncTime,
       lastSyncStatus: 'success',
     });
 
     return {
-      lastSyncTime: nowIso,
+      lastSyncTime: syncTime,
       petCount,
     };
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
     throw new Error(err.message || 'Nie udało się zapisać kopii w chmurze.');
   }
+}
+
+// Manual immediate synchronization trigger
+export async function manualSyncNow(): Promise<{ lastSyncTime: string; petCount: number }> {
+  return uploadToCloud();
 }
 
 // Download pet data from Cloud
@@ -273,41 +281,35 @@ export async function downloadFromCloud(): Promise<{ petCount: number; lastSyncT
 
   saveSession({ lastSyncStatus: 'syncing' });
 
-  const fileName = getSanitizedFileName(session.user.email);
-  const filePath = `sync_data/${fileName}`;
-  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
-
   try {
-    const res = await fetch(apiUrl, {
-      headers: {
-        Authorization: `token ${GH_TOKEN}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
+    const res = await fetch('/api/cloud-sync/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: session.user.email,
+        token: session.authToken,
+      }),
     });
 
     if (!res.ok) {
-      if (res.status === 404) {
-        throw new Error('Dla tego konta Google nie znaleziono jeszcze żadnej zapisanej kopii zapasowej.');
-      }
-      throw new Error(`Błąd pobierania danych z chmury (${res.status})`);
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Nie znaleziono danych w chmurze dla tego konta.');
     }
 
-    const fileInfo = await res.json();
-    const rawJson = base64ToUtf8(fileInfo.content);
-    const payload = JSON.parse(rawJson);
+    const data = await res.json();
+    if (!data.payload) {
+      throw new Error('Brak danych w pobranej kopii.');
+    }
 
-    const { petCount } = restoreAllPetData(payload);
-    const nowIso = new Date().toISOString();
+    const { petCount } = restoreAllPetData(data.payload);
+    const syncTime = data.lastSyncTime || new Date().toISOString();
 
     saveSession({
-      lastSyncTime: payload.exportDate || nowIso,
+      lastSyncTime: syncTime,
       lastSyncStatus: 'success',
     });
 
-    return {
-      petCount,
-      lastSyncTime: payload.exportDate || nowIso,
-    };
+    return { petCount, lastSyncTime: syncTime };
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
     throw new Error(err.message || 'Nie udało się wczytać danych z chmury.');
@@ -321,36 +323,27 @@ export async function generateQuickPairCode(): Promise<{ code: string; expiresAt
     throw new Error('Zaloguj się kontem Google, aby wygenerować kod parowania.');
   }
 
-  // Ensure current data is uploaded first
   await uploadToCloud();
 
+  try {
+    const res = await fetch('/api/cloud-sync/generate-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: session.user.email,
+        token: session.authToken,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.code) {
+        return { code: data.code, expiresAt: data.expiresAt };
+      }
+    }
+  } catch {}
+
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 20 * 60 * 1000; // 20 mins
-
-  const pinInfo = {
-    code,
-    email: session.user.email,
-    name: session.user.name,
-    avatar: session.user.avatar,
-    expiresAt,
-  };
-
-  const pinPath = `sync_data/pin_${code}.json`;
-  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${pinPath}`;
-
-  await fetch(apiUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${GH_TOKEN}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/vnd.github.v3+json',
-    },
-    body: JSON.stringify({
-      message: `Pairing PIN ${code}`,
-      content: utf8ToBase64(JSON.stringify(pinInfo)),
-    }),
-  });
-
+  const expiresAt = Date.now() + 20 * 60 * 1000;
   return { code, expiresAt };
 }
 
@@ -364,60 +357,33 @@ export async function pairWithQuickCode(code: string): Promise<{ petCount: numbe
   saveSession({ lastSyncStatus: 'syncing' });
 
   try {
-    const pinPath = `sync_data/pin_${clean}.json`;
-    const pinUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${pinPath}`;
-
-    const res = await fetch(pinUrl, {
-      headers: {
-        Authorization: `token ${GH_TOKEN}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
+    const res = await fetch('/api/cloud-sync/pair-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: clean }),
     });
 
-    if (!res.ok) {
-      throw new Error('Nieprawidłowy kod parowania lub kod wygasł.');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.payload) {
+        const { petCount } = restoreAllPetData(data.payload);
+        const user: CloudUser = {
+          email: data.user.email,
+          name: data.user.name,
+          avatar: data.user.avatar,
+          provider: 'google',
+        };
+        saveSession({
+          user,
+          authToken: data.token,
+          lastSyncTime: data.lastSyncTime || new Date().toISOString(),
+          lastSyncStatus: 'success',
+        });
+        return { petCount, user };
+      }
     }
-
-    const fileInfo = await res.json();
-    const pinData = JSON.parse(base64ToUtf8(fileInfo.content));
-
-    if (Date.now() > pinData.expiresAt) {
-      throw new Error('Ten kod parowania wygasł (ważny przez 20 minut). Wygeneruj nowy na pierwszym telefonie.');
-    }
-
-    // Now download user's pet data
-    const userFileName = getSanitizedFileName(pinData.email);
-    const dataUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/sync_data/${userFileName}`;
-
-    const dataRes = await fetch(dataUrl, {
-      headers: {
-        Authorization: `token ${GH_TOKEN}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
-
-    if (!dataRes.ok) {
-      throw new Error('Nie znaleziono pliku danych dla tego kodu.');
-    }
-
-    const dataInfo = await dataRes.json();
-    const payload = JSON.parse(base64ToUtf8(dataInfo.content));
-    const { petCount } = restoreAllPetData(payload);
-
-    const user: CloudUser = {
-      email: pinData.email,
-      name: pinData.name,
-      avatar: pinData.avatar,
-      provider: 'google',
-    };
-
-    saveSession({
-      user,
-      lastSyncTime: payload.exportDate || new Date().toISOString(),
-      lastSyncStatus: 'success',
-    });
-
-    return { petCount, user };
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Nieprawidłowy kod parowania.');
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
     throw err;
