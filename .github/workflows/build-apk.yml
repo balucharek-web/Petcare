@@ -57,13 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.16.0
-          name: "PetCare v2.16.0 - Wszystkie miasta (dyżury 24h), GPS i przesuwanie kafelków"
+          tag_name: v2.16.1
+          name: "PetCare v2.16.1 - Mikołów i miasta Śląska w wyszukiwarce 24h, autouzupełnianie miast i stabilny GPS"
           body: |
-            ### 🐾 PetCare v2.16.0
+            ### 🐾 PetCare v2.16.1
             
-            - 🏥 **Wyszukiwarka całodobowych klinik 24h dla wszystkich miast i 16 województw w Polsce** (baza ponad 120 miast, automatyczne wyznaczanie najbliższego ostrego dyżuru i dystansu w km).
-            - 📍 **Ulepszona geolokalizacja:** szybki GPS, lokalizacja sieciowa (IP) oraz ręczny wybór własnego miasta.
+            - 🏙️ **Dodano Mikołów oraz miasta i gminy Górnego Śląska** do wyszukiwarki i bazy klinik 24h.
+            - 📍 **Interaktywne pole wyszukiwania miejscowości z podpowiedziami:** wystarczy wpisać np. "Mikołów", aby natychmiast wyliczyć odległości do najbliższych ostrych dyżurów (Klinika Brynów, Chorzów, Tychy).
+            - 🧭 **Naprawa błędu lokalizacji IP:** wyłączono błędne przypisywanie odległych miast z bramek operatorów (np. Zduńska Wola). Dodano trwałe zapamiętywanie wybranego miasta.
+            - 📱 **Gotowy plik APK do instalacji.**
             - 🧩 **Przeciąganie i własna kolejność kafelków na pulpicie (Drag & Drop)** dla myszy i ekranów dotykowych.
             - 📱 **Plik instalacyjny APK dla Androida.**
           files: |

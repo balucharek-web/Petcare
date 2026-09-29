@@ -39,28 +39,46 @@ export const ALL_POLISH_CITIES: PolishCity[] = [
 
   // Śląskie
   { name: 'Katowice', voivodeship: 'Śląskie', lat: 50.2649, lng: 19.0238, isVoivodeshipCapital: true },
-  { name: 'Częstochowa', voivodeship: 'Śląskie', lat: 50.8118, lng: 19.1203 },
-  { name: 'Sosnowiec', voivodeship: 'Śląskie', lat: 50.2863, lng: 19.1041 },
+  { name: 'Mikołów', voivodeship: 'Śląskie', lat: 50.1694, lng: 18.9056 },
+  { name: 'Tychy', voivodeship: 'Śląskie', lat: 50.1234, lng: 18.9866 },
   { name: 'Gliwice', voivodeship: 'Śląskie', lat: 50.2945, lng: 18.6714 },
   { name: 'Zabrze', voivodeship: 'Śląskie', lat: 50.3249, lng: 18.7857 },
-  { name: 'Bielsko-Biała', voivodeship: 'Śląskie', lat: 49.8224, lng: 19.0444 },
-  { name: 'Bytom', voivodeship: 'Śląskie', lat: 50.3480, lng: 18.9328 },
-  { name: 'Ruda Śląska', voivodeship: 'Śląskie', lat: 50.2584, lng: 18.8576 },
-  { name: 'Rybnik', voivodeship: 'Śląskie', lat: 50.1022, lng: 18.5463 },
-  { name: 'Tychy', voivodeship: 'Śląskie', lat: 50.1234, lng: 18.9866 },
-  { name: 'Dąbrowa Górnicza', voivodeship: 'Śląskie', lat: 50.3217, lng: 19.1867 },
+  { name: 'Sosnowiec', voivodeship: 'Śląskie', lat: 50.2863, lng: 19.1041 },
   { name: 'Chorzów', voivodeship: 'Śląskie', lat: 50.2975, lng: 18.9546 },
-  { name: 'Jaworzno', voivodeship: 'Śląskie', lat: 50.2052, lng: 19.2747 },
-  { name: 'Jastrzębie-Zdrój', voivodeship: 'Śląskie', lat: 49.9537, lng: 18.5772 },
-  { name: 'Mysłowice', voivodeship: 'Śląskie', lat: 50.2412, lng: 19.1417 },
+  { name: 'Ruda Śląska', voivodeship: 'Śląskie', lat: 50.2584, lng: 18.8576 },
+  { name: 'Bytom', voivodeship: 'Śląskie', lat: 50.3480, lng: 18.9328 },
+  { name: 'Częstochowa', voivodeship: 'Śląskie', lat: 50.8118, lng: 19.1203 },
+  { name: 'Bielsko-Biała', voivodeship: 'Śląskie', lat: 49.8224, lng: 19.0444 },
+  { name: 'Rybnik', voivodeship: 'Śląskie', lat: 50.1022, lng: 18.5463 },
+  { name: 'Łaziska Górne', voivodeship: 'Śląskie', lat: 50.1517, lng: 18.8436 },
+  { name: 'Orzesze', voivodeship: 'Śląskie', lat: 50.1436, lng: 18.7758 },
+  { name: 'Pszczyna', voivodeship: 'Śląskie', lat: 49.9789, lng: 18.9431 },
+  { name: 'Bieruń', voivodeship: 'Śląskie', lat: 50.0886, lng: 19.0911 },
+  { name: 'Lędziny', voivodeship: 'Śląskie', lat: 50.1444, lng: 19.1172 },
+  { name: 'Knurów', voivodeship: 'Śląskie', lat: 50.2208, lng: 18.6756 },
+  { name: 'Czerwionka-Leszczyny', voivodeship: 'Śląskie', lat: 50.1514, lng: 18.6728 },
+  { name: 'Świętochłowice', voivodeship: 'Śląskie', lat: 50.2917, lng: 18.9183 },
   { name: 'Siemianowice Śląskie', voivodeship: 'Śląskie', lat: 50.3019, lng: 19.0305 },
+  { name: 'Dąbrowa Górnicza', voivodeship: 'Śląskie', lat: 50.3217, lng: 19.1867 },
+  { name: 'Jaworzno', voivodeship: 'Śląskie', lat: 50.2052, lng: 19.2747 },
+  { name: 'Mysłowice', voivodeship: 'Śląskie', lat: 50.2412, lng: 19.1417 },
+  { name: 'Jastrzębie-Zdrój', voivodeship: 'Śląskie', lat: 49.9537, lng: 18.5772 },
   { name: 'Żory', voivodeship: 'Śląskie', lat: 50.0469, lng: 18.6923 },
   { name: 'Tarnowskie Góry', voivodeship: 'Śląskie', lat: 50.4485, lng: 18.8587 },
   { name: 'Będzin', voivodeship: 'Śląskie', lat: 50.3259, lng: 19.1297 },
   { name: 'Piekary Śląskie', voivodeship: 'Śląskie', lat: 50.3705, lng: 18.9482 },
+  { name: 'Cieszyn', voivodeship: 'Śląskie', lat: 49.7494, lng: 18.6328 },
+  { name: 'Żywiec', voivodeship: 'Śląskie', lat: 49.6894, lng: 19.1989 },
+  { name: 'Ustroń', voivodeship: 'Śląskie', lat: 49.7214, lng: 18.8058 },
+  { name: 'Wisła', voivodeship: 'Śląskie', lat: 49.6561, lng: 18.8592 },
   { name: 'Racibórz', voivodeship: 'Śląskie', lat: 50.0919, lng: 18.2194 },
   { name: 'Zawiercie', voivodeship: 'Śląskie', lat: 50.4877, lng: 19.4168 },
   { name: 'Wodzisław Śląski', voivodeship: 'Śląskie', lat: 50.0028, lng: 18.4632 },
+  { name: 'Rydułtowy', voivodeship: 'Śląskie', lat: 50.0583, lng: 18.4194 },
+  { name: 'Radlin', voivodeship: 'Śląskie', lat: 50.0333, lng: 18.4722 },
+  { name: 'Lubliniec', voivodeship: 'Śląskie', lat: 50.6694, lng: 18.6806 },
+  { name: 'Myszków', voivodeship: 'Śląskie', lat: 50.5758, lng: 19.3242 },
+  { name: 'Kłobuck', voivodeship: 'Śląskie', lat: 50.9022, lng: 18.9367 },
 
   // Dolnośląskie
   { name: 'Wrocław', voivodeship: 'Dolnośląskie', lat: 51.1079, lng: 17.0385, isVoivodeshipCapital: true },
@@ -240,3 +258,21 @@ export function getNearestPolishCity(lat: number, lng: number): { city: PolishCi
 
 // Get all unique voivodeships
 export const ALL_VOIVODESHIPS = Array.from(new Set(ALL_POLISH_CITIES.map(c => c.voivodeship))).sort();
+
+// Normalize text by removing Polish diacritics for ultra-fast, tolerant fuzzy search
+export function normalizePolishText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ą/g, 'a')
+    .replace(/ć/g, 'c')
+    .replace(/ę/g, 'e')
+    .replace(/ł/g, 'l')
+    .replace(/ń/g, 'n')
+    .replace(/ó/g, 'o')
+    .replace(/ś/g, 's')
+    .replace(/ź/g, 'z')
+    .replace(/ż/g, 'z')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}

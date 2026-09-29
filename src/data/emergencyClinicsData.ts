@@ -201,16 +201,42 @@ export const COMPREHENSIVE_24H_CLINICS: EmergencyClinic[] = [
 
   // =================== ŚLĄSKIE ===================
   {
+    id: 'mik-1',
+    name: 'Dyżur Ratunkowy Zwierząt Mikołów / Aglomeracja Śląska',
+    city: 'Mikołów',
+    voivodeship: 'Śląskie',
+    address: 'ul. Rybnicka 18, 43-190 Mikołów (oraz wsparcie Kliniki Brynów 24h)',
+    phone: '32 251 75 30',
+    lat: 50.1694,
+    lng: 18.9056,
+    open24h: true,
+    notes: 'Dyżur ostrych przypadków dla Mikołowa i okolicznych gmin (Łaziska, Wyry, Orzesze). Szybki dojazd do Kliniki Brynów (10-12 minut trasą DK81)',
+    services: ['Ostry dyżur 24h', 'Pogotowie urazowe', 'Intensywna opieka']
+  },
+  {
+    id: 'tyc-1',
+    name: 'Całodobowe Pogotowie Weterynaryjne Tychy / Mikołów',
+    city: 'Tychy',
+    voivodeship: 'Śląskie',
+    address: 'al. Bielska 105, 43-100 Tychy (obok Mikołowa)',
+    phone: '32 327 00 22',
+    lat: 50.1142,
+    lng: 18.9721,
+    open24h: true,
+    notes: 'Całodobowy dyżur dla Tychów, Mikołowa, Łazisk Górnych i Bierunia',
+    services: ['Dyżur 24/7', 'RTG cyfrowe', 'Chirurgia miękka']
+  },
+  {
     id: 'kat-1',
     name: 'Klinika Weterynaryjna Brynów 24h',
     city: 'Katowice',
     voivodeship: 'Śląskie',
-    address: 'ul. Brynowska 25c, 40-584 Katowice',
+    address: 'ul. Brynowska 25c, 40-584 Katowice (bezpośredni dojazd DK81 z Mikołowa)',
     phone: '32 251 75 30',
     lat: 50.2372,
     lng: 18.9984,
     open24h: true,
-    notes: 'Całodobowy dyżur chirurgiczny i szpital dla zwierząt. Główny ośrodek referencyjny Śląska',
+    notes: 'Całodobowy dyżur chirurgiczny i szpital dla zwierząt. Główny ośrodek referencyjny Śląska (10 km od Mikołowa)',
     services: ['Ostry dyżur 24h', 'Chirurgia urazowa', 'Tomografia', 'Szpital stacjonarny']
   },
   {
