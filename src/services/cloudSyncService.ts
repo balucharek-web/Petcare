@@ -49,7 +49,7 @@ export function subscribeToCloudSync(listener: CloudSyncListener): () => void {
 }
 
 // Get the correct API URL (resolves relative paths to the live backend when inside Capacitor Android)
-function getApiUrl(endpoint: string): string {
+export function getApiUrl(endpoint: string): string {
   if (typeof window === 'undefined') return endpoint;
   const origin = window.location.origin || '';
   if (
