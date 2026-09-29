@@ -27,32 +27,34 @@ const STORAGE_KEYS = {
   CLEAN_INITIALIZED: 'petcare_clean_initialized_v2',
 };
 
-// Automatic one-time cleanup of old sample data from previous v1 versions
+// Automatic migration of old data from previous v1 versions if present
 function ensureCleanInitialization() {
   if (typeof window === 'undefined') return;
-  const isClean = localStorage.getItem(STORAGE_KEYS.CLEAN_INITIALIZED);
-  if (!isClean) {
-    // Purge old mock v1 keys if any
-    localStorage.removeItem('petcare_pets_v1');
-    localStorage.removeItem('petcare_active_pet_id_v1');
-    localStorage.removeItem('petcare_vaccinations_v1');
-    localStorage.removeItem('petcare_exams_v1');
-    localStorage.removeItem('petcare_conditions_v1');
-    localStorage.removeItem('petcare_visits_v1');
-    localStorage.removeItem('petcare_medications_v1');
-    localStorage.removeItem('petcare_dose_logs_v1');
-    
-    // Clear v2 as well so everything starts completely clean
-    localStorage.removeItem(STORAGE_KEYS.PETS);
-    localStorage.removeItem(STORAGE_KEYS.ACTIVE_PET_ID);
-    localStorage.removeItem(STORAGE_KEYS.VACCINATIONS);
-    localStorage.removeItem(STORAGE_KEYS.EXAMS);
-    localStorage.removeItem(STORAGE_KEYS.CONDITIONS);
-    localStorage.removeItem(STORAGE_KEYS.VISITS);
-    localStorage.removeItem(STORAGE_KEYS.MEDICATIONS);
-    localStorage.removeItem(STORAGE_KEYS.DOSE_LOGS);
+  try {
+    const v2Pets = localStorage.getItem(STORAGE_KEYS.PETS);
+    if (!v2Pets || v2Pets === '[]') {
+      const v1Pets = localStorage.getItem('petcare_pets_v1');
+      if (v1Pets) {
+        const parsed = JSON.parse(v1Pets);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.PETS, v1Pets);
+        }
+      }
+    }
 
-    localStorage.setItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
+    const v2Vaccines = localStorage.getItem(STORAGE_KEYS.VACCINATIONS);
+    if (!v2Vaccines || v2Vaccines === '[]') {
+      const v1Vac = localStorage.getItem('petcare_vaccinations_v1');
+      if (v1Vac) localStorage.setItem(STORAGE_KEYS.VACCINATIONS, v1Vac);
+    }
+
+    const v2Meds = localStorage.getItem(STORAGE_KEYS.MEDICATIONS);
+    if (!v2Meds || v2Meds === '[]') {
+      const v1Meds = localStorage.getItem('petcare_medications_v1');
+      if (v1Meds) localStorage.setItem(STORAGE_KEYS.MEDICATIONS, v1Meds);
+    }
+  } catch (e) {
+    console.warn('Migration note:', e);
   }
 }
 

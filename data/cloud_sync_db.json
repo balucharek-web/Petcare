@@ -9,24 +9,91 @@
       "petCount": 1,
       "token": "tok_n1k980fa21mumpco08",
       "payload": {
+        "version": "2.5.0",
         "pets": [
           {
             "id": "pet-1",
-            "name": "Baster"
+            "name": "Baster",
+            "species": "dog",
+            "breed": "Mieszaniec",
+            "birthDate": "2021-05-10",
+            "gender": "male",
+            "weight": 14.5,
+            "chipNumber": "616093900012345",
+            "photoUrl": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80",
+            "isNeutered": true
           }
-        ]
+        ],
+        "vaccinations": [],
+        "medications": [],
+        "exams": [],
+        "conditions": [],
+        "visits": [],
+        "activePetId": "pet-1"
       }
     },
-    "marciniakk018@gmail.com": {
-      "email": "marciniakk018@gmail.com",
+    "baluch.arek@gmail.com": {
+      "email": "baluch.arek@gmail.com",
       "passwordHash": "default_pass",
-      "name": "Krzysztof",
+      "name": "Arek Bałuch",
       "avatar": "",
-      "lastSyncTime": "2026-09-29T14:09:35.986Z",
-      "petCount": 0,
-      "token": "tok_qaay2jxzby8mumr664z",
+      "lastSyncTime": "2026-09-29T15:30:00.000Z",
+      "petCount": 1,
+      "token": "tok_8x9x1tpwn05mumvrd7r",
       "payload": {
-        "pets": []
+        "version": "2.5.0",
+        "pets": [
+          {
+            "id": "pet-1",
+            "name": "Baster",
+            "species": "dog",
+            "breed": "Mieszaniec",
+            "birthDate": "2021-05-10",
+            "gender": "male",
+            "weight": 14.5,
+            "chipNumber": "616093900012345",
+            "photoUrl": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80",
+            "isNeutered": true
+          }
+        ],
+        "vaccinations": [],
+        "medications": [],
+        "exams": [],
+        "conditions": [],
+        "visits": [],
+        "activePetId": "pet-1"
+      }
+    },
+    "arekbrodowski35@gmail.com": {
+      "email": "arekbrodowski35@gmail.com",
+      "passwordHash": "default_pass",
+      "name": "Arek",
+      "avatar": "",
+      "lastSyncTime": "2026-09-29T15:30:00.000Z",
+      "petCount": 1,
+      "token": "tok_arek_cloud_sync_2",
+      "payload": {
+        "version": "2.5.0",
+        "pets": [
+          {
+            "id": "pet-1",
+            "name": "Baster",
+            "species": "dog",
+            "breed": "Mieszaniec",
+            "birthDate": "2021-05-10",
+            "gender": "male",
+            "weight": 14.5,
+            "chipNumber": "616093900012345",
+            "photoUrl": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80",
+            "isNeutered": true
+          }
+        ],
+        "vaccinations": [],
+        "medications": [],
+        "exams": [],
+        "conditions": [],
+        "visits": [],
+        "activePetId": "pet-1"
       }
     }
   }

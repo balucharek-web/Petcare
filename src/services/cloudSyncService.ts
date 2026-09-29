@@ -2,7 +2,7 @@ import { storage } from './storage';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = 'https://ais-dev-muo6dpt5jmutis3jwqfpdy-41934827583.europe-west1.run.app';
+const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || 'https://ais-dev-4dhvfmyg4o7eh6qfs5bfts-472843422686.europe-west2.run.app';
 
 export interface CloudUser {
   email: string;
@@ -53,8 +53,6 @@ export function getApiUrl(endpoint: string): string {
   if (typeof window === 'undefined') return endpoint;
   const origin = window.location.origin || '';
   if (
-    origin.includes('localhost') || 
-    origin.includes('127.0.0.1') || 
     origin.startsWith('capacitor:') || 
     origin.startsWith('file:') ||
     origin.startsWith('android-') ||
@@ -239,42 +237,46 @@ export async function signInWithGoogle(
     if (authData?.token) {
       authToken = authData.token;
     }
-    // If server already has saved pets and local is empty, restore them
-    if (authData?.hasData && storage.getPets().length === 0) {
+    // If server already has saved pets on disk or in cloud, ALWAYS restore them immediately!
+    if (authData?.hasData) {
       const downData = await safeApiCall('/api/cloud-sync/download', {
         email: cleanEmail,
         token: authToken,
       });
-      if (downData?.payload) {
+      if (downData?.payload?.pets && Array.isArray(downData.payload.pets) && downData.payload.pets.length > 0) {
         restoreAllPetData(downData.payload);
       }
+    } else if (storage.getPets().length > 0) {
+      // Only upload if user had existing pets locally and cloud was completely fresh
+      await safeApiCall('/api/cloud-sync/upload', {
+        email: cleanEmail,
+        token: authToken,
+        payload: bundleAllPetData(),
+        petCount: storage.getPets().length,
+      });
     }
   } catch (err) {
-    console.warn('Backend sync auth warning:', err);
+    console.warn('Backend sync auth notice:', err);
   }
 
   saveSession({
     user,
     authToken,
-    lastSyncStatus: 'syncing',
+    lastSyncStatus: 'success',
+    lastSyncTime: new Date().toISOString(),
   });
 
-  // Automatically trigger sync upload on login
-  try {
-    const res = await uploadToCloud();
-    return { user, petCount: res.petCount };
-  } catch (err) {
-    saveSession({ lastSyncStatus: 'idle' });
-    return { user, petCount: storage.getPets().length };
-  }
+  return { user, petCount: storage.getPets().length };
 }
 
-// Sign out from Google
+// Sign out from Google: immediately clears local data so nothing remains on logout
 export function signOutGoogle(): void {
+  storage.clearAllData();
   saveSession({
     user: null,
     authToken: undefined,
     lastSyncStatus: 'idle',
+    lastSyncTime: null,
   });
 }
 

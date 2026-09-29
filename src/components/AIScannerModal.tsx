@@ -164,83 +164,51 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Intelligent local veterinary analyzer fallback if server/network is offline
-  const generateLocalMedicalAnalysis = (petName: string, species?: string) => {
-    return {
-      type: 'medication',
-      title: `Zalecenia lecznicze dla ${petName}`,
-      summary: `Automatycznie zinterpretowano receptę/zalecenie dla pacjenta: ${petName}. Wykryto preparaty oraz schemat podawania.`,
-      medications: [
-        {
-          name: 'Amotaks / Synulox (Antybiotyk)',
-          dosage: '1/2 tabletki 2x dziennie',
-          instructions: 'Podawać rano i wieczorem z posiłkiem przez 7-10 dni',
-          form: 'tablet',
-          isChronic: false,
-        },
-        {
-          name: 'Flora Defense / Probiotyk wet.',
-          dosage: '1 kapsułka 1x dziennie',
-          instructions: 'Zawartość kapsułki wysypać na karmę lub podać do pyszczka',
-          form: 'capsule',
-          isChronic: false,
-        }
-      ],
-      examParameters: [
-        { name: 'Leukocyty (WBC)', value: '10.8', unit: 'G/l', refRange: '6.0 - 17.0', status: 'normal' },
-        { name: 'Erytrocyty (RBC)', value: '7.2', unit: 'T/l', refRange: '5.5 - 8.5', status: 'normal' },
-        { name: 'Kreatynina', value: '1.1', unit: 'mg/dl', refRange: '0.6 - 1.6', status: 'normal' },
-        { name: 'ALT (Wątroba)', value: '54', unit: 'U/l', refRange: '10 - 80', status: 'normal' }
-      ],
-      doctorNotes: `Kontrola stanu zdrowia ${petName} oraz masy ciała za 7 dni w lecznicy.`
-    };
-  };
-
   const handleScan = async () => {
     if (!imagePreview) return;
 
     setIsScanning(true);
     setErrorMsg(null);
     setSuccessMsg(null);
+    setExtractedData(null);
 
     try {
       const apiUrl = getApiUrl('/api/scan-medical');
-      let parsedExtracted: any = null;
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: imagePreview,
+          petName: pet.name,
+          petSpecies: pet.species,
+        }),
+      });
 
-      try {
-        const res = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: imagePreview,
-            petName: pet.name,
-            petSpecies: pet.species,
-          }),
-        });
-
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const data = await res.json();
-          if (data?.success && data?.extracted) {
-            parsedExtracted = data.extracted;
-          }
-        }
-      } catch (networkErr) {
-        console.warn('Remote Gemini call notice, utilizing resilient analyzer:', networkErr);
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Serwer zwrócił nieprawidłową odpowiedź. Spróbuj ponownie.');
       }
 
-      // If remote returned cleanly, use it; otherwise use resilient local veterinary analyzer
-      if (!parsedExtracted) {
-        parsedExtracted = generateLocalMedicalAnalysis(pet.name, pet.species);
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Nie udało się przeanalizować dokumentu.');
       }
 
-      setExtractedData(parsedExtracted);
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } });
+      const extracted = data.extracted;
+      setExtractedData(extracted);
+
+      const hasMeds = Array.isArray(extracted.medications) && extracted.medications.length > 0;
+      const hasExams = Array.isArray(extracted.examParameters) && extracted.examParameters.length > 0;
+
+      if (!extracted.isValidMedicalDocument || (!hasMeds && !hasExams)) {
+        setErrorMsg(extracted.summary || 'Na przesłanym zdjęciu nie wykryto leków ani zaleceń weterynaryjnych (to nie jest recepta ani opakowanie leku).');
+      } else {
+        confetti({ particleCount: 35, spread: 50, origin: { y: 0.6 } });
+        setSuccessMsg('Dokument został pomyślnie zinterpretowany przez AI!');
+      }
     } catch (err: any) {
       console.error('Scan error:', err);
-      // Fallback so user is never blocked
-      const fallback = generateLocalMedicalAnalysis(pet.name, pet.species);
-      setExtractedData(fallback);
+      setErrorMsg(err.message || 'Wystąpił błąd podczas analizy zdjęcia. Upewnij się, że zdjęcie jest ostre i czytelne.');
     } finally {
       setIsScanning(false);
     }
@@ -498,15 +466,30 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
           {/* Results Display */}
           {extractedData && (
             <div className="space-y-4 animate-fadeIn">
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
-                    Rozpoznany dokument: {extractedData.type || 'Medyczny'}
-                  </span>
+              {(!extractedData.isValidMedicalDocument || ((!extractedData.medications || extractedData.medications.length === 0) && (!extractedData.examParameters || extractedData.examParameters.length === 0))) ? (
+                <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-sm text-amber-800 dark:text-amber-300">
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                    Brak leków i dokumentacji weterynaryjnej
+                  </div>
+                  <p className="leading-relaxed text-slate-700 dark:text-slate-300">
+                    {extractedData.summary || 'Przesłane zdjęcie nie przedstawia recepty weterynaryjnej, opakowania leku ani karty informacyjnej z lecznicy. Nie wykryto żadnych leków ani zaleceń weterynaryjnych.'}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    💡 Wskazówka: Zrób ostre zdjęcie z bliska przedstawiające etykietę/opakowanie leku lub receptę z zaleceniami lekarza weterynarii.
+                  </p>
                 </div>
-                <h4 className="font-bold text-sm text-slate-900 dark:text-white">{extractedData.title || 'Karta wizyty'}</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{extractedData.summary}</p>
-              </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
+                      Rozpoznany dokument: {extractedData.type || 'Medyczny'}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">{extractedData.title || 'Karta wizyty'}</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{extractedData.summary}</p>
+                </div>
+              )}
 
               {/* Extracted Medications */}
               {extractedData.medications && extractedData.medications.length > 0 && (

@@ -32,7 +32,7 @@ import { usePWAInstall } from './hooks/usePWAInstall';
 
 // Cloud Sync
 import { GoogleSyncModal } from './components/GoogleSyncModal';
-import { checkDailyAutoSync } from './services/cloudSyncService';
+import { checkDailyAutoSync, getStoredSession, subscribeToCloudSync } from './services/cloudSyncService';
 
 // New Feature Modals
 import { MedicalReportModal } from './components/MedicalReportModal';
@@ -46,8 +46,17 @@ import { ToolsHubModal } from './components/ToolsHubModal';
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
-  const [pets, setPets] = useState<Pet[]>(() => storage.getPets());
-  const [activePetId, setActivePetId] = useState<string>(() => storage.getActivePetId());
+  const [pets, setPets] = useState<Pet[]>(() => {
+    const sess = getStoredSession();
+    // When logged out, do not read or display local data
+    if (!sess.user) return [];
+    return storage.getPets();
+  });
+  const [activePetId, setActivePetId] = useState<string>(() => {
+    const sess = getStoredSession();
+    if (!sess.user) return '';
+    return storage.getActivePetId();
+  });
   const [currentTab, setCurrentTab] = useState<NavTab>('profile');
 
   // Dashboard configuration (customization of visible widgets on home screen)
@@ -146,12 +155,24 @@ export default function App() {
   const [conditions, setConditions] = useState<MedicalCondition[]>([]);
   const [visits, setVisits] = useState<VetVisit[]>([]);
 
-  // Load active pet data whenever activePet changes
+  // Load active pet data whenever activePet changes or cloud session changes
   const reloadData = () => {
+    const sess = getStoredSession();
+    if (!sess.user) {
+      setPets([]);
+      setActivePetId('');
+      setVaccinations([]);
+      setMedications([]);
+      setExams([]);
+      setConditions([]);
+      setVisits([]);
+      return;
+    }
     const currentPets = storage.getPets();
     setPets(currentPets);
-    const targetPetId = activePetId || currentPets[0]?.id;
+    const targetPetId = activePetId || currentPets[0]?.id || '';
     if (targetPetId) {
+      setActivePetId(targetPetId);
       setVaccinations(storage.getVaccinations(targetPetId));
       setMedications(storage.getMedications(targetPetId));
       setExams(storage.getExams(targetPetId));
@@ -159,6 +180,34 @@ export default function App() {
       setVisits(storage.getVisits(targetPetId));
     }
   };
+
+  // Subscribe to Cloud Sync session changes (instant logout / login reaction)
+  useEffect(() => {
+    const unsubscribe = subscribeToCloudSync((sess) => {
+      if (!sess.user) {
+        setPets([]);
+        setActivePetId('');
+        setVaccinations([]);
+        setMedications([]);
+        setExams([]);
+        setConditions([]);
+        setVisits([]);
+      } else {
+        const currentPets = storage.getPets();
+        setPets(currentPets);
+        const targetPetId = currentPets[0]?.id || '';
+        setActivePetId(targetPetId);
+        if (targetPetId) {
+          setVaccinations(storage.getVaccinations(targetPetId));
+          setMedications(storage.getMedications(targetPetId));
+          setExams(storage.getExams(targetPetId));
+          setConditions(storage.getConditions(targetPetId));
+          setVisits(storage.getVisits(targetPetId));
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (activePet?.id) {

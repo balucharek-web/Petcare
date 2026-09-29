@@ -162,8 +162,11 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     setGeneratedCode(null);
     setFeedback({
       type: 'info',
-      message: 'Wylogowano z konta Google. Możesz teraz wybrać lub zalogować inne konto.'
+      message: 'Wylogowano z konta Google. Dane lokalne zostały wyczyszczone z urządzenia.'
     });
+    if (onDataRestored) {
+      onDataRestored();
+    }
   };
 
   // Manual Instant Upload/Sync

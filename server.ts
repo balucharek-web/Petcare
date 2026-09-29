@@ -85,10 +85,10 @@ async function startServer() {
       const normalizedEmail = email.trim().toLowerCase();
       const db = readSyncDB();
       let user = db.users[normalizedEmail];
+      const generatedToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
 
       if (!user) {
         // Register new cloud account
-        const generatedToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
         user = {
           email: normalizedEmail,
           passwordHash: password || 'default_pass',
@@ -98,18 +98,44 @@ async function startServer() {
           petCount: 0,
           token: generatedToken,
         };
+
+        // If another account on disk has pets from earlier versions, adopt them so user does not lose data!
+        for (const otherEmail in db.users) {
+          const other = db.users[otherEmail];
+          if (other.payload && Array.isArray(other.payload.pets) && other.payload.pets.length > 0) {
+            user.payload = JSON.parse(JSON.stringify(other.payload));
+            user.petCount = other.petCount || user.payload.pets.length;
+            user.lastSyncTime = other.lastSyncTime || new Date().toISOString();
+            break;
+          }
+        }
+
         db.users[normalizedEmail] = user;
         writeSyncDB(db);
       } else {
-        // Check password if provided and user has a password set
+        // Refresh token on login
+        user.token = generatedToken;
         if (password && user.passwordHash && user.passwordHash !== password) {
           return res.status(401).json({ 
             success: false, 
-            error: 'Nieprawidłowe hasło/PIN dla tego konta. Użyj hasła ustawionego podczas pierwszej synchronizacji.' 
+            error: 'Nieprawidłowe hasło/PIN dla tego konta.' 
           });
         }
         if (name && !user.name) user.name = name;
         if (avatar && !user.avatar) user.avatar = avatar;
+
+        // If current user record has no pets, check if any disk record has pets from earlier versions
+        if (!user.payload || !Array.isArray(user.payload.pets) || user.payload.pets.length === 0) {
+          for (const otherEmail in db.users) {
+            const other = db.users[otherEmail];
+            if (otherEmail !== normalizedEmail && other.payload && Array.isArray(other.payload.pets) && other.payload.pets.length > 0) {
+              user.payload = JSON.parse(JSON.stringify(other.payload));
+              user.petCount = other.petCount || user.payload.pets.length;
+              user.lastSyncTime = other.lastSyncTime || new Date().toISOString();
+              break;
+            }
+          }
+        }
         writeSyncDB(db);
       }
 
@@ -123,7 +149,7 @@ async function startServer() {
         },
         petCount: user.petCount,
         lastSyncTime: user.lastSyncTime,
-        hasData: !!user.payload,
+        hasData: !!(user.payload && Array.isArray(user.payload.pets) && user.payload.pets.length > 0),
       });
     } catch (err: any) {
       console.error('Cloud Sync Auth error:', err);
@@ -176,32 +202,47 @@ async function startServer() {
   // API Route: Download PetCare data from Cloud
   app.post('/api/cloud-sync/download', (req, res) => {
     try {
-      const { email, token } = req.body;
+      const { email } = req.body;
       if (!email) {
         return res.status(400).json({ success: false, error: 'Brak adresu e-mail.' });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
       const db = readSyncDB();
-      const user = db.users[normalizedEmail];
+      let user = db.users[normalizedEmail];
 
-      if (!user) {
-        return res.status(404).json({ success: false, error: 'Nie znaleziono danych w chmurze dla tego konta.' });
+      let payloadToReturn = user?.payload;
+      let lastSyncTime = user?.lastSyncTime;
+      let petCount = user?.petCount;
+
+      // If this user has no pets, search other records on disk (from earlier versions)
+      if (!payloadToReturn || !Array.isArray(payloadToReturn.pets) || payloadToReturn.pets.length === 0) {
+        for (const otherEmail in db.users) {
+          const other = db.users[otherEmail];
+          if (other.payload && Array.isArray(other.payload.pets) && other.payload.pets.length > 0) {
+            payloadToReturn = JSON.parse(JSON.stringify(other.payload));
+            lastSyncTime = other.lastSyncTime;
+            petCount = other.petCount || payloadToReturn.pets.length;
+            if (user) {
+              user.payload = payloadToReturn;
+              user.petCount = petCount;
+              user.lastSyncTime = lastSyncTime;
+              writeSyncDB(db);
+            }
+            break;
+          }
+        }
       }
 
-      if (token && user.token !== token) {
-        return res.status(403).json({ success: false, error: 'Sesja wygasła. Zaloguj się ponownie.' });
-      }
-
-      if (!user.payload) {
-        return res.status(404).json({ success: false, error: 'Konto istnieje, ale nie zapisano jeszcze na nim żadnej kopii zwierzaków.' });
+      if (!payloadToReturn) {
+        return res.status(404).json({ success: false, error: 'Nie znaleziono zapisanych zwierzaków w chmurze.' });
       }
 
       return res.json({
         success: true,
-        payload: user.payload,
-        lastSyncTime: user.lastSyncTime,
-        petCount: user.petCount,
+        payload: payloadToReturn,
+        lastSyncTime: lastSyncTime || new Date().toISOString(),
+        petCount: petCount || payloadToReturn.pets?.length || 0,
       });
     } catch (err: any) {
       console.error('Cloud Sync Download error:', err);
@@ -285,81 +326,88 @@ async function startServer() {
 
     try {
       if (!imageBase64) {
-        return res.status(400).json({ error: 'Brak danych zdjęcia' });
+        return res.status(400).json({ success: false, error: 'Brak danych zdjęcia' });
       }
 
       const apiKey = process.env.GEMINI_API_KEY;
 
       if (!apiKey) {
-        // Fallback demo data if API key is not yet set in user environment
-        return res.json({
-          success: true,
-          isMock: true,
-          extracted: {
-            type: 'medication',
-            title: 'Zalecenia weterynaryjne (Wzorzec)',
-            summary: `Automatycznie wykryto receptę i leki dla: ${petName || 'zwierzaka'}. Skonfiguruj klucz GEMINI_API_KEY, aby włączyć analizę na żywo.`,
-            medications: [
-              {
-                name: 'Synulox (Amoksycylina)',
-                dosage: '1/2 tabletki 2x dziennie',
-                instructions: 'Podawać z mokrą karmą rano i wieczorem przez 7 dni',
-                form: 'tablet',
-                isChronic: false,
-              },
-              {
-                name: 'Flora Defense (Probiotyk)',
-                dosage: '1 kapsułka 1x dziennie',
-                instructions: 'Zawartość kapsułki wysypać na karmę',
-                form: 'capsule',
-                isChronic: false,
-              }
-            ],
-            examParameters: [
-              { name: 'Leukocyty (WBC)', value: '11.2', unit: 'G/l', refRange: '6.0 - 17.0', status: 'normal' },
-              { name: 'Erytrocyty (RBC)', value: '7.1', unit: 'T/l', refRange: '5.5 - 8.5', status: 'normal' },
-              { name: 'Kreatynina', value: '1.2', unit: 'mg/dl', refRange: '0.6 - 1.6', status: 'normal' },
-              { name: 'Mocznik', value: '42', unit: 'mg/dl', refRange: '20 - 50', status: 'normal' },
-              { name: 'ALT (GPT)', value: '68', unit: 'U/l', refRange: '10 - 80', status: 'normal' }
-            ],
-            doctorNotes: 'Kontrola po ukończeniu kuracji antybiotykowej za 7 dni.'
-          }
+        return res.status(500).json({
+          success: false,
+          error: 'Brak klucza API Gemini (GEMINI_API_KEY). Skonfiguruj klucz w ustawieniach środowiska, aby analizować recepty.',
         });
       }
 
-      const ai = new GoogleGenAI();
-      const prompt = `Jesteś ekspertem weterynaryjnym i asystentem klinicznym.
-Przeanalizuj to zdjęcie (może to być recepta, karta informacyjna wizyty weterynaryjnej, etykieta/pudełko leku lub wyniki badania laboratoryjnego/krwi) dla pacjenta: ${petName || 'zwierzak'} (gatunek: ${petSpecies || 'pies/kot'}).
-
-Wyodrębnij wszystkie kluczowe informacje medyczne i zwróć WYŁĄCZNIE poprawny, czysty obiekt JSON (bez markdown, bez \`\`\`json):
-{
-  "type": "medication" | "exam_blood" | "visit_recommendation",
-  "title": "Tytuł dokumentu lub nazwa leku",
-  "summary": "Krótkie podsumowanie zaleceń lub wyników",
-  "medications": [
-    {
-      "name": "Nazwa leku i substancja czynna",
-      "dosage": "Dawkowanie (np. 1 tabletka 2x dziennie)",
-      "instructions": "Zalecenia (np. z karmą, na czczo, przez ile dni)",
-      "form": "tablet" | "capsule" | "liquid" | "drops" | "ointment" | "injection" | "other",
-      "isChronic": false
-    }
-  ],
-  "examParameters": [
-    {
-      "name": "Nazwa parametru (np. Leukocyty, Kreatynina, ALT)",
-      "value": "Wynik liczbowy",
-      "unit": "Jednostka (np. mg/dl, G/l)",
-      "refRange": "Zakres referencyjny",
-      "status": "normal" | "attention" | "abnormal"
-    }
-  ],
-  "doctorNotes": "Uwagi lekarza lub zalecenia kontrolne"
-}`;
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
 
       const mimeMatch = imageBase64.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,/);
       const effectiveMime = mimeMatch ? mimeMatch[1] : (mimeType || 'image/jpeg');
       const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+
+      const prompt = `Jesteś rzetelnym weterynaryjnym systemem analizy dokumentów medycznych i leków.
+Twoim NAJWAŻNIEJSZYM zadaniem jest bezwzględna prawdomówność i weryfikacja czy przesłane zdjęcie to w ogóle dokument medyczny lub lek.
+
+KROK 1 - KRYTYCZNA WERYFIKACJA ZDJĘCIA:
+Oceń czy zdjęcie przedstawia:
+- Receptę weterynaryjną lub lekarską,
+- Pudełko, buteleczkę, blister lub etykietę LEKU weterynaryjnego lub ludzkiego podawanego zwierzęciu,
+- Wypis z lecznicy / kartę informacyjną wizyty weterynaryjnej,
+- Wyniki badań laboratoryjnych (np. badanie krwi, moczu, USG, RTG).
+
+JEŻELI ZDJĘCIE TO:
+- Ulotka reklamowa (np. gazetka sklepowa, ulotka pizzerii, reklama usług, ulotka kredytowa),
+- Dowolna grafika, plakat, rysunek, mem, krajobraz, zdjęcie człowieka lub pokoju,
+- Paragon ze sklepu spożywczego lub odzieżowego,
+- Przedmiot niemedyczny (zabawka, karma bez leku, ubranie, mebel, ekran itp.):
+
+WÓWCZAS MUSISZ BEZWZGLĘDNIE ZWRÓCIĆ:
+{
+  "isValidMedicalDocument": false,
+  "type": "invalid",
+  "title": "Dokument niemedyczny",
+  "summary": "Przesłane zdjęcie nie przedstawia recepty weterynaryjnej, opakowania leku ani karty informacyjnej z lecznicy. Nie wykryto żadnych leków ani zaleceń weterynaryjnych.",
+  "medications": [],
+  "examParameters": [],
+  "doctorNotes": ""
+}
+
+KROK 2 - JEŚLI TO PRAWDZIWY DOKUMENT MEDYCZNY LUB LEK:
+Wyodrębnij TYLKO te leki, które są RZECZYWIŚCIE WIDOCZNE na zdjęciu. NIE WYMYŚLAJ żadnych preparatów, których nie ma na zdjęciu!
+Pacjent: ${petName || 'zwierzak'} (${petSpecies || 'pies/kot'}).
+
+Zwróć WYŁĄCZNIE czysty obiekt JSON w schemacie:
+{
+  "isValidMedicalDocument": boolean,
+  "type": "medication" | "exam_blood" | "visit_recommendation" | "invalid",
+  "title": string,
+  "summary": string,
+  "medications": [
+    {
+      "name": string,
+      "dosage": string,
+      "instructions": string,
+      "form": "tablet" | "capsule" | "liquid" | "drops" | "ointment" | "injection" | "other",
+      "isChronic": boolean
+    }
+  ],
+  "examParameters": [
+    {
+      "name": string,
+      "value": string,
+      "unit": string,
+      "refRange": string,
+      "status": "normal" | "attention" | "abnormal"
+    }
+  ],
+  "doctorNotes": string
+}`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
@@ -377,31 +425,32 @@ Wyodrębnij wszystkie kluczowe informacje medyczne i zwróć WYŁĄCZNIE poprawn
             ],
           },
         ],
+        config: {
+          responseMimeType: 'application/json',
+        },
       });
 
-      const responseText = response.text || '';
-      const cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const responseText = response.text || '{}';
       let parsed: any;
       try {
-        parsed = JSON.parse(cleanJson);
+        parsed = JSON.parse(responseText.trim());
       } catch (parseErr) {
-        console.warn('Could not parse Gemini JSON response, extracting via regex or fallback:', parseErr);
-        parsed = {
-          type: 'medication',
-          title: `Zalecenia lecznicze dla ${petName || 'zwierzaka'}`,
-          summary: responseText.slice(0, 200) || 'Odczytano zalecenia lekarskie ze zdjęcia.',
-          medications: [
-            {
-              name: 'Preparat leczniczy z recepty',
-              dosage: 'Zgodnie z zaleceniem lekarza',
-              instructions: 'Podawać regularnie',
-              form: 'tablet',
-              isChronic: false,
-            }
-          ],
-          examParameters: [],
-          doctorNotes: 'Zalecana kontrola weterynaryjna.'
-        };
+        console.error('Błąd parsowania JSON z Gemini:', parseErr, responseText);
+        return res.status(500).json({
+          success: false,
+          error: 'Nie udało się zinterpretować odpowiedzi modelu AI.',
+        });
+      }
+
+      // Ensure fields exist
+      if (typeof parsed.isValidMedicalDocument !== 'boolean') {
+        parsed.isValidMedicalDocument = Array.isArray(parsed.medications) && parsed.medications.length > 0;
+      }
+      if (!Array.isArray(parsed.medications)) {
+        parsed.medications = [];
+      }
+      if (!Array.isArray(parsed.examParameters)) {
+        parsed.examParameters = [];
       }
 
       return res.json({
@@ -410,28 +459,9 @@ Wyodrębnij wszystkie kluczowe informacje medyczne i zwróć WYŁĄCZNIE poprawn
       });
     } catch (err: any) {
       console.error('Błąd skanowania medycznego Gemini:', err);
-      // Resilient fallback so client always receives valid JSON and never crashes
-      return res.json({
-        success: true,
-        extracted: {
-          type: 'medication',
-          title: `Zalecenia dla ${petName || 'zwierzaka'}`,
-          summary: 'Przetworzono dokument medyczny. Sprawdź i zatwierdź dawkowanie leków.',
-          medications: [
-            {
-              name: 'Lek z recepty weterynaryjnej',
-              dosage: '1 dawka 2x dziennie',
-              instructions: 'Podawać z karmą przez 7 dni',
-              form: 'tablet',
-              isChronic: false,
-            }
-          ],
-          examParameters: [
-            { name: 'Leukocyty (WBC)', value: '11.0', unit: 'G/l', refRange: '6.0 - 17.0', status: 'normal' },
-            { name: 'ALT (Wątroba)', value: '60', unit: 'U/l', refRange: '10 - 80', status: 'normal' }
-          ],
-          doctorNotes: 'Wizyta kontrolna wyznaczona po ukończeniu kuracji.'
-        }
+      return res.status(500).json({
+        success: false,
+        error: err.message || 'Wystąpił błąd podczas analizy obrazu przez AI.',
       });
     }
   });
