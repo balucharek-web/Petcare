@@ -57,8 +57,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.10.0
-          name: "PetCare v2.10.0 - Naprawa skanera recept AI, czyste wylogowanie i przywracanie zwierzaka"
+          tag_name: v2.11.0
+          name: "PetCare v2.11.0 - Nowa ikona aplikacji oraz hybrydowy skaner OCR i AI na Androidzie"
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+import fs from 'fs';
+import path from 'path';
+import sharp from 'sharp';
+
+// Brand new modern, distinctive PetCare Icon
+// Features: Sleek modern squircle with deep ocean-emerald to cyan gradient,
+// a gleaming heart-shaped medical veterinary shield, an adorable dog and cat silhouette in golden glow,
+// and a crisp medical cross star.
+const newIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <!-- Background Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -92,4 +100,55 @@
   <g transform="translate(130, 95)" fill="#fef08a" opacity="0.8">
     <path d="M 0,-12 Q 0,0 12,0 Q 0,0 0,12 Q 0,0 -12,0 Q 0,0 0,-12 Z" />
   </g>
-</svg>
+</svg>`;
+
+async function main() {
+  console.log('Generating new icons...');
+  fs.writeFileSync('public/icon.svg', newIconSvg, 'utf-8');
+
+  const svgBuffer = Buffer.from(newIconSvg);
+
+  // Generate Web & PWA icons
+  await sharp(svgBuffer).resize(180, 180).png().toFile('public/apple-touch-icon.png');
+  await sharp(svgBuffer).resize(192, 192).png().toFile('public/pwa-192x192.png');
+  await sharp(svgBuffer).resize(512, 512).png().toFile('public/pwa-512x512.png');
+  
+  // Maskable icon with safe zone padding
+  await sharp(svgBuffer)
+    .resize(410, 410)
+    .extend({
+      top: 51,
+      bottom: 51,
+      left: 51,
+      right: 51,
+      background: { r: 13, g: 148, b: 136, alpha: 1 },
+    })
+    .png()
+    .toFile('public/pwa-maskable-512x512.png');
+
+  // Generate Android icons
+  const androidResDir = 'android/app/src/main/res';
+  const densities = [
+    { dir: 'mipmap-mdpi', size: 48 },
+    { dir: 'mipmap-hdpi', size: 72 },
+    { dir: 'mipmap-xhdpi', size: 96 },
+    { dir: 'mipmap-xxhdpi', size: 144 },
+    { dir: 'mipmap-xxxhdpi', size: 192 },
+  ];
+
+  for (const { dir, size } of densities) {
+    const targetDir = path.join(androidResDir, dir);
+    if (fs.existsSync(targetDir)) {
+      // Main launcher icon
+      await sharp(svgBuffer).resize(size, size).png().toFile(path.join(targetDir, 'ic_launcher.png'));
+      // Round launcher icon
+      await sharp(svgBuffer).resize(size, size).png().toFile(path.join(targetDir, 'ic_launcher_round.png'));
+      // Foreground launcher icon
+      await sharp(svgBuffer).resize(size, size).png().toFile(path.join(targetDir, 'ic_launcher_foreground.png'));
+    }
+  }
+
+  console.log('All icons generated successfully!');
+}
+
+main().catch(console.error);

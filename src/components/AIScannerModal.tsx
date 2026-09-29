@@ -20,6 +20,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Pet, Medication, MedicalExam } from '../types/pet';
 import { storage } from '../services/storage';
 import { getApiUrl } from '../services/cloudSyncService';
+import { extractTextFromImage, analyzeExtractedMedicalText, ExtractedMedicalData } from '../services/ocrMedicalService';
 
 interface AIScannerModalProps {
   isOpen: boolean;
@@ -174,27 +175,43 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
 
     try {
       const apiUrl = getApiUrl('/api/scan-medical');
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: imagePreview,
-          petName: pet.name,
-          petSpecies: pet.species,
-        }),
-      });
+      let extracted: ExtractedMedicalData | null = null;
 
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        throw new Error('Serwer zwrócił nieprawidłową odpowiedź. Spróbuj ponownie.');
+      // 1. Attempt server AI call with timeout
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            imageBase64: imagePreview,
+            petName: pet.name,
+            petSpecies: pet.species,
+          }),
+        });
+        clearTimeout(timeoutId);
+
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data?.success && data?.extracted) {
+            extracted = data.extracted;
+          }
+        }
+      } catch (networkOrAuthErr) {
+        console.warn('Serwer AI w chmurze niedostępny (np. aplikacja mobilna APK), uruchamiam analizator lokalny:', networkOrAuthErr);
       }
 
-      const data = await res.json();
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || 'Nie udało się przeanalizować dokumentu.');
+      // 2. If server was unreachable or returned auth/HTML redirect (typical for standalone APK),
+      // execute client-side OCR & intelligent medical text analysis
+      if (!extracted) {
+        const rawText = await extractTextFromImage(imagePreview);
+        extracted = analyzeExtractedMedicalText(rawText, pet.name, pet.species);
       }
 
-      const extracted = data.extracted;
       setExtractedData(extracted);
 
       const hasMeds = Array.isArray(extracted.medications) && extracted.medications.length > 0;
@@ -204,7 +221,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         setErrorMsg(extracted.summary || 'Na przesłanym zdjęciu nie wykryto leków ani zaleceń weterynaryjnych (to nie jest recepta ani opakowanie leku).');
       } else {
         confetti({ particleCount: 35, spread: 50, origin: { y: 0.6 } });
-        setSuccessMsg('Dokument został pomyślnie zinterpretowany przez AI!');
+        setSuccessMsg('Dokument został pomyślnie zinterpretowany!');
       }
     } catch (err: any) {
       console.error('Scan error:', err);
