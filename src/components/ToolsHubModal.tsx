@@ -9,9 +9,10 @@ import {
   Sliders, 
   Settings, 
   X, 
-  Sparkles,
-  ChevronRight,
-  ShieldCheck
+  Sparkles, 
+  ChevronRight, 
+  ShieldCheck,
+  Cloud
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 
@@ -26,6 +27,7 @@ interface ToolsHubModalProps {
   onOpenExpenses: () => void;
   onOpenPetsitter: () => void;
   onOpenDashboardCustomizer: () => void;
+  onOpenGoogleSync: () => void;
   onOpenSettings: () => void;
 }
 
@@ -40,11 +42,21 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenExpenses,
   onOpenPetsitter,
   onOpenDashboardCustomizer,
+  onOpenGoogleSync,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
 
   const tools = [
+    {
+      id: 'google-sync',
+      label: 'Synchronizacja z Dyskiem Google',
+      desc: 'Automatyczna kopia w chmurze (24h) i dostęp z wielu urządzeń',
+      icon: Cloud,
+      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      badge: 'Chmura Google',
+      action: onOpenGoogleSync,
+    },
     {
       id: 'report',
       label: 'Raport Medyczny & Książeczka PDF',

@@ -14,11 +14,13 @@ import {
   Maximize2,
   Minimize2,
   Camera,
-  Grid
+  Grid,
+  Cloud
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { getStoredSyncMetadata, subscribeToSyncUpdates } from '../services/googleDriveSync';
 
 interface HeaderNavProps {
   pets: Pet[];
@@ -31,6 +33,7 @@ interface HeaderNavProps {
   onOpenToxicityChecker: () => void;
   onOpenAIScanner: () => void;
   onOpenToolsHub: () => void;
+  onOpenGoogleSync: () => void;
   onDataChanged: () => void;
 }
 
@@ -45,12 +48,21 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onOpenToxicityChecker,
   onOpenAIScanner,
   onOpenToolsHub,
+  onOpenGoogleSync,
   onDataChanged,
 }) => {
   const [showPetDropdown, setShowPetDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [syncMeta, setSyncMeta] = useState(getStoredSyncMetadata());
   const { install, isInstalled } = usePWAInstall();
+
+  useEffect(() => {
+    const unsub = subscribeToSyncUpdates((meta) => {
+      setSyncMeta(meta);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -204,6 +216,27 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
           {/* Quick Action Badges */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Google Drive Cloud Sync */}
+            <button
+              onClick={onOpenGoogleSync}
+              title={syncMeta.userEmail ? `Dysk Google: Połączono (${syncMeta.userEmail})` : 'Synchronizacja z Dyskiem Google'}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl active:scale-95 transition text-xs font-bold border shadow-xs ${
+                syncMeta.userEmail 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' 
+                  : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+              }`}
+            >
+              <div className="relative">
+                <Cloud className={`w-3.5 h-3.5 ${syncMeta.userEmail ? 'text-emerald-600' : 'text-slate-500'}`} />
+                {syncMeta.userEmail && (
+                  <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                )}
+              </div>
+              <span className="hidden sm:inline">
+                {syncMeta.userEmail ? 'Chmura' : 'Sync'}
+              </span>
+            </button>
+
             {/* AI Scanner Button */}
             <button
               onClick={onOpenAIScanner}
@@ -278,6 +311,23 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             </p>
 
             <div className="space-y-3">
+              {/* Google Drive Sync Option in Settings */}
+              <button
+                onClick={() => {
+                  setShowSettingsModal(false);
+                  onOpenGoogleSync();
+                }}
+                className="w-full flex items-center justify-between py-3 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 rounded-2xl text-xs font-bold transition active:scale-98"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Cloud className="w-4 h-4 text-emerald-600" />
+                  <span>Synchronizacja z Dyskiem Google</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800">
+                  {syncMeta.userEmail ? 'Połączono' : 'Auto 24h'}
+                </span>
+              </button>
+
               {!isInstalled && (
                 <button
                   onClick={() => {

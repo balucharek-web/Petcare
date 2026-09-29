@@ -353,6 +353,11 @@ export const storage = {
 
   // Full backup & restore
   exportAllData(): string {
+    const rawPetsitter = localStorage.getItem(STORAGE_KEYS.PETSITTER);
+    let petsitterData = {};
+    if (rawPetsitter) {
+      try { petsitterData = JSON.parse(rawPetsitter); } catch {}
+    }
     const data = {
       version: '2.1',
       exportedAt: new Date().toISOString(),
@@ -364,6 +369,7 @@ export const storage = {
       medications: this.getMedications(),
       doseLogs: this.getDoseLogs(),
       expenses: this.getExpenses(),
+      petsitter: petsitterData,
       dashboardConfig: this.getDashboardConfig(),
     };
     return JSON.stringify(data, null, 2);
@@ -379,6 +385,9 @@ export const storage = {
       if (Array.isArray(parsed.visits)) this.saveVisits(parsed.visits);
       if (Array.isArray(parsed.medications)) this.saveMedications(parsed.medications);
       if (Array.isArray(parsed.expenses)) this.saveExpenses(parsed.expenses);
+      if (parsed.petsitter && typeof parsed.petsitter === 'object') {
+        localStorage.setItem(STORAGE_KEYS.PETSITTER, JSON.stringify(parsed.petsitter));
+      }
       if (parsed.dashboardConfig) this.saveDashboardConfig(parsed.dashboardConfig);
       if (Array.isArray(parsed.doseLogs)) localStorage.setItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(parsed.doseLogs));
       if (parsed.pets?.length > 0) {
