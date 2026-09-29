@@ -351,38 +351,44 @@ async function startServer() {
       const effectiveMime = mimeMatch ? mimeMatch[1] : (mimeType || 'image/jpeg');
       const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
 
-      const prompt = `Jesteś rzetelnym weterynaryjnym systemem analizy dokumentów medycznych i leków.
-Twoim NAJWAŻNIEJSZYM zadaniem jest bezwzględna prawdomówność i weryfikacja czy przesłane zdjęcie to w ogóle dokument medyczny lub lek.
+      const prompt = `Jesteś najwyższej klasy weterynaryjnym ekspertem OCR i analizy trudnych dokumentów medycznych, recept oraz opakowań leków.
+Specjalizujesz się w ODCZYTYWANIU BARDZO TRUDNYCH TEKSTÓW:
+1. PISMA RĘCZNEGO LEKARZY WETERYNARII (niedbałe pismo lekarskie, pochyła kursywa, bazgroły, odręczne recepty i kartki z zaleceniami),
+2. BLADEGO, NIEDODRUKOWANEGO LUB ZNISZCZONEGO PISMA KOMPUTEROWEGO (wydruki z papieru termicznego, drukarki igłowe z brakującymi kropkami, kończący się toner, niska jasność/kontrast).
 
-KROK 1 - KRYTYCZNA WERYFIKACJA ZDJĘCIA:
-Oceń czy zdjęcie przedstawia:
-- Receptę weterynaryjną lub lekarską,
-- Pudełko, buteleczkę, blister lub etykietę LEKU weterynaryjnego lub ludzkiego podawanego zwierzęciu,
-- Wypis z lecznicy / kartę informacyjną wizyty weterynaryjnej,
-- Wyniki badań laboratoryjnych (np. badanie krwi, moczu, USG, RTG).
+KROK 1 - IDENTYFIKACJA DOKUMENTU:
+Sprawdź czy przesłany obraz to:
+- Odręczna lub drukowana recepta weterynaryjna / lekarska,
+- Karta wizyty, wypis z lecznicy, zalecenia lekarskie (ręczne lub drukowane),
+- Wyniki badań laboratoryjnych lub diagnostycznych,
+- Opakowanie leku, blister, buteleczka, etykieta preparatu.
 
-JEŻELI ZDJĘCIE TO:
-- Ulotka reklamowa (np. gazetka sklepowa, ulotka pizzerii, reklama usług, ulotka kredytowa),
-- Dowolna grafika, plakat, rysunek, mem, krajobraz, zdjęcie człowieka lub pokoju,
-- Paragon ze sklepu spożywczego lub odzieżowego,
-- Przedmiot niemedyczny (zabawka, karma bez leku, ubranie, mebel, ekran itp.):
-
-WÓWCZAS MUSISZ BEZWZGLĘDNIE ZWRÓCIĆ:
+JEŚLI OBRAZ TO CAŁKOWICIE NIEMEDYCZNY PRZEDMIOT (np. gazetka reklamowa, ulotka pizzerii, mebel, ubranie, zdjęcie krajobrazu, paragon ze sklepu spożywczego):
+Zwróć:
 {
   "isValidMedicalDocument": false,
   "type": "invalid",
   "title": "Dokument niemedyczny",
-  "summary": "Przesłane zdjęcie nie przedstawia recepty weterynaryjnej, opakowania leku ani karty informacyjnej z lecznicy. Nie wykryto żadnych leków ani zaleceń weterynaryjnych.",
+  "summary": "Przesłany obraz nie przedstawia recepty weterynaryjnej, opakowania leku ani karty informacyjnej z lecznicy.",
   "medications": [],
   "examParameters": [],
   "doctorNotes": ""
 }
 
-KROK 2 - JEŚLI TO PRAWDZIWY DOKUMENT MEDYCZNY LUB LEK:
-Wyodrębnij TYLKO te leki, które są RZECZYWIŚCIE WIDOCZNE na zdjęciu. NIE WYMYŚLAJ żadnych preparatów, których nie ma na zdjęciu!
+KROK 2 - DEKODOWANIE PISMA RĘCZNEGO I BLADEGO DRUKU (JEŚLI TO DOKUMENT MEDYCZNY/LEK):
+Wykorzystaj zaawansowane reguły dekodowania:
+A) PISMO RĘCZNE LEKARZA:
+- Rozpoznawaj łacińskie i weterynaryjne skróty: "Rp." (weź), "D.S." lub "S." (dawkowanie), "tabl." / "tab." (tabletki), "kaps." (kapsułki), "op." (opakowanie), "inj." / "i.m." / "s.c." / "p.o." (podanie), "sol." (roztwór), "susp." (zawiesina).
+- Rozszyfruj odręczne zapisy dawkowania, np. "1x1", "2x1", "1/2 tab.", "1/4 tab.", "1x dz.", "co 12h", "rano i wiecz.", "z karmą", "przez 7 dni".
+- Użyj wiedzy o lekach weterynaryjnych (Synulox, Kesium, Amotaks, Metacam, Onsior, Apoquel, Cytopoint, Bravecto, Nexgard, Simparica, Milpro, Milprazon, Vetmedin, Cardisure, Semintra, Cerenia, Gabapentyna, Encorton, Prednicortone, Cimalgex, Flora Defense itp.). Nawet jeśli litery są zniekształcone, połączone lub pośpieszne, dopasuj je do właściwego preparatu na podstawie widocznych liter i kontekstu.
+
+B) BLADY LUB CZĘŚCIOWO WYDRUKOWANY TEKST KOMPUTEROWY:
+- Rozszyfruj wydruki termiczne z lecznic (często wyblakłe po czasie lub z brakującymi fragmentami wierszy).
+- Zrekonstruuj przerwane litery z drukarek igłowych (brakujące kropki w literach i cyfrach) oraz słabego tonera.
+
 Pacjent: ${petName || 'zwierzak'} (${petSpecies || 'pies/kot'}).
 
-Zwróć WYŁĄCZNIE czysty obiekt JSON w schemacie:
+Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
 {
   "isValidMedicalDocument": boolean,
   "type": "medication" | "exam_blood" | "visit_recommendation" | "invalid",
@@ -409,26 +415,47 @@ Zwróć WYŁĄCZNIE czysty obiekt JSON w schemacie:
   "doctorNotes": string
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: [
-          {
-            role: 'user',
-            parts: [
+      const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+      let response: any = null;
+      let lastModelError: any = null;
+
+      for (const modelName of CANDIDATE_MODELS) {
+        try {
+          console.log(`[AI Scanner] Próba analizy modelem: ${modelName}`);
+          response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
               {
-                inlineData: {
-                  data: cleanBase64,
-                  mimeType: effectiveMime,
-                },
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      data: cleanBase64,
+                      mimeType: effectiveMime,
+                    },
+                  },
+                  { text: prompt },
+                ],
               },
-              { text: prompt },
             ],
-          },
-        ],
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+            config: {
+              responseMimeType: 'application/json',
+            },
+          });
+          if (response && response.text) {
+            console.log(`[AI Scanner] Sukces z modelem: ${modelName}`);
+            break;
+          }
+        } catch (mErr: any) {
+          console.warn(`[AI Scanner] Błąd dla modelu ${modelName}:`, mErr?.message || mErr);
+          lastModelError = mErr;
+          // Continue to next model in list
+        }
+      }
+
+      if (!response || !response.text) {
+        throw new Error(lastModelError?.message || 'Nie udało się uzyskać odpowiedzi od żadnego modelu AI.');
+      }
 
       const responseText = response.text || '{}';
       let parsed: any;

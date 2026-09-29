@@ -126,7 +126,7 @@ export function analyzeExtractedMedicalText(
     if (isPresent) {
       // Look for dosage hints nearby
       let dosage = 'Zgodnie z zaleceniem weterynarza';
-      const dosageMatch = lower.match(/(?:dawka|podawać|dawkuj|tabl|kaps|ml|mg|razy|dziennie)[:\s]*([0-9/.,\s\w-]+(?:tabl|kaps|ml|mg|x|dziennie|rano|wiecz[óo]r))/i);
+      const dosageMatch = lower.match(/(?:dawka|podawać|dawkuj|tabl|kaps|ml|mg|razy|dziennie|1x[0-9]|2x[0-9]|1\/[24])[:\s]*([0-9/.,\s\w-]+(?:tabl|kaps|ml|mg|x|dziennie|rano|wiecz[óo]r))/i);
       if (dosageMatch) {
         dosage = dosageMatch[1].trim();
       }
@@ -137,6 +137,27 @@ export function analyzeExtractedMedicalText(
         instructions: med.defaultInstructions,
         form: med.defaultForm,
         isChronic: false,
+      });
+    }
+  }
+
+  // 2b. Check for handwritten doctor prescription markers (Rp., D.S., 1x1, 2x1, 1/2 tabl.)
+  const isDoctorPrescription = /(?:rp\.?|d\.s\.?|recepta|zalecenia\s+lek|lecznica|przychodnia\s+wet|gabinet\s+wet|1x1|2x1|1x2|1\/2\s*tab)/i.test(lower);
+  if (isDoctorPrescription && detectedMeds.length === 0) {
+    // Attempt extracting prescribed lines after Rp. or D.S.
+    const rpMatches = lower.match(/(?:rp\.?|d\.s\.?)\s*([a-ząćęłńóśźż0-9\s.,/-]{3,40})/gi);
+    if (rpMatches && rpMatches.length > 0) {
+      rpMatches.forEach((line, idx) => {
+        const cleanName = line.replace(/^(?:rp\.?|d\.s\.?)\s*/i, '').trim();
+        if (cleanName.length > 2) {
+          detectedMeds.push({
+            name: `Preparat z recepty: ${cleanName}`,
+            dosage: 'Zgodnie z odręcznym zaleceniem lekarza',
+            instructions: 'Podawać według zaleceń z recepty',
+            form: 'tablet',
+            isChronic: false,
+          });
+        }
       });
     }
   }

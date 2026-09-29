@@ -40,6 +40,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
   const [extractedData, setExtractedData] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isEnhanceEnabled, setIsEnhanceEnabled] = useState(true);
   
   // In-app live camera stream support
   const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
@@ -165,6 +166,52 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     reader.readAsDataURL(file);
   };
 
+  // Helper: Enhances contrast and strengthens faint handwriting / faded thermal ink
+  const enhanceImageContrast = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        try {
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const d = imgData.data;
+          // Adaptive contrast stretching and ink darkening:
+          for (let i = 0; i < d.length; i += 4) {
+            const r = d[i];
+            const g = d[i + 1];
+            const b = d[i + 2];
+            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            let newGray = gray;
+            if (gray < 165) {
+              // Faint handwriting or faded dot matrix: darken ink
+              newGray = Math.max(0, gray * 0.72 - 18);
+            } else if (gray > 180) {
+              // Whitewash grayish paper background for high contrast
+              newGray = Math.min(255, gray * 1.12 + 15);
+            }
+            d[i] = Math.round((r * 0.25) + (newGray * 0.75));
+            d[i + 1] = Math.round((g * 0.25) + (newGray * 0.75));
+            d[i + 2] = Math.round((b * 0.25) + (newGray * 0.75));
+          }
+          ctx.putImageData(imgData, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.94));
+        } catch {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
   const handleScan = async () => {
     if (!imagePreview) return;
 
@@ -174,20 +221,25 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     setExtractedData(null);
 
     try {
+      // 0. Preprocess image if enhancement is enabled
+      const imageToSend = isEnhanceEnabled
+        ? await enhanceImageContrast(imagePreview)
+        : imagePreview;
+
       const apiUrl = getApiUrl('/api/scan-medical');
       let extracted: ExtractedMedicalData | null = null;
 
-      // 1. Attempt server AI call with timeout
+      // 1. Attempt server AI call with 35s timeout for complex handwriting
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
 
         const res = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
-            imageBase64: imagePreview,
+            imageBase64: imageToSend,
             petName: pet.name,
             petSpecies: pet.species,
           }),
@@ -208,7 +260,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
       // 2. If server was unreachable or returned auth/HTML redirect (typical for standalone APK),
       // execute client-side OCR & intelligent medical text analysis
       if (!extracted) {
-        const rawText = await extractTextFromImage(imagePreview);
+        const rawText = await extractTextFromImage(imageToSend);
         extracted = analyzeExtractedMedicalText(rawText, pet.name, pet.species);
       }
 
@@ -443,22 +495,48 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                 </button>
               </div>
 
+              {/* Handwriting and Faded Print Filter Toggle */}
+              {!extractedData && (
+                <div className="p-3 bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 rounded-2xl flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                        Filtr AI: Wyostrzanie pisma ręcznego i bladego druku
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Zwiększa kontrast dla trudnych recept, niewyraźnych wydruków i papieru termicznego
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEnhanceEnabled(!isEnhanceEnabled)}
+                    className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
+                      isEnhanceEnabled ? 'bg-teal-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
+                    }`}
+                  >
+                    <div className="w-4 h-4 bg-white rounded-full shadow-xs" />
+                  </button>
+                </div>
+              )}
+
               {/* Action Button */}
               {!extractedData && (
                 <button
                   onClick={handleScan}
                   disabled={isScanning}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-sm shadow-lg shadow-teal-600/30 flex items-center justify-center gap-2.5 transition active:scale-98 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-sm shadow-lg shadow-teal-600/30 flex items-center justify-center gap-2.5 transition active:scale-98 disabled:opacity-50 cursor-pointer"
                 >
                   {isScanning ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Analizowanie dokumentu przez Gemini AI...</span>
+                      <Loader2 className="w-5 h-5 animate-spin text-amber-300" />
+                      <span>Rozpoznawanie pisma ręcznego i bladej czcionki przez AI...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5 text-amber-300" />
-                      <span>Przeanalizuj i odczytaj dane medyczne</span>
+                      <span>Przeanalizuj i odczytaj receptę / lek</span>
                     </>
                   )}
                 </button>
