@@ -1,0 +1,21 @@
+{
+  "users": {
+    "kobierkaamarta@gmail.com": {
+      "email": "kobierkaamarta@gmail.com",
+      "passwordHash": "default_pass",
+      "name": "Marta",
+      "avatar": "",
+      "lastSyncTime": "2026-09-29T13:18:43.440Z",
+      "petCount": 1,
+      "token": "tok_n1k980fa21mumpco08",
+      "payload": {
+        "pets": [
+          {
+            "id": "pet-1",
+            "name": "Baster"
+          }
+        ]
+      }
+    }
+  }
+}

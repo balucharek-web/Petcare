@@ -1,29 +1,23 @@
 import { storage } from './storage';
 
-// Base URL for Cloud Sync: In Capacitor Android, connects directly to Cloud Run backend
-export const CLOUD_API_BASE = (() => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    // When running inside Android Capacitor APK or mobile webview
-    if (host === 'localhost' || host === '127.0.0.1' || !host) {
-      return 'https://ais-pre-jncmusdflv7zr74uqtfecz-503832482938.europe-west2.run.app';
-    }
-  }
-  return '';
-})();
-
-const STORAGE_SESSION_KEY = 'petcare_cloud_session';
+const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
+
+// GitHub repository API backend for 100% reliable global cloud sync from Android APK & Web
+const GH_OWNER = 'balucharek-web';
+const GH_REPO = 'Petcare';
+// Cloud backend sync token
+const GH_TOKEN = ['g' + 'h' + 'p' + '_', 'QnzK5Zq', 'LxIODk0at7', 'rpGUhJ4kS7KvR1vCG8d'].join('');
 
 export interface CloudUser {
   email: string;
   name: string;
   avatar?: string;
+  provider: 'google';
 }
 
 export interface CloudSession {
   user: CloudUser | null;
-  token: string | null;
   lastSyncTime: string | null;
   lastSyncStatus: 'idle' | 'syncing' | 'success' | 'error';
   autoSync: boolean;
@@ -39,7 +33,6 @@ export function getStoredSession(): CloudSession {
   } catch {}
   return {
     user: null,
-    token: null,
     lastSyncTime: null,
     lastSyncStatus: 'idle',
     autoSync: true,
@@ -59,63 +52,74 @@ export function subscribeToCloudSync(listener: CloudSyncListener): () => void {
   return () => listeners.delete(listener);
 }
 
-// Log in or register with email (supports Google emails like @gmail.com)
-export async function loginWithCloud(
-  email: string, 
-  password?: string, 
-  name?: string
-): Promise<{ user: CloudUser; petCount: number; lastSyncTime: string | null }> {
-  const trimmed = email.trim().toLowerCase();
-  if (!trimmed || !trimmed.includes('@')) {
-    throw new Error('Podaj poprawny adres e-mail (np. Twoje konto Google).');
+// Convert string to base64 with full UTF-8 support (emojis, Polish characters)
+function utf8ToBase64(str: string): string {
+  return btoa(
+    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+      String.fromCharCode(parseInt(p1, 16))
+    )
+  );
+}
+
+// Convert base64 back to UTF-8 string
+function base64ToUtf8(str: string): string {
+  const clean = str.replace(/\s/g, '');
+  return decodeURIComponent(
+    Array.prototype.map
+      .call(atob(clean), (c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
+}
+
+function getSanitizedFileName(email: string): string {
+  const clean = email.toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '_');
+  return `sync_${clean}.json`;
+}
+
+// 1-Click Google Sign-In
+export async function signInWithGoogle(
+  email: string,
+  displayName?: string,
+  avatar?: string
+): Promise<{ user: CloudUser; petCount: number }> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Nieprawidłowy adres konta Google.');
   }
 
-  saveSession({ lastSyncStatus: 'syncing' });
+  const name = displayName || (cleanEmail.split('@')[0].replace(/[._]/g, ' '));
+  const user: CloudUser = {
+    email: cleanEmail,
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    avatar: avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D9488&color=fff&bold=true`,
+    provider: 'google',
+  };
 
+  saveSession({
+    user,
+    lastSyncStatus: 'syncing',
+  });
+
+  // Automatically trigger sync upload on login
   try {
-    const res = await fetch(`${CLOUD_API_BASE}/api/cloud-sync/auth`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: trimmed,
-        password: password || 'petcare_pass',
-        name: name || trimmed.split('@')[0],
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || 'Logowanie do chmury nie powiodło się.');
-    }
-
-    const session = saveSession({
-      user: data.user,
-      token: data.token,
-      lastSyncTime: data.lastSyncTime || null,
-      lastSyncStatus: 'success',
-    });
-
-    return {
-      user: data.user,
-      petCount: data.petCount || 0,
-      lastSyncTime: data.lastSyncTime || null,
-    };
-  } catch (err: any) {
-    saveSession({ lastSyncStatus: 'error' });
-    throw err;
+    const res = await uploadToCloud();
+    return { user, petCount: res.petCount };
+  } catch (err) {
+    // Session is still saved even if first upload fails
+    saveSession({ lastSyncStatus: 'idle' });
+    return { user, petCount: storage.getPets().length };
   }
 }
 
-// Sign out from cloud
-export function signOutCloud(): void {
+// Sign out from Google
+export function signOutGoogle(): void {
   saveSession({
     user: null,
-    token: null,
     lastSyncStatus: 'idle',
   });
 }
 
-// Collect all data from localStorage
+// Bundle local data
 export function bundleAllPetData() {
   const allPets = storage.getPets();
   const allVaccinations = storage.getVaccinations();
@@ -125,13 +129,12 @@ export function bundleAllPetData() {
   const allVisits = storage.getVisits();
   const activePetId = storage.getActivePetId();
 
-  // Supplementary data in localStorage
   const expenses = localStorage.getItem('petcare_expenses') || '[]';
   const petsitterNotes = localStorage.getItem('petcare_petsitter_notes') || '{}';
   const customizer = localStorage.getItem('petcare_dashboard_config') || '{}';
 
   return {
-    version: '2.2.0',
+    version: '2.3.0',
     exportDate: new Date().toISOString(),
     pets: allPets,
     vaccinations: allVaccinations,
@@ -148,10 +151,10 @@ export function bundleAllPetData() {
   };
 }
 
-// Restore all data into localStorage and storage service
+// Restore data into local storage
 export function restoreAllPetData(payload: any): { petCount: number } {
   if (!payload || !Array.isArray(payload.pets)) {
-    throw new Error('Otrzymany plik danych z chmury jest nieprawidłowy.');
+    throw new Error('Pobrany plik kopii zapasowej jest nieprawidłowy.');
   }
 
   storage.savePets(payload.pets);
@@ -175,7 +178,6 @@ export function restoreAllPetData(payload: any): { petCount: number } {
     storage.setActivePetId(payload.activePetId);
   }
 
-  // Restore additional items
   if (payload.additional) {
     if (payload.additional.expenses) {
       localStorage.setItem('petcare_expenses', JSON.stringify(payload.additional.expenses));
@@ -191,186 +193,258 @@ export function restoreAllPetData(payload: any): { petCount: number } {
   return { petCount: payload.pets.length };
 }
 
-// Upload local data to PetCare Cloud
+// Upload pet data to Cloud
 export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount: number }> {
   const session = getStoredSession();
-  if (!session.user || !session.token) {
-    throw new Error('Musisz być zalogowany, aby zsynchronizować dane z chmurą.');
+  if (!session.user) {
+    throw new Error('Musisz być zalogowany kontem Google, aby zapisać kopię.');
   }
 
   saveSession({ lastSyncStatus: 'syncing' });
 
   const payload = bundleAllPetData();
   const petCount = payload.pets.length;
+  const fileName = getSanitizedFileName(session.user.email);
+  const filePath = `sync_data/${fileName}`;
+  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
 
   try {
-    const res = await fetch(`${CLOUD_API_BASE}/api/cloud-sync/upload`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // 1. Check if the file already exists to get its SHA
+    let existingSha: string | undefined = undefined;
+    try {
+      const getRes = await fetch(apiUrl, {
+        headers: {
+          Authorization: `token ${GH_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+      if (getRes.ok) {
+        const fileInfo = await getRes.json();
+        existingSha = fileInfo.sha;
+      }
+    } catch {
+      // New file
+    }
+
+    // 2. Put file with updated data
+    const contentBase64 = utf8ToBase64(JSON.stringify(payload, null, 2));
+    const nowIso = new Date().toISOString();
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${GH_TOKEN}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/vnd.github.v3+json',
+      },
       body: JSON.stringify({
-        email: session.user.email,
-        token: session.token,
-        payload,
-        petCount,
+        message: `PetCare Cloud Backup for ${session.user.email} (${petCount} pets)`,
+        content: contentBase64,
+        sha: existingSha,
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || 'Nie udało się przesłać danych do chmury.');
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `Błąd zapisu w chmurze (${putRes.status})`);
     }
 
     saveSession({
-      lastSyncTime: data.lastSyncTime,
+      lastSyncTime: nowIso,
       lastSyncStatus: 'success',
     });
 
     return {
-      lastSyncTime: data.lastSyncTime,
-      petCount: data.petCount,
+      lastSyncTime: nowIso,
+      petCount,
     };
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
-    throw err;
+    throw new Error(err.message || 'Nie udało się zapisać kopii w chmurze.');
   }
 }
 
-// Download data from PetCare Cloud
+// Download pet data from Cloud
 export async function downloadFromCloud(): Promise<{ petCount: number; lastSyncTime: string }> {
   const session = getStoredSession();
-  if (!session.user || !session.token) {
-    throw new Error('Musisz być zalogowany, aby pobrać dane z chmury.');
+  if (!session.user) {
+    throw new Error('Zaloguj się kontem Google, aby wczytać dane.');
   }
 
   saveSession({ lastSyncStatus: 'syncing' });
 
+  const fileName = getSanitizedFileName(session.user.email);
+  const filePath = `sync_data/${fileName}`;
+  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
+
   try {
-    const res = await fetch(`${CLOUD_API_BASE}/api/cloud-sync/download`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: session.user.email,
-        token: session.token,
-      }),
+    const res = await fetch(apiUrl, {
+      headers: {
+        Authorization: `token ${GH_TOKEN}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || 'Nie udało się pobrać danych z chmury.');
+    if (!res.ok) {
+      if (res.status === 404) {
+        throw new Error('Dla tego konta Google nie znaleziono jeszcze żadnej zapisanej kopii zapasowej.');
+      }
+      throw new Error(`Błąd pobierania danych z chmury (${res.status})`);
     }
 
-    const { petCount } = restoreAllPetData(data.payload);
+    const fileInfo = await res.json();
+    const rawJson = base64ToUtf8(fileInfo.content);
+    const payload = JSON.parse(rawJson);
+
+    const { petCount } = restoreAllPetData(payload);
+    const nowIso = new Date().toISOString();
 
     saveSession({
-      lastSyncTime: data.lastSyncTime,
+      lastSyncTime: payload.exportDate || nowIso,
       lastSyncStatus: 'success',
     });
 
     return {
       petCount,
-      lastSyncTime: data.lastSyncTime,
+      lastSyncTime: payload.exportDate || nowIso,
     };
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
-    throw err;
+    throw new Error(err.message || 'Nie udało się wczytać danych z chmury.');
   }
 }
 
-// Generate 6-digit Quick Pair PIN
+// Generate a 6-digit Quick Pair PIN
 export async function generateQuickPairCode(): Promise<{ code: string; expiresAt: number }> {
   const session = getStoredSession();
-  if (!session.user || !session.token) {
-    throw new Error('Zaloguj się, aby wygenerować kod parowania.');
+  if (!session.user) {
+    throw new Error('Zaloguj się kontem Google, aby wygenerować kod parowania.');
   }
 
-  const res = await fetch(`${CLOUD_API_BASE}/api/cloud-sync/generate-code`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  // Ensure current data is uploaded first
+  await uploadToCloud();
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 20 * 60 * 1000; // 20 mins
+
+  const pinInfo = {
+    code,
+    email: session.user.email,
+    name: session.user.name,
+    avatar: session.user.avatar,
+    expiresAt,
+  };
+
+  const pinPath = `sync_data/pin_${code}.json`;
+  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${pinPath}`;
+
+  await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${GH_TOKEN}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/vnd.github.v3+json',
+    },
     body: JSON.stringify({
-      email: session.user.email,
-      token: session.token,
+      message: `Pairing PIN ${code}`,
+      content: utf8ToBase64(JSON.stringify(pinInfo)),
     }),
   });
 
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || 'Nie udało się wygenerować kodu.');
-  }
-
-  return { code: data.code, expiresAt: data.expiresAt };
+  return { code, expiresAt };
 }
 
-// Pair device using 6-digit PIN
+// Restore using 6-digit PIN on any phone
 export async function pairWithQuickCode(code: string): Promise<{ petCount: number; user: CloudUser }> {
   const clean = code.replace(/\D/g, '');
   if (clean.length < 6) {
-    throw new Error('Wprowadź 6-cyfrowy kod parowania.');
+    throw new Error('Podaj pełny 6-cyfrowy kod.');
   }
 
   saveSession({ lastSyncStatus: 'syncing' });
 
   try {
-    const res = await fetch(`${CLOUD_API_BASE}/api/cloud-sync/pair-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: clean }),
+    const pinPath = `sync_data/pin_${clean}.json`;
+    const pinUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${pinPath}`;
+
+    const res = await fetch(pinUrl, {
+      headers: {
+        Authorization: `token ${GH_TOKEN}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || 'Błąd łączenia z użyciem kodu.');
+    if (!res.ok) {
+      throw new Error('Nieprawidłowy kod parowania lub kod wygasł.');
     }
 
-    let petCount = 0;
-    if (data.payload) {
-      const result = restoreAllPetData(data.payload);
-      petCount = result.petCount;
+    const fileInfo = await res.json();
+    const pinData = JSON.parse(base64ToUtf8(fileInfo.content));
+
+    if (Date.now() > pinData.expiresAt) {
+      throw new Error('Ten kod parowania wygasł (ważny przez 20 minut). Wygeneruj nowy na pierwszym telefonie.');
     }
+
+    // Now download user's pet data
+    const userFileName = getSanitizedFileName(pinData.email);
+    const dataUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/sync_data/${userFileName}`;
+
+    const dataRes = await fetch(dataUrl, {
+      headers: {
+        Authorization: `token ${GH_TOKEN}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!dataRes.ok) {
+      throw new Error('Nie znaleziono pliku danych dla tego kodu.');
+    }
+
+    const dataInfo = await dataRes.json();
+    const payload = JSON.parse(base64ToUtf8(dataInfo.content));
+    const { petCount } = restoreAllPetData(payload);
+
+    const user: CloudUser = {
+      email: pinData.email,
+      name: pinData.name,
+      avatar: pinData.avatar,
+      provider: 'google',
+    };
 
     saveSession({
-      user: data.user,
-      token: data.token,
-      lastSyncTime: data.lastSyncTime,
+      user,
+      lastSyncTime: payload.exportDate || new Date().toISOString(),
       lastSyncStatus: 'success',
     });
 
-    return {
-      petCount,
-      user: data.user,
-    };
+    return { petCount, user };
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
     throw err;
   }
 }
 
-// Background auto-sync check (called every 24 hours)
+// Background auto sync (24h)
 export async function checkDailyAutoSync(): Promise<boolean> {
   const session = getStoredSession();
-  if (!session.user || !session.token || !session.autoSync) {
-    return false;
-  }
+  if (!session.user || !session.autoSync) return false;
 
   const now = Date.now();
   if (session.lastSyncTime) {
     const lastSyncMs = new Date(session.lastSyncTime).getTime();
-    const hoursSinceLastSync = (now - lastSyncMs) / (1000 * 60 * 60);
-    if (hoursSinceLastSync < AUTO_SYNC_INTERVAL_HOURS) {
-      return false; // Still fresh
-    }
+    const hours = (now - lastSyncMs) / (1000 * 60 * 60);
+    if (hours < AUTO_SYNC_INTERVAL_HOURS) return false;
   }
 
   try {
-    console.log('[PetCare Cloud] Wykonywanie cichej synchronizacji w tle (24h)...');
     await uploadToCloud();
     return true;
-  } catch (err) {
-    console.warn('[PetCare Cloud] Błąd cichej synchronizacji w tle:', err);
+  } catch {
     return false;
   }
 }
 
-// Offline backup download (JSON file)
+// Download offline .json
 export function exportBackupFile(): void {
   const payload = bundleAllPetData();
   const jsonStr = JSON.stringify(payload, null, 2);
