@@ -62,14 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.27.0
-          name: "PetCare v2.27.0 - W 100% niezawodny, bezpośredni kod QR (Direct Offline Sync) i import plików"
+          tag_name: v2.28.0
+          name: "PetCare v2.28.0 - Dedykowany transfer QR między telefonami i automatyczne przywracanie kopii z chmury"
           body: |
-            ### 🐾 PetCare v2.27.0 - Bezpośrednia, bezbłędna synchronizacja Kodem QR
+            ### 🐾 PetCare v2.28.0 - Nowy transfer QR i przywracanie po reinstalacji
             
-            - 🚀 **100% bezpośredni kod QR (Direct Offline QR):** Pakiet danych zwierzaków jest kompresowany algorytmem Deflate i zapisywany bezpośrednio wewnątrz kodu QR. Kliknięcie „Pokaż Kod QR” nie wykonuje żadnych zewnętrznych zapytań sieciowych – brak błędu `Failed to fetch`!
-            - 📷 **Błyskawiczny skan aparatem:** Skaner na drugim telefonie natychmiast odczytuje i rozpakowuje dane bezpośrednio z obrazu kodu QR w ułamku sekundy.
-            - 📂 **Wczytaj i Pobierz .JSON:** Dodano przycisk „Wczytaj .JSON” do natychmiastowego importowania kopii zapasowej.
+            - 📲 **Dedykowany transfer QR:** Nowy moduł QRTransferModal z trybem „Nadaj (Pokaż kod)” i „Odbierz (Skanuj aparatem)” dostępny bezpośrednio na ekranie powitalnym, w nagłówku i w menu narzędzi.
+            - ☁️ **Inteligentne przywracanie po reinstalacji:** Aplikacja automatycznie sprawdza chmurę i Dysk Google po zalogowaniu, wyświetlając okno z pytaniem o przywrócenie bazy zwierzaków.
+            - ⚡ **Brak konieczności logowania przy transferze:** Bezpośredni aparat na ekranie startowym pozwala przenieść 100% danych ze starego telefonu w 1 sekundę.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
