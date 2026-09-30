@@ -240,7 +240,7 @@ export const PWAInstallBanner: React.FC = () => {
                 className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-center font-bold text-xs flex items-center justify-center gap-2 shadow transition"
               >
                 <Download className="w-4 h-4 text-emerald-100" />
-                <span>Pobierz gotowy plik PetCare.apk bezpośrednio (4.9 MB)</span>
+                <span>Pobierz gotowy plik PetCare.apk</span>
               </a>
 
               {/* GitHub Actions */}
