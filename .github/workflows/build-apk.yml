@@ -62,14 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.24.0
-          name: "PetCare v2.24.0 - Natywne zapisywanie, otwieranie i udostępnianie PDF na Androidzie"
+          tag_name: v2.25.0
+          name: "PetCare v2.25.0 - Nowa nowoczesna ikona aplikacji i pełna synchronizacja kodem QR z załącznikami"
           body: |
-            ### 🐾 PetCare v2.24.0 - Prawdziwy zapis i otwieranie plików PDF
+            ### 🐾 PetCare v2.25.0 - Nowa ikona & Synchronizacja Kodem QR
             
-            - 📥 **Prawdziwy zapis pliku PDF:** Wykorzystanie MediaStore i FileProvider w Androidzie – plik PDF jest fizycznie zapisywany w folderze „Pobrane” (Downloads/PetCare) telefonu.
-            - 📂 **Automatyczne otwieranie w przeglądarce PDF:** Po kliknięciu „Pobierz PDF” system Android od razu proponuje otwarcie gotowego dokumentu w aplikacji PDF (np. Dysk Google, Adobe, Notatki).
-            - 📲 **Natywne udostępnianie (Share Sheet):** Przycisk „Udostępnij” uruchamia natywny systemowy arkusz Androida z załączonym plikiem PDF (WhatsApp, Gmail, Messenger, Dysk itp.).
+            - 🎨 **Nowa nowoczesna ikona aplikacji:** Świeży, elegancki design ikony we wszystkich rozdzielczościach Androida (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi) nawiązujący do nowoczesnej opieki weterynaryjnej (sylwetki pupili, serce i akcent medyczny).
+            - 📷 **Synchronizacja kodem QR (zamiast PIN):** Szybkie przenoszenie danych między telefonami za pomocą wbudowanego skanera aparatu.
+            - 📦 **100% danych ze wszystkimi załącznikami:** Błyskawiczny transfer wszystkich pupili, zdjęć, skanów badań medycznych, wpisów ze szczepieniami, leków i historii.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

@@ -324,6 +324,108 @@ async function startServer() {
     }
   });
 
+  // In-memory / persistent QR Sync Transfers
+  interface QRTransferRecord {
+    id: string;
+    payload: any;
+    petCount: number;
+    email?: string;
+    expiresAt: number;
+    createdAt: string;
+  }
+  const qrTransfers = new Map<string, QRTransferRecord>();
+
+  // API Route: Generate a QR Code Transfer with all pet data and attachments
+  app.post('/api/cloud-sync/generate-qr', (req, res) => {
+    try {
+      const { payload, email } = req.body;
+      if (!payload) {
+        return res.status(400).json({ success: false, error: 'Brak danych do synchronizacji QR.' });
+      }
+
+      const qrId = 'pc_sync_' + crypto.randomBytes(9).toString('hex');
+      const petCount = Array.isArray(payload.pets) ? payload.pets.length : 0;
+      const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
+
+      qrTransfers.set(qrId, {
+        id: qrId,
+        payload,
+        petCount,
+        email: email || 'user@petcare.app',
+        expiresAt,
+        createdAt: new Date().toISOString(),
+      });
+
+      const qrData = JSON.stringify({
+        type: 'petcare_qr_sync',
+        id: qrId,
+        pets: petCount,
+        v: 2,
+      });
+
+      return res.json({
+        success: true,
+        qrId,
+        qrData,
+        expiresAt,
+        petCount,
+      });
+    } catch (err: any) {
+      console.error('Error in /api/cloud-sync/generate-qr:', err);
+      return res.status(500).json({ success: false, error: 'Błąd generowania kodu QR.' });
+    }
+  });
+
+  // API Route: Redeem QR Code Transfer on the second device
+  app.post('/api/cloud-sync/redeem-qr', (req, res) => {
+    try {
+      const { qrId, code } = req.body;
+      const targetId = qrId || code;
+
+      if (!targetId) {
+        return res.status(400).json({ success: false, error: 'Brak identyfikatora kodu QR.' });
+      }
+
+      // Try QR Transfers map first
+      const record = qrTransfers.get(targetId);
+      if (record) {
+        if (Date.now() > record.expiresAt) {
+          qrTransfers.delete(targetId);
+          return res.status(410).json({ success: false, error: 'Ten kod QR wygasł (ważny przez 30 minut). Wygeneruj nowy na pierwszym telefonie.' });
+        }
+
+        return res.json({
+          success: true,
+          payload: record.payload,
+          petCount: record.petCount,
+          lastSyncTime: record.createdAt,
+        });
+      }
+
+      // Fallback: check 6-digit pairCode in syncDB
+      const db = readSyncDB();
+      for (const email in db.users) {
+        const u = db.users[email];
+        if (u.pairCode && (u.pairCode.code === targetId || u.token === targetId)) {
+          if (Date.now() > u.pairCode.expiresAt) {
+            return res.status(410).json({ success: false, error: 'Kod wygasł. Wygeneruj nowy na pierwszym urządzeniu.' });
+          }
+          return res.json({
+            success: true,
+            payload: u.payload,
+            petCount: u.petCount,
+            lastSyncTime: u.lastSyncTime || new Date().toISOString(),
+          });
+        }
+      }
+
+      return res.status(404).json({ success: false, error: 'Nie znaleziono danych dla tego kodu QR lub kod wygasł.' });
+    } catch (err: any) {
+      console.error('Error in /api/cloud-sync/redeem-qr:', err);
+      return res.status(500).json({ success: false, error: 'Błąd pobierania danych przez kod QR.' });
+    }
+  });
+
   // API Route: Generate a 6-digit Quick Pair PIN
   app.post('/api/cloud-sync/generate-code', (req, res) => {
     try {

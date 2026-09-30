@@ -14,8 +14,13 @@ import {
   CloudUpload, 
   CloudDownload, 
   ArrowRight,
-  Sparkles
+  Sparkles,
+  QrCode,
+  Scan,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { 
   getStoredSession,
   subscribeToCloudSync,
@@ -28,6 +33,13 @@ import {
   exportBackupFile,
   CloudSession
 } from '../services/cloudSyncService';
+import { 
+  createDeviceSyncQRCode,
+  redeemDeviceSyncQRCode,
+  countAllAttachments,
+  QRSyncResult
+} from '../services/qrSyncService';
+import { QRScannerModal } from './QRScannerModal';
 import { 
   googleSignIn as googleDriveSignIn,
   googleSignOut as googleDriveSignOut,
@@ -85,7 +97,12 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   const [driveMeta, setDriveMeta] = useState<SyncMetadata>(getStoredSyncMetadata());
 
-  // Quick PIN pairing
+  // QR Code Pairing & Camera Scanner
+  const [qrSyncResult, setQrSyncResult] = useState<QRSyncResult | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [qrTimeRemaining, setQrTimeRemaining] = useState<string>('30:00');
+
+  // Quick PIN pairing (kept for fallback)
   const [pinInput, setPinInput] = useState('');
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -286,6 +303,58 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     }
   };
 
+  const handleGenerateQRCode = async () => {
+    setIsLoading(true);
+    setFeedback(null);
+    try {
+      const res = await createDeviceSyncQRCode();
+      setQrSyncResult(res);
+      setFeedback({
+        type: 'success',
+        message: `Wygenerowano Kod QR z ${res.petCount} zwierzakami i ${res.scansCount} załącznikami (zdjęcia, badania, szczepienia). Skieruj aparat drugiego telefonu na kod.`,
+      });
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Nie udało się wygenerować kodu QR do synchronizacji.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleScanQRSuccess = async (scannedText: string) => {
+    setIsScannerOpen(false);
+    setIsLoading(true);
+    setFeedback(null);
+    try {
+      const res = await redeemDeviceSyncQRCode(scannedText);
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      } catch {}
+
+      setFeedback({
+        type: 'success',
+        message: `✅ Sukces! Pomyślnie zsynchronizowano wszystkie dane: ${res.petCount} zwierzaków oraz ${res.attachmentsCount} załączników (zdjęcia, wyniki badań, historia leczenia).`,
+      });
+
+      if (onDataRestored) {
+        onDataRestored();
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Błąd synchronizacji przez kod QR. Upewnij się, że kod nie wygasł.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGeneratePin = async () => {
     setIsLoading(true);
     setFeedback(null);
@@ -308,27 +377,40 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   const handlePairPinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = pinInput.replace(/\D/g, '');
-    if (clean.length < 6) {
-      setFeedback({ type: 'error', message: 'Wpisz pełny 6-cyfrowy kod PIN.' });
+    const rawVal = pinInput.trim();
+    if (!rawVal) {
+      setFeedback({ type: 'error', message: 'Wpisz kod transferu lub 6-cyfrowy PIN.' });
       return;
     }
 
     setIsLoading(true);
     setFeedback(null);
     try {
-      const res = await pairWithQuickCode(clean);
-      setFeedback({
-        type: 'success',
-        message: `Połączono pomyślnie! Przywrócono ${res.petCount} zwierzaków z konta ${res.user.email}.`
-      });
+      if (rawVal.startsWith('pc_sync_') || rawVal.includes('{')) {
+        const res = await redeemDeviceSyncQRCode(rawVal);
+        try {
+          confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        } catch {}
+        setFeedback({
+          type: 'success',
+          message: `✅ Sukces! Zsynchronizowano ${res.petCount} zwierzaków i ${res.attachmentsCount} załączników (zdjęcia, badania).`,
+        });
+      } else {
+        const clean = rawVal.replace(/\D/g, '');
+        const res = await pairWithQuickCode(clean);
+        setFeedback({
+          type: 'success',
+          message: `Połączono pomyślnie! Przywrócono ${res.petCount} zwierzaków z konta ${res.user.email}.`,
+        });
+      }
+
       if (onDataRestored) {
         onDataRestored();
       }
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: err.message || 'Nieprawidłowy kod PIN lub kod wygasł.'
+        message: err.message || 'Nieprawidłowy kod lub kod wygasł.',
       });
     } finally {
       setIsLoading(false);
@@ -493,49 +575,64 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 </button>
               </div>
 
-              {/* Multi-Device Transfer via PIN */}
-              <div className="p-4 bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-950/40 dark:to-emerald-950/40 border border-teal-200/80 dark:border-teal-800/80 rounded-2xl space-y-2.5">
+              {/* Multi-Device Transfer via QR CODE */}
+              <div className="p-4 bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-950/40 dark:to-emerald-950/40 border border-teal-200/80 dark:border-teal-800/80 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-teal-700 dark:text-teal-400" />
-                    <span className="text-xs font-bold text-teal-900 dark:text-teal-200">Drugi telefon lub tablet</span>
+                    <QrCode className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+                    <span className="text-xs font-bold text-teal-900 dark:text-teal-200">
+                      Synchronizacja Kodem QR (Drugi telefon)
+                    </span>
                   </div>
-                  {!generatedCode && (
+                  {!qrSyncResult && (
                     <button
-                      onClick={handleGeneratePin}
+                      onClick={handleGenerateQRCode}
                       disabled={isLoading}
-                      className="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                      className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
                     >
-                      Pokaż kod PIN
+                      <QrCode className="w-3.5 h-3.5" />
+                      Pokaż Kod QR
                     </button>
                   )}
                 </div>
 
-                {generatedCode ? (
-                  <div className="space-y-2 pt-1">
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      Wpisz ten 6-cyfrowy kod w aplikacji na drugim telefonie:
+                {qrSyncResult ? (
+                  <div className="space-y-3 pt-1 text-center">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                      Otwórz PetCare na drugim telefonie i wybierz <strong>„Skanuj Kod QR”</strong>:
                     </p>
-                    <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-teal-300 dark:border-teal-700">
-                      <span className="text-xl font-mono font-extrabold tracking-widest text-teal-800 dark:text-teal-300">
-                        {generatedCode.slice(0, 3)} {generatedCode.slice(3)}
-                      </span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(generatedCode);
-                          setCopiedCode(true);
-                          setTimeout(() => setCopiedCode(false), 2000);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-teal-700 dark:hover:text-teal-300 rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition cursor-pointer"
-                      >
-                        {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                      </button>
+
+                    <div className="p-3 bg-white rounded-2xl shadow-md border-2 border-teal-500 inline-block mx-auto">
+                      <img
+                        src={qrSyncResult.qrCodeDataUrl}
+                        alt="Kod QR synchronizacji"
+                        className="w-56 h-56 sm:w-64 sm:h-64 rounded-xl mx-auto"
+                      />
                     </div>
-                    <span className="text-[10px] text-teal-700 dark:text-teal-400 block">Ważny przez 20 minut</span>
+
+                    <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-teal-900 dark:text-teal-200 font-semibold bg-white/70 dark:bg-slate-900/60 p-2.5 rounded-xl border border-teal-200 dark:border-teal-800">
+                      <span className="px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-300">
+                        🐾 {qrSyncResult.petCount} zwierzaków
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
+                        📎 {qrSyncResult.scansCount} załączników (zdjęcia, badania, szczepienia)
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        ⏱️ Ważny przez 30 minut
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={handleGenerateQRCode}
+                      className="text-xs text-teal-700 dark:text-teal-300 hover:underline flex items-center justify-center gap-1 mx-auto"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      Odśwież kod QR
+                    </button>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Możesz zalogować się tym samym kontem Google na drugim urządzeniu, aby mieć te same zwierzaki.
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Chcesz przenieść wszystkie dane na drugi telefon? Kliknij <strong>„Pokaż Kod QR”</strong>, a na drugim urządzeniu użyj wbudowanego skanera aparatu. Wszystkie zdjęcia, badania i leki zostaną skopiowane natychmiast.
                   </p>
                 )}
               </div>
@@ -718,46 +815,47 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 </div>
               </div>
 
-              {/* PIN Code option for second phone transfer */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                {!showPinTab ? (
+              {/* QR Code Scanner for second phone transfer */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  disabled={isLoading}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold rounded-2xl shadow-md shadow-teal-600/25 flex items-center justify-center gap-2.5 transition active:scale-95 cursor-pointer text-sm"
+                >
+                  <Scan className="w-5 h-5 text-white" />
+                  <span>Skanuj Kod QR z pierwszego telefonu</span>
+                </button>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1">
+                  <span>Przenosi 100% danych ze zdjęciami i badaniami.</span>
                   <button
                     type="button"
-                    onClick={() => setShowPinTab(true)}
-                    className="w-full text-center text-xs text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 font-semibold flex items-center justify-center gap-1.5 py-1 cursor-pointer transition"
+                    onClick={() => setShowPinTab(!showPinTab)}
+                    className="text-teal-600 dark:text-teal-400 hover:underline font-semibold"
                   >
-                    <Smartphone className="w-3.5 h-3.5" />
-                    Chcesz połączyć przez kod PIN z drugiego telefonu?
+                    {showPinTab ? 'Ukryj kod ręczny' : 'Wpisz kod ręcznie'}
                   </button>
-                ) : (
-                  <form onSubmit={handlePairPinSubmit} className="space-y-2.5 p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl animate-fadeIn">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        Wpisz 6-cyfrowy kod PIN z drugiego telefonu:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowPinTab(false)}
-                        className="text-[11px] text-slate-400 hover:text-slate-600"
-                      >
-                        Schowaj
-                      </button>
-                    </div>
+                </div>
+
+                {showPinTab && (
+                  <form onSubmit={handlePairPinSubmit} className="mt-2 space-y-2 p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl animate-fadeIn">
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                      Wklej kod QR lub identyfikator transferu:
+                    </span>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        maxLength={7}
-                        placeholder="np. 481 920"
+                        placeholder="np. pc_sync_... lub 6 cyfr"
                         value={pinInput}
                         onChange={(e) => setPinInput(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-center text-base font-mono font-bold tracking-widest text-slate-900 dark:text-white focus:outline-hidden focus:border-teal-500"
+                        className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-center text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-hidden focus:border-teal-500"
                       />
                       <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isLoading || !pinInput}
                         className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
                       >
-                        Połącz
+                        Pobierz
                       </button>
                     </div>
                   </form>
@@ -795,6 +893,13 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Camera QR Scanner Modal */}
+      <QRScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleScanQRSuccess}
+      />
     </div>
   );
 };
