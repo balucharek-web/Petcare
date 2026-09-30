@@ -57,15 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.6
-          name: "PetCare v2.17.6 - Naprawa logowania z Dyskiem Google bez błędu invalid action i natychmiastowa synchronizacja"
+          tag_name: v2.17.7
+          name: "PetCare v2.17.7 - Nowa ikona aplikacji z 3 łapkami, naprawiona kropka powiadomień na dzwonku oraz nowe ekrany startowe splash"
           body: |
-            ### 🐾 PetCare v2.17.6
+            ### 🐾 PetCare v2.17.7
             
-            - ☁️ **Naprawa logowania przyciskiem "Połącz bezpośrednio z Dyskiem Google":** Wyeliminowano błąd Firebase Auth `The requested action is invalid` na domenie `firebaseapp.com`. Przycisk główny łączy się teraz bezpośrednio i bezawaryjnie z kontem Google oraz chmurą Cloud Sync w 1 kliknięcie, bez zawodnych wyskakujących okienek popup blokowanych w przeglądarce mobilnej i w aplikacji APK.
-            - 👥 **Wybór konta Google:** Bezpośrednia lista zapamiętanych kont Google na urządzeniu (Arek Bałuch, Marianna Macion itd.) z możliwością natychmiastowego przełączania i ręcznego wpisania dowolnego adresu e-mail.
-            - 🎯 **Precyzyjna nawigacja pod drzwi kliniki:** Pełna nazwa placówki i czysty adres w Google Maps (bez zbędnych dopisków w nawiasach).
-            - 🏥 **Baza weterynarzy i przełącznik dyżurów:** Wszystkie gabinety w Mikołowie i okolicy z podziałem na dyżury 24h i przychodnie dzienne.
+            - 🐾 **Nowa ikona aplikacji (3 urocze łapki zwierzaka):** Nowy, nowoczesny motyw ikony aplikacji z trzema łapkami w pięknej szmaragdowo-morskiej i ciepłej złotej tonacji z miękkim cieniem 3D, zaktualizowany dla ikon PWA na pulpicie, ikon aplikacji na Androidzie (adaptive launcher icons) oraz ekranów powitalnych (splash screens).
+            - 🔔 **Naprawa kropki na ikonce powiadomień (dzwonek):** Kropka / wskaźnik na dzwonku nie świeci się już bez przerwy! Pojawia się wyłącznie wtedy, gdy rzeczywiście masz aktywne przypomnienie lub zaległy wpis (szczepienie, lek, wizyta u weterynarza) z dokładną liczbą alertów. Gdy nie ma nowych alertów, ikona dzwonka jest czysta i nie wprowadza w błąd.
+            - ☁️ **Stabilna synchronizacja z Dyskiem Google:** Bezawaryjne łączenie konta Google w 1 kliknięcie bez błędów popup.
+            - 🎯 **Precyzyjna nawigacja pod drzwi kliniki:** Pełna nazwa placówki i czysty adres w Google Maps z podziałem na dyżury 24h i gabinety dzienne.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

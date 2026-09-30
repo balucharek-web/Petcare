@@ -417,6 +417,7 @@ export default function App() {
           onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
           onOpenNotifications={() => setIsNotificationsOpen(true)}
           onDataChanged={reloadData}
+          alertCount={upcomingAlerts.length}
         />
 
         {/* Proactive Alerts Banner */}

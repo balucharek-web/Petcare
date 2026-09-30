@@ -42,6 +42,7 @@ interface HeaderNavProps {
   onOpenGoogleSync: () => void;
   onOpenNotifications: () => void;
   onDataChanged: () => void;
+  alertCount?: number;
 }
 
 export const HeaderNav: React.FC<HeaderNavProps> = ({
@@ -60,6 +61,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onOpenGoogleSync,
   onOpenNotifications,
   onDataChanged,
+  alertCount = 0,
 }) => {
   const [showPetDropdown, setShowPetDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -334,12 +336,16 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             {/* Notifications Button */}
             <button
               onClick={onOpenNotifications}
-              title="Powiadomienia w telefonie (Leki, szczepienia, wizyty)"
+              title={alertCount > 0 ? `Powiadomienia (${alertCount} aktywne przypomnienia)` : 'Powiadomienia w telefonie (Brak aktywnych alertów)'}
               className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer relative"
               aria-label="Powiadomienia"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-teal-500 rounded-full" />
+              {alertCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-rose-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900 animate-pulse">
+                  {alertCount > 9 ? '9+' : alertCount}
+                </span>
+              )}
             </button>
 
             {/* Subtler Theme Toggle (Light / Dark mode) */}
