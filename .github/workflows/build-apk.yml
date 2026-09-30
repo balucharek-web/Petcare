@@ -57,14 +57,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.19.0
-          name: "PetCare v2.19.0 - 100% Natywne systemowe okno wyboru konta Google Android"
+          tag_name: v2.20.0
+          name: "PetCare v2.20.0 - Jedno czyste systemowe okno logowania Google"
           body: |
-            ### 🐾 PetCare v2.19.0 - Prawdziwe natywne logowanie Google Android
+            ### 🐾 PetCare v2.20.0 - Usunięcie podwójnego okna logowania Google
             
-            - 🤖 **Prawdziwe systemowe okno Androida:** Kliknięcie „Zaloguj się przez Google” natychmiast wywołuje systemowy dialog Androida (Google Play Services / AccountManager) z listą kont dodanych w telefonie.
-            - 👆 **Logowanie jak w każdej współczesnej aplikacji:** Wybierasz swoje konto z systemowej listy Androida i aplikacja od razu Cię loguje.
-            - 🛡️ **Pełna izolacja danych:** Każdy profil ma ściśle odizolowany magazyn danych.
+            - 🤖 **Wyłącznie jedno systemowe okno Androida:** Kliknięcie „Zaloguj się przez Google” otwiera elegancki systemowy arkusz Google Play Services z awatarami.
+            - ❌ **Usunięte podwójne okno:** Całkowicie wyeliminowano drugie wewnętrzne okno z listą radiową (AccountManager).
+            - ⚡ **Płynne logowanie:** Po wybraniu konta w systemowym oknie użytkownik jest natychmiast zalogowany do aplikacji.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
