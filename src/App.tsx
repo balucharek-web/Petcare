@@ -10,7 +10,11 @@ import {
   WifiOff, 
   AlertCircle,
   Plus,
-  Cloud
+  Cloud,
+  QrCode,
+  Camera,
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { Pet, Vaccination, Medication, MedicalExam, MedicalCondition, VetVisit, DashboardConfig } from './types/pet';
 import { storage } from './services/storage';
@@ -30,12 +34,22 @@ import { AlertsBanner } from './components/AlertsBanner';
 import { getUpcomingAlerts } from './services/notifications';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
-// Cloud Sync
+// Cloud Sync & QR Transfer
 import { GoogleSyncModal } from './components/GoogleSyncModal';
-import { checkDailyAutoSync, getStoredSession, subscribeToCloudSync, uploadToCloud, CloudSession } from './services/cloudSyncService';
+import { 
+  checkDailyAutoSync, 
+  getStoredSession, 
+  subscribeToCloudSync, 
+  uploadToCloud, 
+  checkCloudBackup,
+  downloadFromCloud,
+  CloudSession 
+} from './services/cloudSyncService';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { syncAllScheduledNotifications } from './services/notificationService';
 import { AuthScreen } from './components/AuthScreen';
+import { QRTransferModal } from './components/QRTransferModal';
+import { CloudRestorePromptModal } from './components/CloudRestorePromptModal';
 
 // New Feature Modals
 import { MedicalReportModal } from './components/MedicalReportModal';
@@ -81,6 +95,43 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAgeCalculatorOpen, setIsAgeCalculatorOpen] = useState(false);
   const [isEmergencyVetFinderOpen, setIsEmergencyVetFinderOpen] = useState(false);
+  const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
+  const [qrInitialMode, setQrInitialMode] = useState<'send' | 'receive'>('send');
+  const [cloudRestorePrompt, setCloudRestorePrompt] = useState<{ open: boolean; petCount: number; lastSyncTime: string | null; email: string } | null>(null);
+  const [isRestoringCloud, setIsRestoringCloud] = useState(false);
+
+  // Auto-detect previous cloud backup if user has 0 pets on device (e.g. after reinstalling or clean phone)
+  useEffect(() => {
+    let isMounted = true;
+    if (session.user?.email && pets.length === 0) {
+      checkCloudBackup(session.user.email).then((res) => {
+        if (isMounted && res.exists && res.petCount > 0) {
+          setCloudRestorePrompt({
+            open: true,
+            petCount: res.petCount,
+            lastSyncTime: res.lastSyncTime,
+            email: session.user!.email,
+          });
+        }
+      }).catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [session.user?.email, pets.length]);
+
+  const handleRestoreFromCloudConfirm = async () => {
+    setIsRestoringCloud(true);
+    try {
+      await downloadFromCloud();
+      reloadData();
+      setCloudRestorePrompt(null);
+    } catch (err: any) {
+      alert(err.message || 'Błąd przywracania danych z chmury.');
+    } finally {
+      setIsRestoringCloud(false);
+    }
+  };
 
   // Preview Mode: Android phone frame vs Full screen
   const [deviceFrameMode, setDeviceFrameMode] = useState<'mobile' | 'full'>('mobile');
@@ -341,42 +392,78 @@ export default function App() {
             onOpenToolsHub={() => setIsToolsHubOpen(true)}
             onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
             onOpenNotifications={() => setIsNotificationsOpen(true)}
+            onOpenQRTransfer={() => { setQrInitialMode('receive'); setIsQRTransferOpen(true); }}
             onDataChanged={reloadData}
           />
           {!isInstalled && <PWAInstallBanner />}
 
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6">
-            <div className="w-24 h-24 bg-gradient-to-tr from-teal-500 to-emerald-400 text-white rounded-3xl flex items-center justify-center shadow-lg shadow-teal-500/30 text-5xl">
+          <div className="flex-1 flex flex-col items-center justify-center p-5 text-center space-y-5">
+            <div className="w-20 h-20 bg-gradient-to-tr from-teal-500 to-emerald-400 text-white rounded-3xl flex items-center justify-center shadow-lg shadow-teal-500/30 text-4xl">
               🐾
             </div>
 
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-950 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-800">
+            <div className="space-y-1.5 max-w-sm">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-800 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-950 px-3 py-0.5 rounded-full border border-teal-200 dark:border-teal-800">
                 Witaj w PetCare
               </span>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Dodaj swojego zwierzaka
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Twoja baza zwierzaków
               </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs leading-relaxed">
-                Zalogowano jako <strong className="text-teal-600 dark:text-teal-400">{session.user.email}</strong>. Twoje konto jest czyste i chronione. Dodaj pierwszego pupila, aby stworzyć jego osobistą książeczkę zdrowia.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Zalogowano jako <strong className="text-teal-600 dark:text-teal-400">{session.user.email}</strong>. Wybierz jak chcesz rozpocząć:
               </p>
             </div>
 
-            <div className="w-full max-w-xs space-y-3 pt-2">
+            <div className="w-full max-w-sm space-y-2.5 pt-1 text-left">
+              {/* Option 1: QR Code instant transfer from another phone */}
               <button
-                onClick={() => setIsNewPetOpen(true)}
-                className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-extrabold text-sm shadow-lg shadow-teal-700/25 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
+                onClick={() => { setQrInitialMode('receive'); setIsQRTransferOpen(true); }}
+                className="w-full p-3.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-2xl shadow-md shadow-teal-600/25 active:scale-98 transition flex items-center gap-3 cursor-pointer group"
               >
-                <Plus className="w-5 h-5 stroke-[2.5]" />
-                <span>Dodaj zwierzaka</span>
+                <div className="p-2.5 bg-white/20 rounded-xl shrink-0">
+                  <Camera className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs sm:text-sm">Skanuj Kod QR z innego telefonu</span>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-white/25 rounded-md">Błyskawiczne</span>
+                  </div>
+                  <p className="text-[11px] text-teal-100 mt-0.5 leading-tight">
+                    Przenosi natychmiast 100% zwierzaków, zdjęć i leków
+                  </p>
+                </div>
               </button>
 
+              {/* Option 2: Restore from Cloud backup */}
               <button
                 onClick={() => setIsGoogleSyncOpen(true)}
-                className="w-full py-3 px-4 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-2xl font-bold text-xs shadow-xs active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full p-3.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 rounded-2xl shadow-xs active:scale-98 transition flex items-center gap-3 cursor-pointer"
               >
-                <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Synchronizacja w chmurze</span>
+                <div className="p-2.5 bg-emerald-200/60 dark:bg-emerald-900/80 rounded-xl shrink-0">
+                  <Cloud className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-extrabold text-xs sm:text-sm block">Przywróć z Chmury / Dysku Google</span>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5 leading-tight">
+                    Miałeś aplikację wcześniej? Pobierz zapisane zwierzaki
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: Add new pet from scratch */}
+              <button
+                onClick={() => setIsNewPetOpen(true)}
+                className="w-full p-3.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs active:scale-98 transition flex items-center gap-3 cursor-pointer"
+              >
+                <div className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl shrink-0">
+                  <Plus className="w-5 h-5 text-teal-600 dark:text-teal-400 stroke-[2.5]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-extrabold text-xs sm:text-sm block">Dodaj nowego zwierzaka</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                    Rozpocznij tworzenie nowej książeczki zdrowia od zera
+                  </p>
+                </div>
               </button>
             </div>
           </div>
@@ -395,6 +482,27 @@ export default function App() {
             isOpen={isGoogleSyncOpen}
             onClose={() => setIsGoogleSyncOpen(false)}
             onDataRestored={reloadData}
+          />
+        )}
+
+        {isQRTransferOpen && (
+          <QRTransferModal
+            isOpen={isQRTransferOpen}
+            initialMode={qrInitialMode}
+            onClose={() => setIsQRTransferOpen(false)}
+            onDataRestored={reloadData}
+          />
+        )}
+
+        {cloudRestorePrompt && cloudRestorePrompt.open && (
+          <CloudRestorePromptModal
+            isOpen={cloudRestorePrompt.open}
+            petCount={cloudRestorePrompt.petCount}
+            lastSyncTime={cloudRestorePrompt.lastSyncTime}
+            accountEmail={cloudRestorePrompt.email}
+            isLoading={isRestoringCloud}
+            onRestoreConfirm={handleRestoreFromCloudConfirm}
+            onClose={() => setCloudRestorePrompt(null)}
           />
         )}
       </div>
@@ -481,6 +589,7 @@ export default function App() {
           onOpenToolsHub={() => setIsToolsHubOpen(true)}
           onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
           onOpenNotifications={() => setIsNotificationsOpen(true)}
+          onOpenQRTransfer={() => { setQrInitialMode('send'); setIsQRTransferOpen(true); }}
           onDataChanged={reloadData}
           alertCount={upcomingAlerts.length}
         />
@@ -691,6 +800,11 @@ export default function App() {
           onOpenPetsitter={() => setIsPetsitterOpen(true)}
           onOpenDashboardCustomizer={() => setIsCustomizerOpen(true)}
           onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
+          onOpenQRTransfer={() => {
+            setIsToolsHubOpen(false);
+            setQrInitialMode('send');
+            setIsQRTransferOpen(true);
+          }}
           onOpenNotifications={() => {
             setIsToolsHubOpen(false);
             setIsNotificationsOpen(true);
@@ -748,6 +862,29 @@ export default function App() {
           onDismissAlert={handleDismissAlert}
           onClearAllAlerts={handleClearAllAlerts}
           initialTab={upcomingAlerts.length > 0 ? 'alerts' : 'alerts'}
+        />
+      )}
+
+      {/* Direct QR Device-to-Device Transfer */}
+      {isQRTransferOpen && (
+        <QRTransferModal
+          isOpen={isQRTransferOpen}
+          initialMode={qrInitialMode}
+          onClose={() => setIsQRTransferOpen(false)}
+          onDataRestored={reloadData}
+        />
+      )}
+
+      {/* Cloud Restore Detection Modal */}
+      {cloudRestorePrompt && cloudRestorePrompt.open && (
+        <CloudRestorePromptModal
+          isOpen={cloudRestorePrompt.open}
+          petCount={cloudRestorePrompt.petCount}
+          lastSyncTime={cloudRestorePrompt.lastSyncTime}
+          accountEmail={cloudRestorePrompt.email}
+          isLoading={isRestoringCloud}
+          onRestoreConfirm={handleRestoreFromCloudConfirm}
+          onClose={() => setCloudRestorePrompt(null)}
         />
       )}
     </div>

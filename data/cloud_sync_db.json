@@ -1,3 +1,24 @@
 {
-  "users": {}
+  "users": {
+    "abaluch@leroymerlin.pl": {
+      "email": "abaluch@leroymerlin.pl",
+      "passwordHash": "65cef02dffc42a059d292f9992d1f39c114d1a95eb0d6e58d2b2ff7311f7ac0f",
+      "salt": "e279cb325ce8437684a8b8cc1f01c475",
+      "name": "Anna",
+      "avatar": "",
+      "provider": "email",
+      "token": "tok_64a5208aa1b7948b46840e55867256e2b58b6aa93c56e17a",
+      "lastSyncTime": null,
+      "petCount": 0,
+      "payload": {
+        "version": "2.5.0",
+        "pets": [],
+        "vaccinations": [],
+        "medications": [],
+        "exams": [],
+        "conditions": [],
+        "visits": []
+      }
+    }
+  }
 }

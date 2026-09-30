@@ -9,14 +9,20 @@ import {
   ShieldCheck, 
   Smartphone, 
   AlertCircle,
-  Download
+  Download,
+  QrCode,
+  Camera,
+  Cloud,
+  Sparkles
 } from 'lucide-react';
 import { 
   loginWithEmail, 
   registerWithEmail, 
-  signInWithGoogle 
+  signInWithGoogle,
+  ensureGuestSession
 } from '../services/cloudSyncService';
 import { promptAndroidNativeGoogleSignIn } from '../services/nativeGoogleAuth';
+import { QRTransferModal } from './QRTransferModal';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -45,6 +51,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   // States
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
 
   // Native Android Google Sign-In Trigger
   const handleNativeGoogleLogin = async () => {
@@ -157,7 +164,42 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {/* 1. NATIVE ANDROID GOOGLE LOGIN BUTTON */}
+        {/* 1. INSTANT MULTI-DEVICE TRANSFER VIA QR CODE (PHONE TO PHONE) */}
+        <div className="mb-4 p-3.5 bg-gradient-to-br from-teal-950/90 via-slate-900 to-emerald-950/90 border border-teal-700/60 rounded-2xl shadow-lg relative overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
+              <QrCode className="w-4 h-4 text-teal-400 shrink-0" />
+              <span className="text-xs font-black text-white">
+                Masz PetCare na innym telefonie?
+              </span>
+            </div>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40">
+              Aparat QR
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-300 mb-3 leading-snug">
+            Zeskanuj aparatem kod QR ze starego telefonu — skopiujesz 100% zwierzaków, leków i badań bez wpisywania haseł!
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsQRTransferOpen(true)}
+            className="w-full py-2.5 px-3 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 active:scale-98 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-teal-950/40 cursor-pointer"
+          >
+            <Camera className="w-4 h-4 text-white" />
+            <span>Skanuj Kod QR z pierwszego telefonu</span>
+          </button>
+        </div>
+
+        {/* 2. REINSTALLATION & CLOUD RESTORE INFO */}
+        <div className="mb-4 p-3 bg-slate-800/60 border border-slate-700/60 rounded-2xl flex items-start gap-2.5">
+          <Cloud className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+          <div className="text-[11px] text-slate-300 leading-snug">
+            <strong className="text-white block font-bold">Miałeś aplikację i instalujesz ją ponownie?</strong>
+            Zaloguj się poniżej swoim kontem Google lub e-mailem — PetCare automatycznie wykryje Twoją kopię z chmury i przywróci wszystkie dane.
+          </div>
+        </div>
+
+        {/* 3. NATIVE ANDROID GOOGLE LOGIN BUTTON */}
         <div className="mb-5">
           <button
             type="button"
@@ -334,6 +376,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           </span>
         </div>
       </div>
+
+      {isQRTransferOpen && (
+        <QRTransferModal
+          isOpen={isQRTransferOpen}
+          initialMode="receive"
+          onClose={() => setIsQRTransferOpen(false)}
+          onDataRestored={() => {
+            ensureGuestSession('Opiekun (Transfer QR)');
+            setIsQRTransferOpen(false);
+            onLoginSuccess();
+          }}
+        />
+      )}
     </div>
   );
 };

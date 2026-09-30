@@ -12,7 +12,8 @@ import {
   Sparkles, 
   ChevronRight, 
   ShieldCheck,
-  Cloud
+  Cloud,
+  QrCode
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 
@@ -29,6 +30,7 @@ interface ToolsHubModalProps {
   onOpenDashboardCustomizer: () => void;
   onOpenGoogleSync: () => void;
   onOpenNotifications: () => void;
+  onOpenQRTransfer?: () => void;
   onOpenAgeCalculator?: () => void;
   onOpenEmergencyVetFinder?: () => void;
   onOpenSettings: () => void;
@@ -47,6 +49,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenDashboardCustomizer,
   onOpenGoogleSync,
   onOpenNotifications,
+  onOpenQRTransfer,
   onOpenAgeCalculator,
   onOpenEmergencyVetFinder,
   onOpenSettings,
@@ -80,6 +83,15 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
       color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
       badge: 'Alerty Android',
       action: onOpenNotifications,
+    },
+    {
+      id: 'qr-transfer',
+      label: 'Transfer między telefonami (Kod QR)',
+      desc: 'Przenieś 100% zwierzaków, leków i badań na drugi telefon bez logowania i internetu',
+      icon: QrCode,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      badge: 'Drugi telefon',
+      action: onOpenQRTransfer,
     },
     {
       id: 'google-sync',

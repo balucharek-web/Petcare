@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || 'https://ais-dev-3xzr2tfytwhikh6urd6fyx-472843422686.europe-west2.run.app';
+const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://ais-dev-aii73malc2rhndjfpz7ldp-559140193543.europe-west3.run.app');
 
 export interface CloudUser {
   email: string;
@@ -51,6 +51,41 @@ export function saveSession(updates: Partial<CloudSession>): CloudSession {
 export function subscribeToCloudSync(listener: CloudSyncListener): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+// Ensures a valid session after direct QR transfer or local restore
+export function ensureGuestSession(displayName?: string): CloudSession {
+  const existing = getStoredSession();
+  if (existing.user) return existing;
+  const guestUser: CloudUser = {
+    email: 'opiekun@petcare.local',
+    name: displayName || 'Opiekun Zwierzaka',
+    avatar: 'https://ui-avatars.com/api/?name=Opiekun&background=0D9488&color=fff&bold=true',
+    provider: 'email',
+  };
+  return saveSession({
+    user: guestUser,
+    lastSyncStatus: 'success',
+    lastSyncTime: new Date().toISOString(),
+  });
+}
+
+// Check if an existing cloud backup exists for a given email address
+export async function checkCloudBackup(email: string): Promise<{ exists: boolean; petCount: number; lastSyncTime: string | null; payload?: any }> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) return { exists: false, petCount: 0, lastSyncTime: null };
+    const res = await safeApiCall('/api/cloud-sync/download', { email: cleanEmail });
+    if (res?.payload && Array.isArray(res.payload.pets) && res.payload.pets.length > 0) {
+      return {
+        exists: true,
+        petCount: res.payload.pets.length,
+        lastSyncTime: res.lastSyncTime || null,
+        payload: res.payload,
+      };
+    }
+  } catch {}
+  return { exists: false, petCount: 0, lastSyncTime: null };
 }
 
 // Get the correct API URL (resolves relative paths to the live backend when inside Capacitor Android)

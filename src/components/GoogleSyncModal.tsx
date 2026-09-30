@@ -618,14 +618,24 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     </span>
                   </div>
                   {!qrSyncResult && (
-                    <button
-                      onClick={handleGenerateQRCode}
-                      disabled={isLoading}
-                      className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                      Pokaż Kod QR
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={handleGenerateQRCode}
+                        disabled={isLoading}
+                        className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Nadaj (Pokaż)</span>
+                      </button>
+                      <button
+                        onClick={() => setIsScannerOpen(true)}
+                        disabled={isLoading}
+                        className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      >
+                        <Scan className="w-3.5 h-3.5" />
+                        <span>Odbierz (Skanuj)</span>
+                      </button>
+                    </div>
                   )}
                 </div>
 

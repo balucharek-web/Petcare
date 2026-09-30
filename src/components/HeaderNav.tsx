@@ -20,7 +20,8 @@ import {
   Sun,
   Moon,
   Bell,
-  LogOut
+  LogOut,
+  QrCode
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
@@ -42,6 +43,7 @@ interface HeaderNavProps {
   onOpenToolsHub: () => void;
   onOpenGoogleSync: () => void;
   onOpenNotifications: () => void;
+  onOpenQRTransfer?: () => void;
   onDataChanged: () => void;
   alertCount?: number;
 }
@@ -61,6 +63,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onOpenToolsHub,
   onOpenGoogleSync,
   onOpenNotifications,
+  onOpenQRTransfer,
   onDataChanged,
   alertCount = 0,
 }) => {
@@ -299,6 +302,18 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Direct QR Transfer / Drugi telefon */}
+            {onOpenQRTransfer && (
+              <button
+                onClick={onOpenQRTransfer}
+                title="Transfer między telefonami: Nadaj lub skanuj kod QR z innego telefonu"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200 border border-teal-200/80 dark:border-teal-800/80 hover:bg-teal-100 dark:hover:bg-teal-900/60 active:scale-95 transition text-xs font-bold shadow-2xs cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                <span className="hidden sm:inline text-[11px]">Kod QR</span>
+              </button>
+            )}
 
             {/* Quick action buttons on larger screens (hidden on mobile to keep header clean and prevent overlapping) */}
             <div className="hidden lg:flex items-center gap-1.5">
