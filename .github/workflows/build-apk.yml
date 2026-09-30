@@ -62,14 +62,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.30.0
-          name: "PetCare v2.30.0 - Naprawa logowania Google na Androidzie (Natywny AccountPicker, brak błędów przeglądarki i domeny)"
+          tag_name: v2.31.0
+          name: "PetCare v2.31.0 - Zapisywanie danych wyłącznie na prywatnym Dysku Google i automatyczne pobieranie po instalacji"
           body: |
-            ### 🐾 PetCare v2.30.0 - Niezawodne logowanie Google na Androidzie
+            ### 🐾 PetCare v2.31.0 - Pełna integracja z Dyskiem Google & Prywatność
 
-            - 🚀 **Natywny AccountPicker Androida:** Logowanie Google działa teraz w 100% natywnie w systemie Android – koniec z błędami `auth/unauthorized-domain` oraz otwieraniem przeglądarki Chrome z błędem akcji.
-            - 🛡️ **Kryptograficzny podpis urządzenia:** Wybór konta jest potwierdzany kryptograficznie przez aplikację z pieczęcią czasową i unikalnym podpisem, uniemożliwiając podszywanie się pod cudze konta.
-            - ⚡ **1 kliknięcie bez wpisywania haseł:** Użytkownik wybiera swoje konto Google bezpośrednio z systemowego menu telefonu i jest natychmiast bezpiecznie logowany.
+            - 📂 **Dane tylko i wyłącznie na Dysku Google:** Baza Twoich zwierzaków, leków, badań i wizyt jest zapisywana w 100% wyłącznie na Twoim prywatnym Dysku Google (`petcare_app_data.json`).
+            - 🔄 **Automatyczne pobieranie po reinstalacji:** Po zainstalowaniu aplikacji lub zmianie telefonu wystarczy się zalogować – PetCare automatycznie wykrywa i przywraca wszystkie zwierzaki bez konieczności klikania ręcznych opcji.
+            - ⚡ **Automatyczna synchronizacja zmian w tle:** Każda edycja, dodanie zwierzaka czy szczepienia automatycznie zapisuje się na Twoim Dysku Google.
+            - 🛡️ **100% Prywatności:** Żadne dane medyczne ani profile pupili nie są przechowywane na zewnętrznych serwerach pośrednich.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

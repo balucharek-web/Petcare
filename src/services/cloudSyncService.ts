@@ -1,5 +1,11 @@
 import { storage } from './storage';
-import { googleSignOut as googleDriveSignOut } from './googleDriveSync';
+import { 
+  googleSignOut as googleDriveSignOut, 
+  uploadPetDataToDrive, 
+  downloadPetDataFromDrive, 
+  findDriveBackupFile, 
+  autoRestoreFromDriveIfEmpty 
+} from './googleDriveSync';
 import { logoutFirebaseAuth } from './firebaseAuth';
 import { Capacitor } from '@capacitor/core';
 
@@ -71,20 +77,15 @@ export function ensureGuestSession(displayName?: string): CloudSession {
   });
 }
 
-// Check if an existing cloud backup exists for a given email address
+// Check if an existing cloud backup exists on user's Google Drive
 export async function checkCloudBackup(email: string, token?: string): Promise<{ exists: boolean; petCount: number; lastSyncTime: string | null; payload?: any }> {
   try {
-    const cleanEmail = email.trim().toLowerCase();
-    const session = getStoredSession();
-    const authToken = token || session.authToken;
-    if (!cleanEmail || !cleanEmail.includes('@') || !authToken) return { exists: false, petCount: 0, lastSyncTime: null };
-    const res = await safeApiCall('/api/cloud-sync/download', { email: cleanEmail, token: authToken });
-    if (res?.payload && Array.isArray(res.payload.pets) && res.payload.pets.length > 0) {
+    const driveFile = await findDriveBackupFile(token);
+    if (driveFile) {
       return {
         exists: true,
-        petCount: res.payload.pets.length,
-        lastSyncTime: res.lastSyncTime || null,
-        payload: res.payload,
+        petCount: 0,
+        lastSyncTime: driveFile.modifiedTime || null,
       };
     }
   } catch {}
@@ -443,9 +444,20 @@ export async function signInWithGoogle(
   const authToken = authData.token || '';
   let petCount = 0;
 
-  if (authData.payload && Array.isArray(authData.payload.pets)) {
-    const res = restoreAllPetData(authData.payload);
-    petCount = res.petCount;
+  // AUTOMATIC RESTORE FROM GOOGLE DRIVE:
+  // If user has a backup on Google Drive, automatically restore it into local storage!
+  try {
+    const driveRestore = await autoRestoreFromDriveIfEmpty();
+    if (driveRestore.restored && driveRestore.petCount > 0) {
+      petCount = driveRestore.petCount;
+    }
+  } catch (driveErr) {
+    console.warn('Auto restore check from Drive:', driveErr);
+  }
+
+  // If local storage has pets, update petCount
+  if (petCount === 0) {
+    petCount = storage.getPets().length;
   }
 
   saveSession({
@@ -475,36 +487,22 @@ export function signOut(): void {
 // Sign out alias for backwards compatibility
 export const signOutGoogle = signOut;
 
-// 5. Upload pet data to Cloud (Authorized only for own data)
+// 5. Upload pet data EXCLUSIVELY to user's Google Drive
 export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount: number }> {
-  const session = getStoredSession();
-  if (!session.user || !session.authToken) {
-    throw new Error('Musisz być zalogowany, aby zsynchronizować dane.');
-  }
-
   saveSession({ lastSyncStatus: 'syncing' });
 
-  const payload = bundleAllPetData();
-  const petCount = payload.pets.length;
-
   try {
-    const res = await safeApiCall('/api/cloud-sync/upload', {
-      email: session.user.email,
-      token: session.authToken,
-      payload,
-      petCount,
-    });
-
-    const now = res?.lastSyncTime || new Date().toISOString();
+    const res = await uploadPetDataToDrive();
+    const count = storage.getPets().length;
     saveSession({
       lastSyncStatus: 'success',
-      lastSyncTime: now,
+      lastSyncTime: res.timestamp,
     });
 
-    return { lastSyncTime: now, petCount };
+    return { lastSyncTime: res.timestamp, petCount: count };
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
-    throw new Error(err.message || 'Nie udało się zapisać kopii w chmurze.');
+    throw new Error(err.message || 'Nie udało się zapisać danych na Dysku Google.');
   }
 }
 
@@ -513,36 +511,20 @@ export async function manualSyncNow(): Promise<{ lastSyncTime: string; petCount:
   return uploadToCloud();
 }
 
-// 6. Download pet data from Cloud (Authorized only for own data)
+// 6. Download pet data EXCLUSIVELY from user's Google Drive
 export async function downloadFromCloud(): Promise<{ petCount: number; lastSyncTime: string }> {
-  const session = getStoredSession();
-  if (!session.user || !session.authToken) {
-    throw new Error('Zaloguj się, aby wczytać dane.');
-  }
-
   saveSession({ lastSyncStatus: 'syncing' });
 
   try {
-    const data = await safeApiCall('/api/cloud-sync/download', {
-      email: session.user.email,
-      token: session.authToken,
+    const res = await downloadPetDataFromDrive();
+    saveSession({
+      lastSyncStatus: 'success',
+      lastSyncTime: res.timestamp,
     });
-
-    if (data?.payload && Array.isArray(data.payload.pets)) {
-      const { petCount } = restoreAllPetData(data.payload);
-      const syncTime = data.lastSyncTime || new Date().toISOString();
-      saveSession({
-        lastSyncStatus: 'success',
-        lastSyncTime: syncTime,
-      });
-      return { petCount, lastSyncTime: syncTime };
-    }
-
-    saveSession({ lastSyncStatus: 'success' });
-    return { petCount: 0, lastSyncTime: new Date().toISOString() };
+    return { petCount: res.petCount, lastSyncTime: res.timestamp };
   } catch (err: any) {
     saveSession({ lastSyncStatus: 'error' });
-    throw new Error(err.message || 'Nie udało się pobrać danych z chmury.');
+    throw new Error(err.message || 'Nie udało się pobrać danych z Dysku Google.');
   }
 }
 

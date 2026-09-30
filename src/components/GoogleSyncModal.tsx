@@ -175,80 +175,38 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     }
   };
 
-  // Manual Instant Upload/Sync to both Google Drive and Cloud
+  // Manual Instant Upload/Sync exclusively to personal Google Drive
   const handleManualUpload = async () => {
     setIsLoading(true);
     setFeedback(null);
-    let driveUploaded = false;
 
-    // 1. Try uploading to personal Google Drive
-    try {
-      const token = await getDriveAccessToken();
-      if (token) {
-        await uploadPetDataToDrive();
-        driveUploaded = true;
-      }
-    } catch (dErr: any) {
-      console.warn('Google Drive direct upload notice:', dErr?.message);
-    }
-
-    // 2. Also sync to persistent cloud backup
     try {
       const res = await uploadToCloud();
       setFeedback({
         type: 'success',
-        message: driveUploaded 
-          ? `Pomyślnie zapisano kopię na Twoim Dysku Google (plik petcare_app_data.json) oraz w chmurze (${res.petCount} zwierzaków)!`
-          : `Zsynchronizowano dane w chmurze! Zapisano ${res.petCount} zwierzaków na Twoim koncie Google.`
+        message: `Pomyślnie zapisano ${res.petCount} zwierzaków na Twoim prywatnym Dysku Google (plik petcare_app_data.json)!`
       });
     } catch (err: any) {
-      if (driveUploaded) {
-        setFeedback({
-          type: 'success',
-          message: 'Pomyślnie zaktualizowano plik petcare_app_data.json na Twoim Dysku Google!'
-        });
-      } else {
-        setFeedback({
-          type: 'error',
-          message: err.message || 'Błąd zapisu na Dysku Google / w chmurze.'
-        });
-      }
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Błąd zapisu na Dysku Google.'
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Manual Instant Download/Restore from Google Drive or Cloud
+  // Manual Instant Download/Restore exclusively from personal Google Drive
   const handleManualDownload = async () => {
     setShowRestoreConfirm(false);
     setIsLoading(true);
     setFeedback(null);
 
-    // 1. First, try reading directly from the user's personal Google Drive
-    try {
-      const driveToken = await getDriveAccessToken();
-      if (driveToken) {
-        const driveRes = await downloadPetDataFromDrive();
-        if (driveRes.success) {
-          setFeedback({
-            type: 'success',
-            message: `Pobrano dane bezpośrednio z Twojego Dysku Google! Przywrócono ${driveRes.petCount} zwierzaków.`
-          });
-          if (onDataRestored) onDataRestored();
-          setIsLoading(false);
-          return;
-        }
-      }
-    } catch (driveErr: any) {
-      console.warn('Google Drive direct download notice:', driveErr?.message);
-    }
-
-    // 2. Fallback to Cloud Sync database
     try {
       const res = await downloadFromCloud();
       setFeedback({
         type: 'success',
-        message: `Pobrano dane z chmury! Przywrócono ${res.petCount} zwierzaków wraz z apteczką i badaniami.`
+        message: `Pobrano dane z Twojego Dysku Google! Przywrócono ${res.petCount} zwierzaków wraz z historią medyczną.`
       });
       if (onDataRestored) {
         onDataRestored();
@@ -256,7 +214,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: err.message || 'Nie znaleziono pliku kopii na Dysku Google ani w chmurze.'
+        message: err.message || 'Nie znaleziono pliku kopii na Twoim Dysku Google.'
       });
     } finally {
       setIsLoading(false);

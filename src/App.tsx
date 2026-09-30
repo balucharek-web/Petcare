@@ -49,7 +49,6 @@ import { NotificationSettingsModal } from './components/NotificationSettingsModa
 import { syncAllScheduledNotifications } from './services/notificationService';
 import { AuthScreen } from './components/AuthScreen';
 import { QRTransferModal } from './components/QRTransferModal';
-import { CloudRestorePromptModal } from './components/CloudRestorePromptModal';
 
 // New Feature Modals
 import { MedicalReportModal } from './components/MedicalReportModal';
@@ -97,41 +96,26 @@ export default function App() {
   const [isEmergencyVetFinderOpen, setIsEmergencyVetFinderOpen] = useState(false);
   const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
   const [qrInitialMode, setQrInitialMode] = useState<'send' | 'receive'>('send');
-  const [cloudRestorePrompt, setCloudRestorePrompt] = useState<{ open: boolean; petCount: number; lastSyncTime: string | null; email: string } | null>(null);
-  const [isRestoringCloud, setIsRestoringCloud] = useState(false);
+  const [restoreToast, setRestoreToast] = useState<string | null>(null);
 
-  // Auto-detect previous cloud backup if user has 0 pets on device (e.g. after reinstalling or clean phone)
+  // Auto-download and restore from Google Drive if user has 0 pets on device (e.g. after reinstalling or clean phone)
   useEffect(() => {
     let isMounted = true;
     if (session.user?.email && pets.length === 0) {
-      checkCloudBackup(session.user.email).then((res) => {
-        if (isMounted && res.exists && res.petCount > 0) {
-          setCloudRestorePrompt({
-            open: true,
-            petCount: res.petCount,
-            lastSyncTime: res.lastSyncTime,
-            email: session.user!.email,
-          });
+      downloadFromCloud().then((res) => {
+        if (isMounted && res.petCount > 0) {
+          reloadData();
+          setRestoreToast(`Automatycznie pobrano ${res.petCount} zwierzaków z Twojego Dysku Google!`);
+          setTimeout(() => setRestoreToast(null), 5000);
         }
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('Silent auto-download from Drive on startup:', err);
+      });
     }
     return () => {
       isMounted = false;
     };
   }, [session.user?.email, pets.length]);
-
-  const handleRestoreFromCloudConfirm = async () => {
-    setIsRestoringCloud(true);
-    try {
-      await downloadFromCloud();
-      reloadData();
-      setCloudRestorePrompt(null);
-    } catch (err: any) {
-      alert(err.message || 'Błąd przywracania danych z chmury.');
-    } finally {
-      setIsRestoringCloud(false);
-    }
-  };
 
   // Preview Mode: Android phone frame vs Full screen
   const [deviceFrameMode, setDeviceFrameMode] = useState<'mobile' | 'full'>('mobile');
@@ -494,16 +478,11 @@ export default function App() {
           />
         )}
 
-        {cloudRestorePrompt && cloudRestorePrompt.open && (
-          <CloudRestorePromptModal
-            isOpen={cloudRestorePrompt.open}
-            petCount={cloudRestorePrompt.petCount}
-            lastSyncTime={cloudRestorePrompt.lastSyncTime}
-            accountEmail={cloudRestorePrompt.email}
-            isLoading={isRestoringCloud}
-            onRestoreConfirm={handleRestoreFromCloudConfirm}
-            onClose={() => setCloudRestorePrompt(null)}
-          />
+        {restoreToast && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 font-bold text-xs animate-bounce">
+            <Cloud className="w-4 h-4 text-emerald-100 animate-spin" />
+            <span>{restoreToast}</span>
+          </div>
         )}
       </div>
     );
@@ -564,6 +543,14 @@ export default function App() {
 
         {/* PWA Install Banner */}
         {!isInstalled && <PWAInstallBanner />}
+
+        {/* Google Drive auto-restore notification */}
+        {restoreToast && (
+          <div className="bg-emerald-600 text-white px-4 py-2.5 text-xs flex items-center justify-center gap-2 font-bold shadow-md animate-pulse">
+            <Cloud className="w-4 h-4 text-emerald-100" />
+            <span>{restoreToast}</span>
+          </div>
+        )}
 
         {/* Offline notification banner */}
         {!isOnline && (
@@ -872,19 +859,6 @@ export default function App() {
           initialMode={qrInitialMode}
           onClose={() => setIsQRTransferOpen(false)}
           onDataRestored={reloadData}
-        />
-      )}
-
-      {/* Cloud Restore Detection Modal */}
-      {cloudRestorePrompt && cloudRestorePrompt.open && (
-        <CloudRestorePromptModal
-          isOpen={cloudRestorePrompt.open}
-          petCount={cloudRestorePrompt.petCount}
-          lastSyncTime={cloudRestorePrompt.lastSyncTime}
-          accountEmail={cloudRestorePrompt.email}
-          isLoading={isRestoringCloud}
-          onRestoreConfirm={handleRestoreFromCloudConfirm}
-          onClose={() => setCloudRestorePrompt(null)}
         />
       )}
     </div>

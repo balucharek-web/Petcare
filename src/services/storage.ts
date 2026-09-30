@@ -32,6 +32,22 @@ const STORAGE_KEYS = {
 
 const memoryStore: Record<string, string> = {};
 
+type StorageChangeListener = (key: string) => void;
+const changeListeners: Set<StorageChangeListener> = new Set();
+
+export function subscribeToStorageChanges(fn: StorageChangeListener): () => void {
+  changeListeners.add(fn);
+  return () => changeListeners.delete(fn);
+}
+
+function notifyStorageChanged(key: string) {
+  if (key.startsWith('petcare_')) {
+    changeListeners.forEach(fn => {
+      try { fn(key); } catch {}
+    });
+  }
+}
+
 function safeGetItem(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -46,6 +62,7 @@ function safeSetItem(key: string, value: string): void {
   } catch {
     memoryStore[key] = value;
   }
+  notifyStorageChanged(key);
 }
 
 function safeRemoveItem(key: string): void {
@@ -54,6 +71,7 @@ function safeRemoveItem(key: string): void {
   } catch {
     delete memoryStore[key];
   }
+  notifyStorageChanged(key);
 }
 
 const DEFAULT_INITIAL_PETS: Pet[] = [
