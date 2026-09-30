@@ -46,6 +46,7 @@ import {
 import { storage } from '../services/storage';
 import { ScanViewerModal } from './ScanViewerModal';
 import { calculatePetHumanAge } from './AgeCalculatorModal';
+import { TodayQuickActionsWidget } from './TodayQuickActionsWidget';
 
 interface PetProfileViewProps {
   pet: Pet;
@@ -66,6 +67,9 @@ interface PetProfileViewProps {
   onOpenPetsitter: () => void;
   onOpenAgeCalculator?: () => void;
   onOpenEmergencyVetFinder?: () => void;
+  onOpenVetCard?: () => void;
+  onOpenHealthTimeline?: () => void;
+  onOpenFamilySharing?: () => void;
 }
 
 export const PetProfileView: React.FC<PetProfileViewProps> = ({
@@ -87,6 +91,9 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   onOpenPetsitter,
   onOpenAgeCalculator,
   onOpenEmergencyVetFinder,
+  onOpenVetCard,
+  onOpenHealthTimeline,
+  onOpenFamilySharing,
 }) => {
   const [copiedChip, setCopiedChip] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -271,6 +278,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   };
 
   const WIDGET_TITLES: Record<DashboardWidgetKey, { label: string; desc: string }> = {
+    todayQuickActions: { label: 'Dzisiejsze zadania i profilaktyka', desc: 'Szybkie odznaczanie leków i profilaktyka' },
     shortcuts: { label: 'Szybkie skróty', desc: 'Dzisiejsze leki i szczepienia' },
     aiScanner: { label: 'Skaner Recept AI', desc: 'Odczyt recept i wyników badań' },
     nutritionCalculator: { label: 'Kalkulator Żywienia', desc: 'RER / MER i zapotrzebowanie' },
@@ -596,6 +604,26 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   // Helper to render content for each individual widget key
   const renderWidgetContent = (key: DashboardWidgetKey) => {
     switch (key) {
+      case 'todayQuickActions':
+        return (
+          <TodayQuickActionsWidget
+            pet={pet}
+            medications={storage.getMedications()}
+            vaccinations={storage.getVaccinations()}
+            onOpenVetCard={onOpenVetCard || onOpenMedicalReport}
+            onOpenTimeline={onOpenHealthTimeline || (() => onNavigateToTab('calendar'))}
+            onOpenMedications={() => onNavigateToTab('medications')}
+            onOpenFamilySharing={onOpenFamilySharing || (() => {})}
+            onOpenWeightModal={() => setIsAddingWeight(true)}
+            onToggleHideWidget={() => {
+              const updatedConfig = { ...dashboardConfig, todayQuickActions: false };
+              storage.saveDashboardConfig(updatedConfig);
+              onSaveDashboardConfig?.(updatedConfig);
+              showReorderToast('Ukryto widżet zadań. Możesz go włączyć w Dostosuj Pulpit.');
+            }}
+          />
+        );
+
       case 'shortcuts':
         return (
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-3">

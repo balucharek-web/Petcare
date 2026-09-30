@@ -48,6 +48,12 @@ export const DashboardCustomizerModal: React.FC<DashboardCustomizerModalProps> =
 
   const widgetDefinitions: { key: DashboardWidgetKey; label: string; desc: string; icon: React.FC<{ className?: string }> }[] = [
     {
+      key: 'todayQuickActions',
+      label: 'Dzisiejsze zadania i profilaktyka (Widżet)',
+      desc: 'Szybkie odznaczanie leków [Podano], Karta Lekarza, Oś Czasu i status profilaktyki',
+      icon: Sparkles,
+    },
+    {
       key: 'shortcuts',
       label: 'Szybkie skróty',
       desc: 'Dzisiejsze leki i terminy szczepień',

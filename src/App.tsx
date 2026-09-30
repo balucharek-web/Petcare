@@ -61,6 +61,10 @@ import { DashboardCustomizerModal } from './components/DashboardCustomizerModal'
 import { ToolsHubModal } from './components/ToolsHubModal';
 import { AgeCalculatorModal } from './components/AgeCalculatorModal';
 import { EmergencyVetFinderModal } from './components/EmergencyVetFinderModal';
+import { VetCardModal } from './components/VetCardModal';
+import { HealthTimelineModal } from './components/HealthTimelineModal';
+import { FamilySharingModal } from './components/FamilySharingModal';
+import { CommercialPrivacyModal } from './components/CommercialPrivacyModal';
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
@@ -94,6 +98,10 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAgeCalculatorOpen, setIsAgeCalculatorOpen] = useState(false);
   const [isEmergencyVetFinderOpen, setIsEmergencyVetFinderOpen] = useState(false);
+  const [isVetCardOpen, setIsVetCardOpen] = useState(false);
+  const [isHealthTimelineOpen, setIsHealthTimelineOpen] = useState(false);
+  const [isFamilySharingOpen, setIsFamilySharingOpen] = useState(false);
+  const [isCommercialPrivacyOpen, setIsCommercialPrivacyOpen] = useState(false);
   const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
   const [qrInitialMode, setQrInitialMode] = useState<'send' | 'receive'>('send');
   const [restoreToast, setRestoreToast] = useState<string | null>(null);
@@ -609,6 +617,9 @@ export default function App() {
               onOpenPetsitter={() => setIsPetsitterOpen(true)}
               onOpenAgeCalculator={() => setIsAgeCalculatorOpen(true)}
               onOpenEmergencyVetFinder={() => setIsEmergencyVetFinderOpen(true)}
+              onOpenVetCard={() => setIsVetCardOpen(true)}
+              onOpenHealthTimeline={() => setIsHealthTimelineOpen(true)}
+              onOpenFamilySharing={() => setIsFamilySharingOpen(true)}
             />
           )}
 
@@ -804,6 +815,22 @@ export default function App() {
             setIsToolsHubOpen(false);
             setIsEmergencyVetFinderOpen(true);
           }}
+          onOpenVetCard={() => {
+            setIsToolsHubOpen(false);
+            setIsVetCardOpen(true);
+          }}
+          onOpenHealthTimeline={() => {
+            setIsToolsHubOpen(false);
+            setIsHealthTimelineOpen(true);
+          }}
+          onOpenFamilySharing={() => {
+            setIsToolsHubOpen(false);
+            setIsFamilySharingOpen(true);
+          }}
+          onOpenPrivacyPolicy={() => {
+            setIsToolsHubOpen(false);
+            setIsCommercialPrivacyOpen(true);
+          }}
           onOpenSettings={() => {
             // Can be opened from HeaderNav
             setIsToolsHubOpen(false);
@@ -859,6 +886,54 @@ export default function App() {
           initialMode={qrInitialMode}
           onClose={() => setIsQRTransferOpen(false)}
           onDataRestored={reloadData}
+        />
+      )}
+
+      {/* Feature 9: Karta Pacjenta (Tryb Lekarza) */}
+      {isVetCardOpen && (
+        <VetCardModal
+          isOpen={isVetCardOpen}
+          onClose={() => setIsVetCardOpen(false)}
+          pet={activePet}
+          medications={medications}
+          vaccinations={vaccinations}
+          conditions={conditions}
+          exams={exams}
+        />
+      )}
+
+      {/* Feature 10: Zintegrowana Oś Czasu Zdrowia */}
+      {isHealthTimelineOpen && (
+        <HealthTimelineModal
+          isOpen={isHealthTimelineOpen}
+          onClose={() => setIsHealthTimelineOpen(false)}
+          pet={activePet}
+          vaccinations={vaccinations}
+          exams={exams}
+          visits={visits}
+          medications={medications}
+        />
+      )}
+
+      {/* Feature 11: Tryb Współwłaściciela i Rodzina */}
+      {isFamilySharingOpen && (
+        <FamilySharingModal
+          isOpen={isFamilySharingOpen}
+          onClose={() => setIsFamilySharingOpen(false)}
+          pet={activePet}
+          onOpenSyncModal={() => {
+            setIsFamilySharingOpen(false);
+            setIsGoogleSyncOpen(true);
+          }}
+        />
+      )}
+
+      {/* Feature 12: Prywatność, Bezpieczeństwo & Standard Google Play */}
+      {isCommercialPrivacyOpen && (
+        <CommercialPrivacyModal
+          isOpen={isCommercialPrivacyOpen}
+          onClose={() => setIsCommercialPrivacyOpen(false)}
+          onDataReset={reloadData}
         />
       )}
     </div>

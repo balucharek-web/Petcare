@@ -13,7 +13,11 @@ import {
   ChevronRight, 
   ShieldCheck,
   Cloud,
-  QrCode
+  QrCode,
+  HeartPulse,
+  History,
+  Users,
+  Lock
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 
@@ -33,6 +37,10 @@ interface ToolsHubModalProps {
   onOpenQRTransfer?: () => void;
   onOpenAgeCalculator?: () => void;
   onOpenEmergencyVetFinder?: () => void;
+  onOpenVetCard?: () => void;
+  onOpenHealthTimeline?: () => void;
+  onOpenFamilySharing?: () => void;
+  onOpenPrivacyPolicy?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -52,11 +60,42 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenQRTransfer,
   onOpenAgeCalculator,
   onOpenEmergencyVetFinder,
+  onOpenVetCard,
+  onOpenHealthTimeline,
+  onOpenFamilySharing,
+  onOpenPrivacyPolicy,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
 
   const tools = [
+    {
+      id: 'vet-card',
+      label: 'Karta Pacjenta (Tryb Lekarza)',
+      desc: 'Wysokokontrastowy ekran do natychmiastowego okazania weterynarzowi z kodem QR',
+      icon: HeartPulse,
+      color: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+      badge: 'Lekarz / SOR',
+      action: onOpenVetCard || onOpenMedicalReport,
+    },
+    {
+      id: 'health-timeline',
+      label: 'Zintegrowana Oś Czasu Zdrowia',
+      desc: 'Wszystkie szczepienia, badania, wizyty i leki na jednej chronologicznej osi',
+      icon: History,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      badge: 'Historia',
+      action: onOpenHealthTimeline,
+    },
+    {
+      id: 'family-sharing',
+      label: 'Współwłaściciel i Dzielenie w Rodzinie',
+      desc: 'Dziennik domowników: kto podał lek, nakarmił psa i wyprowadził na spacer',
+      icon: Users,
+      color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+      badge: 'Rodzina',
+      action: onOpenFamilySharing,
+    },
     {
       id: 'emergency-vets',
       label: 'Dyżury Weterynaryjne 24h & SOS',
@@ -65,6 +104,15 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
       color: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
       badge: 'SOS 24/7',
       action: onOpenEmergencyVetFinder,
+    },
+    {
+      id: 'privacy-policy',
+      label: 'Prywatność i Bezpieczeństwo (Google Play)',
+      desc: 'Polityka prywatności, zgodność RODO i bezpieczne usuwanie danych',
+      icon: ShieldCheck,
+      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      badge: 'RODO / Play',
+      action: onOpenPrivacyPolicy,
     },
     {
       id: 'age-calc',

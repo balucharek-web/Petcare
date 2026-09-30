@@ -193,6 +193,7 @@ export interface ToxicityItem {
 }
 
 export type DashboardWidgetKey =
+  | 'todayQuickActions'
   | 'shortcuts'
   | 'nutritionCalculator'
   | 'weightTracker'
@@ -206,6 +207,7 @@ export type DashboardWidgetKey =
   | 'vetContact';
 
 export const DEFAULT_WIDGET_ORDER: DashboardWidgetKey[] = [
+  'todayQuickActions',
   'shortcuts',
   'aiScanner',
   'nutritionCalculator',
@@ -220,6 +222,7 @@ export const DEFAULT_WIDGET_ORDER: DashboardWidgetKey[] = [
 ];
 
 export interface DashboardConfig {
+  todayQuickActions: boolean;
   shortcuts: boolean;
   nutritionCalculator: boolean;
   weightTracker: boolean;
@@ -235,6 +238,7 @@ export interface DashboardConfig {
 }
 
 export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
+  todayQuickActions: true,
   shortcuts: true,
   nutritionCalculator: true,
   weightTracker: true,
