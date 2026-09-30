@@ -79,6 +79,17 @@ export const ALL_POLISH_CITIES: PolishCity[] = [
   { name: 'Lubliniec', voivodeship: 'Śląskie', lat: 50.6694, lng: 18.6806 },
   { name: 'Myszków', voivodeship: 'Śląskie', lat: 50.5758, lng: 19.3242 },
   { name: 'Kłobuck', voivodeship: 'Śląskie', lat: 50.9022, lng: 18.9367 },
+  { name: 'Wyry', voivodeship: 'Śląskie', lat: 50.1347, lng: 18.9039 },
+  { name: 'Gostyń', voivodeship: 'Śląskie', lat: 50.1114, lng: 18.8953 },
+  { name: 'Ornontowice', voivodeship: 'Śląskie', lat: 50.1772, lng: 18.7514 },
+  { name: 'Kobiór', voivodeship: 'Śląskie', lat: 50.0658, lng: 18.9358 },
+  { name: 'Suszec', voivodeship: 'Śląskie', lat: 50.0411, lng: 18.7906 },
+  { name: 'Bojszowy', voivodeship: 'Śląskie', lat: 50.0764, lng: 19.0983 },
+  { name: 'Chełm Śląski', voivodeship: 'Śląskie', lat: 50.1133, lng: 19.2064 },
+  { name: 'Imielin', voivodeship: 'Śląskie', lat: 50.1417, lng: 19.1861 },
+  { name: 'Goczałkowice-Zdrój', voivodeship: 'Śląskie', lat: 49.9406, lng: 18.9669 },
+  { name: 'Pawłowice', voivodeship: 'Śląskie', lat: 49.9614, lng: 18.7183 },
+  { name: 'Gierałtowice', voivodeship: 'Śląskie', lat: 50.2197, lng: 18.7231 },
 
   // Dolnośląskie
   { name: 'Wrocław', voivodeship: 'Dolnośląskie', lat: 51.1079, lng: 17.0385, isVoivodeshipCapital: true },
@@ -276,3 +287,21 @@ export function normalizePolishText(text: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
 }
+
+// Get nearby Polish cities sorted by distance from coordinates
+export function getNearbyCities(
+  lat: number, 
+  lng: number, 
+  limit: number = 6, 
+  maxDistanceKm: number = 65
+): Array<{ city: PolishCity; distanceKm: number }> {
+  return ALL_POLISH_CITIES
+    .map(c => ({
+      city: c,
+      distanceKm: calculateDistanceKm(lat, lng, c.lat, c.lng)
+    }))
+    .filter(item => item.distanceKm <= maxDistanceKm)
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, limit);
+}
+

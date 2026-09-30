@@ -497,6 +497,138 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
     }
   });
 
+  // In-memory cache for fast Geocoding and Reverse Geocoding
+  const geocodeCache = new Map<string, any>();
+  const reverseGeocodeCache = new Map<string, any>();
+
+  // API Route: Geocode any Polish city, town, village, or gmina
+  app.get('/api/geocode', async (req, res) => {
+    try {
+      const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+      if (!q || q.length < 2) {
+        return res.json({ success: true, results: [] });
+      }
+
+      const cacheKey = q.toLowerCase();
+      if (geocodeCache.has(cacheKey)) {
+        return res.json({ success: true, results: geocodeCache.get(cacheKey) });
+      }
+
+      const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=pl&addressdetails=1&limit=8&q=${encodeURIComponent(q)}`;
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'PetCare-Veterinary-App/2.0 (contact: baluch.arek@gmail.com)',
+          'Accept-Language': 'pl,en',
+        },
+        signal: AbortSignal.timeout(6000),
+      });
+
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Błąd dostawcy map' });
+      }
+
+      const data = await response.json();
+      const results = (Array.isArray(data) ? data : []).map((item: any) => {
+        const addr = item.address || {};
+        const rawName = addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || item.name || q;
+        const gmina = (addr.municipality || '').replace(/^gmina\s+/i, '');
+        const county = addr.county || '';
+        const voivodeship = (addr.state || '').replace(/^województwo\s+/i, '');
+        
+        let type = 'miejscowość';
+        if (addr.village || item.type === 'village' || item.type === 'hamlet') type = 'wieś';
+        else if (addr.town || item.type === 'town') type = 'miasto';
+        else if (addr.city || item.type === 'city') type = 'miasto';
+        else if (addr.suburb || item.type === 'suburb') type = 'dzielnica';
+
+        const detailParts: string[] = [];
+        if (gmina && gmina.toLowerCase() !== rawName.toLowerCase()) detailParts.push(`gm. ${gmina}`);
+        if (county) detailParts.push(county);
+        if (voivodeship) detailParts.push(`woj. ${voivodeship}`);
+
+        return {
+          name: rawName,
+          type,
+          details: detailParts.join(', '),
+          voivodeship: voivodeship || 'Polska',
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          displayName: item.display_name,
+        };
+      });
+
+      geocodeCache.set(cacheKey, results);
+      return res.json({ success: true, results });
+    } catch (err: any) {
+      console.warn('Geocoding error:', err?.message || err);
+      return res.status(500).json({ success: false, error: 'Błąd wyszukiwania miejscowości.' });
+    }
+  });
+
+  // API Route: Reverse Geocode exact GPS coordinates to village/town and voivodeship
+  app.get('/api/reverse-geocode', async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lng = parseFloat(req.query.lng as string);
+
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ success: false, error: 'Nieprawidłowe współrzędne GPS.' });
+      }
+
+      const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+      if (reverseGeocodeCache.has(cacheKey)) {
+        return res.json({ success: true, location: reverseGeocodeCache.get(cacheKey) });
+      }
+
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'PetCare-Veterinary-App/2.0 (contact: baluch.arek@gmail.com)',
+          'Accept-Language': 'pl,en',
+        },
+        signal: AbortSignal.timeout(6000),
+      });
+
+      if (!response.ok) {
+        return res.status(502).json({ success: false, error: 'Błąd geolokalizacji' });
+      }
+
+      const data = await response.json();
+      const addr = data.address || {};
+      const rawName = addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || addr.municipality || 'Twoja lokalizacja';
+      const gmina = (addr.municipality || '').replace(/^gmina\s+/i, '');
+      const county = addr.county || '';
+      const voivodeship = (addr.state || '').replace(/^województwo\s+/i, '');
+
+      let type = 'miejscowość';
+      if (addr.village) type = 'wieś';
+      else if (addr.town || addr.city) type = 'miasto';
+      else if (addr.suburb) type = 'dzielnica';
+
+      const detailParts: string[] = [];
+      if (gmina && gmina.toLowerCase() !== rawName.toLowerCase()) detailParts.push(`gm. ${gmina}`);
+      if (county) detailParts.push(county);
+      if (voivodeship) detailParts.push(`woj. ${voivodeship}`);
+
+      const locationResult = {
+        name: rawName,
+        type,
+        details: detailParts.join(', '),
+        voivodeship: voivodeship || '',
+        road: addr.road || '',
+        lat,
+        lng,
+        fullLabel: `${rawName}${detailParts.length > 0 ? ` (${detailParts.join(', ')})` : ''}`,
+      };
+
+      reverseGeocodeCache.set(cacheKey, locationResult);
+      return res.json({ success: true, location: locationResult });
+    } catch (err: any) {
+      console.warn('Reverse geocoding error:', err?.message || err);
+      return res.status(500).json({ success: false, error: 'Błąd pobierania nazwy miejscowości.' });
+    }
+  });
+
   // Health check
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'PetCare API' });
