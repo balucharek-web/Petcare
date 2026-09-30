@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { Capacitor } from '@capacitor/core';
 import { storage } from './storage';
 import { getStoredSession } from './cloudSyncService';
 
@@ -10,13 +11,74 @@ export interface QRSyncResult {
   scansCount: number;
 }
 
-function getApiUrl(endpoint: string): string {
-  if (typeof window !== 'undefined' && window.location.origin) {
-    if (window.location.protocol.startsWith('http')) {
-      return `${window.location.origin}${endpoint}`;
+export const PRIMARY_CLOUD_API = 'https://ais-dev-3xzr2tfytwhikh6urd6fyx-472843422686.europe-west2.run.app';
+export const SECONDARY_CLOUD_API = 'https://ais-pre-3xzr2tfytwhikh6urd6fyx-472843422686.europe-west2.run.app';
+
+export function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') return PRIMARY_CLOUD_API;
+
+  const origin = window.location.origin || '';
+  const hostname = window.location.hostname || '';
+
+  // In Capacitor Android, the origin is http://localhost or capacitor://localhost (local static assets)
+  // We MUST route cloud sync calls to the live cloud backend
+  if (
+    Capacitor.isNativePlatform() ||
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    origin.startsWith('capacitor:') ||
+    origin.startsWith('file:') ||
+    !origin.includes('.run.app')
+  ) {
+    return PRIMARY_CLOUD_API;
+  }
+
+  return origin;
+}
+
+async function callCloudApi(endpoint: string, bodyObj: any): Promise<any> {
+  const base = getApiBaseUrl();
+  const candidates = [
+    `${base}${endpoint}`,
+    `${PRIMARY_CLOUD_API}${endpoint}`,
+    `${SECONDARY_CLOUD_API}${endpoint}`,
+  ];
+  const uniqueUrls = Array.from(new Set(candidates));
+
+  let lastError: Error | null = null;
+
+  for (const url of uniqueUrls) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(bodyObj),
+        signal: AbortSignal.timeout(12000),
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      // If we received HTML (e.g. from local Capacitor server), skip this URL
+      if (!contentType.includes('application/json')) {
+        continue;
+      }
+
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.success) {
+        return data;
+      }
+
+      if (data?.error) {
+        lastError = new Error(data.error);
+      }
+    } catch (err: any) {
+      lastError = err;
     }
   }
-  return `https://ais-dev-3xzr2tfytwhikh6urd6fyx-472843422686.europe-west2.run.app${endpoint}`;
+
+  throw lastError || new Error('Błąd połączenia z serwerem synchronizacji.');
 }
 
 /**
@@ -28,17 +90,17 @@ export function countAllAttachments(): { petsWithPhotos: number; examScans: numb
   const vaccines = storage.getVaccinations();
 
   let petsWithPhotos = 0;
-  pets.forEach(p => {
+  pets.forEach((p) => {
     if (p.photoUrl && p.photoUrl.length > 5) petsWithPhotos++;
   });
 
   let examScans = 0;
-  exams.forEach(e => {
+  exams.forEach((e) => {
     if (Array.isArray(e.scans)) examScans += e.scans.length;
   });
 
   let vaccineAttachments = 0;
-  vaccines.forEach(v => {
+  vaccines.forEach((v) => {
     if (Array.isArray(v.attachmentUrls)) vaccineAttachments += v.attachmentUrls.length;
   });
 
@@ -59,21 +121,11 @@ export async function createDeviceSyncQRCode(): Promise<QRSyncResult> {
   const payload = JSON.parse(rawExport);
   const session = getStoredSession();
 
-  const response = await fetch(getApiUrl('/api/cloud-sync/generate-qr'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      payload,
-      email: session.user?.email || 'local_user@petcare.app',
-    }),
+  const data = await callCloudApi('/api/cloud-sync/generate-qr', {
+    payload,
+    email: session.user?.email || 'local_user@petcare.app',
   });
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || `Błąd serwera (${response.status}) podczas tworzenia kodu QR.`);
-  }
-
-  const data = await response.json();
   const qrString = data.qrData || data.qrId;
 
   // Generate high-definition scannable QR code Data URL
@@ -114,18 +166,10 @@ export async function redeemDeviceSyncQRCode(scannedText: string): Promise<{ pet
     // Plain string id
   }
 
-  const response = await fetch(getApiUrl('/api/cloud-sync/redeem-qr'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ qrId: targetId }),
+  const data = await callCloudApi('/api/cloud-sync/redeem-qr', {
+    qrId: targetId,
   });
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || 'Nieprawidłowy kod QR lub kod wygasł. Wygeneruj nowy kod na pierwszym telefonie.');
-  }
-
-  const data = await response.json();
   if (!data.payload || !Array.isArray(data.payload.pets)) {
     throw new Error('Pobrane dane są niekompletne lub uszkodzone.');
   }

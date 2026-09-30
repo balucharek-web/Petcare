@@ -1,9 +1,10 @@
 import { storage } from './storage';
 import { googleSignOut as googleDriveSignOut } from './googleDriveSync';
+import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || '';
+const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || 'https://ais-dev-3xzr2tfytwhikh6urd6fyx-472843422686.europe-west2.run.app';
 
 export interface CloudUser {
   email: string;
@@ -56,16 +57,18 @@ export function subscribeToCloudSync(listener: CloudSyncListener): () => void {
 export function getApiUrl(endpoint: string): string {
   if (typeof window === 'undefined') return endpoint;
   const origin = window.location.origin || '';
+  const hostname = window.location.hostname || '';
   if (
+    Capacitor.isNativePlatform() ||
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
     origin.startsWith('capacitor:') || 
     origin.startsWith('file:') ||
     origin.startsWith('android-') ||
     origin === 'null' ||
-    !origin.startsWith('http')
+    !origin.includes('.run.app')
   ) {
-    if (REMOTE_BACKEND_URL) {
-      return `${REMOTE_BACKEND_URL}${endpoint}`;
-    }
+    return `${REMOTE_BACKEND_URL}${endpoint}`;
   }
   return endpoint;
 }

@@ -62,14 +62,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.25.0
-          name: "PetCare v2.25.0 - Nowa nowoczesna ikona aplikacji i pełna synchronizacja kodem QR z załącznikami"
+          tag_name: v2.26.0
+          name: "PetCare v2.26.0 - Poprawka routingu API w kodzie QR i stabilna synchronizacja w chmurze"
           body: |
-            ### 🐾 PetCare v2.25.0 - Nowa ikona & Synchronizacja Kodem QR
+            ### 🐾 PetCare v2.26.0 - Naprawa błędu generowania kodu QR
             
-            - 🎨 **Nowa nowoczesna ikona aplikacji:** Świeży, elegancki design ikony we wszystkich rozdzielczościach Androida (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi) nawiązujący do nowoczesnej opieki weterynaryjnej (sylwetki pupili, serce i akcent medyczny).
-            - 📷 **Synchronizacja kodem QR (zamiast PIN):** Szybkie przenoszenie danych między telefonami za pomocą wbudowanego skanera aparatu.
-            - 📦 **100% danych ze wszystkimi załącznikami:** Błyskawiczny transfer wszystkich pupili, zdjęć, skanów badań medycznych, wpisów ze szczepieniami, leków i historii.
+            - 🛠️ **Poprawka błędu Unexpected token '<':** Rozwiązano problem, w którym aplikacja Android wewnątrz WebView wysyłała zapytania do lokalnego serwera statycznego zamiast do chmury. Teraz zapytania o kod QR są zawsze poprawnie kierowane do serwera backendowego.
+            - 📷 **Niezawodna synchronizacja kodem QR:** Błyskawiczne generowanie i skanowanie kodów QR aparatem z pełnym pakietem danych (zdjęcia, wyniki badań, historia szczepień i leków).
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
