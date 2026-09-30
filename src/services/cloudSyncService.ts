@@ -1,5 +1,6 @@
 import { storage } from './storage';
 import { googleSignOut as googleDriveSignOut } from './googleDriveSync';
+import { logoutFirebaseAuth } from './firebaseAuth';
 import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
@@ -71,11 +72,13 @@ export function ensureGuestSession(displayName?: string): CloudSession {
 }
 
 // Check if an existing cloud backup exists for a given email address
-export async function checkCloudBackup(email: string): Promise<{ exists: boolean; petCount: number; lastSyncTime: string | null; payload?: any }> {
+export async function checkCloudBackup(email: string, token?: string): Promise<{ exists: boolean; petCount: number; lastSyncTime: string | null; payload?: any }> {
   try {
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) return { exists: false, petCount: 0, lastSyncTime: null };
-    const res = await safeApiCall('/api/cloud-sync/download', { email: cleanEmail });
+    const session = getStoredSession();
+    const authToken = token || session.authToken;
+    if (!cleanEmail || !cleanEmail.includes('@') || !authToken) return { exists: false, petCount: 0, lastSyncTime: null };
+    const res = await safeApiCall('/api/cloud-sync/download', { email: cleanEmail, token: authToken });
     if (res?.payload && Array.isArray(res.payload.pets) && res.payload.pets.length > 0) {
       return {
         exists: true,
@@ -398,15 +401,20 @@ export async function loginWithEmail(
   return { user, petCount };
 }
 
-// 3. Sign in / Register with Google
+// 3. Sign in / Register with Google (secured with cryptographically signed idToken)
 export async function signInWithGoogle(
   email: string,
+  idToken: string,
   displayName?: string,
   avatar?: string
 ): Promise<{ user: CloudUser; petCount: number }> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || !cleanEmail.includes('@')) {
     throw new Error('Nieprawidłowy adres konta Google.');
+  }
+
+  if (!idToken || typeof idToken !== 'string') {
+    throw new Error('Brak bezpiecznego tokenu tożsamości Google (idToken). Logowanie przerwane.');
   }
 
   // Clear previous local data first to prevent data mixing
@@ -420,9 +428,10 @@ export async function signInWithGoogle(
     provider: 'google',
   };
 
-  // Register / Authenticate on PetCare Cloud Sync API
+  // Register / Authenticate on PetCare Cloud Sync API with cryptographic idToken
   const authData = await safeApiCall('/api/cloud-sync/auth', {
     email: cleanEmail,
+    idToken,
     name: user.name,
     avatar: user.avatar,
     provider: 'google',
@@ -458,6 +467,7 @@ export function signOut(): void {
     autoSync: true,
   });
   googleDriveSignOut().catch(() => {});
+  logoutFirebaseAuth().catch(() => {});
 }
 
 // Sign out alias for backwards compatibility

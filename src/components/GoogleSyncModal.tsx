@@ -33,6 +33,7 @@ import {
   exportBackupFile,
   CloudSession
 } from '../services/cloudSyncService';
+import { performSecureGoogleSignIn } from '../services/nativeGoogleAuth';
 import { 
   createDeviceSyncQRCode,
   redeemDeviceSyncQRCode,
@@ -81,21 +82,6 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 }) => {
   const [session, setSession] = useState<CloudSession>(getStoredSession());
   const [showPinTab, setShowPinTab] = useState(false);
-  
-  // Custom Google account input & remembered accounts
-  const [customEmail, setCustomEmail] = useState('');
-  const [showEmailInput, setShowEmailInput] = useState(false);
-  const [savedAccounts, setSavedAccounts] = useState<{ email: string; name: string; avatar?: string }[]>(() => {
-    try {
-      const raw = localStorage.getItem('petcare_saved_google_accounts');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return [];
-  });
-
   const [driveMeta, setDriveMeta] = useState<SyncMetadata>(getStoredSyncMetadata());
 
   // QR Code Pairing & Camera Scanner
@@ -129,78 +115,42 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Sign in directly with Google Account & Cloud/Drive Sync (without popup crash)
+  // Sign in securely with Google Account & Cloud Sync
   const handleDriveDirectLogin = async () => {
     setIsLoading(true);
     setFeedback(null);
     try {
-      const primaryAccount = savedAccounts.length > 0 ? savedAccounts[0] : null;
-      if (primaryAccount) {
-        await handleGoogleAccountLogin(primaryAccount.email, primaryAccount.name, primaryAccount.avatar);
-      } else {
-        setShowEmailInput(true);
+      const account = await performSecureGoogleSignIn();
+      if (account && account.email && account.idToken) {
+        await signInWithGoogle(account.email, account.idToken, account.name, account.photoUrl);
+        setFeedback({
+          type: 'success',
+          message: `Zalogowano jako ${account.email}! Twoje zwierzaki są bezpiecznie zsynchronizowane.`
+        });
+        if (onDataRestored) {
+          onDataRestored();
+        }
+      }
+    } catch (err: any) {
+      console.warn('Błąd połączenia z kontem Google:', err);
+      if (
+        err.code === 'auth/popup-closed-by-user' ||
+        err.code === 'auth/cancelled-popup-request' ||
+        err.message?.includes('Anulowano')
+      ) {
         setFeedback({
           type: 'info',
-          message: 'Wpisz swój adres e-mail konta Google poniżej, aby połączyć synchronizację:'
+          message: 'Logowanie kontem Google zostało przerwane.'
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: err.message || 'Nie udało się połączyć z kontem Google.'
         });
       }
-    } catch (err: any) {
-      console.error('Błąd połączenia z kontem Google:', err);
-      setFeedback({
-        type: 'error',
-        message: err.message || 'Nie udało się połączyć z kontem Google.'
-      });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Google Sign-In with chosen email
-  const handleGoogleAccountLogin = async (email: string, name?: string, avatar?: string) => {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      setFeedback({ type: 'error', message: 'Wpisz poprawny adres e-mail konta Google.' });
-      return;
-    }
-    setIsLoading(true);
-    setFeedback(null);
-    try {
-      const res = await signInWithGoogle(cleanEmail, name, avatar);
-      
-      // Save this account to remembered accounts list on this device
-      const accountName = name || cleanEmail.split('@')[0].replace(/[._]/g, ' ');
-      const formattedName = accountName.charAt(0).toUpperCase() + accountName.slice(1);
-      const newAccount = { email: cleanEmail, name: formattedName, avatar };
-      const updated = [newAccount, ...savedAccounts.filter(a => a.email.toLowerCase() !== cleanEmail)].slice(0, 6);
-      setSavedAccounts(updated);
-      try {
-        localStorage.setItem('petcare_saved_google_accounts', JSON.stringify(updated));
-      } catch {}
-
-      setFeedback({
-        type: 'success',
-        message: `Zalogowano jako ${cleanEmail}! Twoje zwierzaki są połączone z kontem.`
-      });
-      if (onDataRestored) {
-        onDataRestored();
-      }
-    } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        message: err.message || 'Nie udało się połączyć z kontem Google.'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRemoveSavedAccount = (emailToRemove: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updated = savedAccounts.filter(a => a.email.toLowerCase() !== emailToRemove.toLowerCase());
-    setSavedAccounts(updated);
-    try {
-      localStorage.setItem('petcare_saved_google_accounts', JSON.stringify(updated));
-    } catch {}
   };
 
   const handleSignOut = () => {
@@ -724,137 +674,28 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 </p>
               </div>
 
-              {/* Standard Official Google Sign-In List */}
+              {/* Standard Official Google Sign-In */}
               <div className="space-y-3 pt-1">
-                {/* Official Google Drive Connect Button */}
+                {/* Official Google Connect Button */}
                 <button
                   type="button"
                   onClick={handleDriveDirectLogin}
                   disabled={isLoading}
-                  className="w-full p-3.5 bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer text-sm"
+                  className="w-full p-4 bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer text-sm"
                 >
                   <div className="bg-white p-1 rounded-lg">
                     <GoogleGIcon className="w-5 h-5" />
                   </div>
                   <span>
                     {isLoading 
-                      ? 'Łączenie z Google...' 
-                      : savedAccounts.length > 0 
-                        ? `Połącz z Dyskiem Google (${savedAccounts[0].name})` 
-                        : 'Połącz bezpośrednio z Dyskiem Google'}
+                      ? 'Autoryzacja konta Google...' 
+                      : 'Zaloguj się przez Google'}
                   </span>
                 </button>
 
-                {/* List of accounts on this device */}
-                {savedAccounts.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        Wybierz konto Google:
-                      </span>
-                      <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">
-                        1 kliknięcie • bez hasła
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      {savedAccounts.map((acc) => (
-                        <div
-                          key={acc.email}
-                          onClick={() => handleGoogleAccountLogin(acc.email, acc.name, acc.avatar)}
-                          className="w-full p-3 bg-white dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 border-2 border-slate-200 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-400 rounded-2xl flex items-center justify-between text-left transition group cursor-pointer shadow-xs active:scale-[0.99]"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-full bg-teal-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
-                              {acc.name ? acc.name.charAt(0).toUpperCase() : acc.email.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
-                                {acc.name}
-                                {acc.email === 'baluch.arek@gmail.com' && (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 font-bold uppercase tracking-wider">Twoje</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                {acc.email}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2.5 py-1 text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/60 rounded-xl group-hover:bg-teal-600 group-hover:text-white transition">
-                              Zaloguj →
-                            </span>
-                            {savedAccounts.length > 2 && (
-                              <button
-                                type="button"
-                                onClick={(e) => handleRemoveSavedAccount(acc.email, e)}
-                                className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
-                                title="Usuń to konto z listy"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Direct Google email entry for any user */}
-                <div className="pt-1">
-                  {!showEmailInput ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowEmailInput(true)}
-                      className="w-full text-center text-xs text-teal-700 dark:text-teal-400 hover:underline font-bold py-1.5 cursor-pointer transition flex items-center justify-center gap-1.5"
-                    >
-                      <span>+ Wpisz inny adres e-mail konta Google</span>
-                    </button>
-                  ) : (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (customEmail && customEmail.includes('@')) {
-                          handleGoogleAccountLogin(customEmail);
-                          setCustomEmail('');
-                        }
-                      }}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-teal-300 dark:border-teal-700 rounded-2xl space-y-2.5 animate-fadeIn"
-                    >
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          Wpisz swoje konto Google:
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setShowEmailInput(false)}
-                          className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer"
-                        >
-                          Schowaj
-                        </button>
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="email"
-                          placeholder="twoj-email@gmail.com"
-                          value={customEmail}
-                          onChange={(e) => setCustomEmail(e.target.value)}
-                          required
-                          className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:border-teal-500"
-                        />
-                        <button
-                          type="submit"
-                          disabled={isLoading || !customEmail.includes('@')}
-                          className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
-                        >
-                          Zaloguj
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Każdy użytkownik i telefon ma swoje własne, niezależne dane zwierzaków.
-                      </p>
-                    </form>
-                  )}
+                <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 py-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                  <span>Kryptograficznie bezpieczna autoryzacja OAuth 2.0 / OpenID Connect</span>
                 </div>
               </div>
 

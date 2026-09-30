@@ -25,6 +25,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.19.0",
+    "google-auth-library": "^11.1.0",
     "jspdf": "^4.2.1",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.546.0",

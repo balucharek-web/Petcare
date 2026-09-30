@@ -82,10 +82,87 @@ async function startServer() {
     return crypto.createHmac('sha256', salt).update(password).digest('hex');
   }
 
-  // API Route: Cloud Sync Auth (Login, Register, Google)
-  app.post('/api/cloud-sync/auth', (req, res) => {
+  // Cryptographic token verification for Google OAuth 2.0 / OpenID Connect & Firebase Auth
+  async function verifyGoogleOrFirebaseToken(idToken: string): Promise<{
+    email: string;
+    name?: string;
+    avatar?: string;
+    sub: string;
+  } | null> {
+    if (!idToken || typeof idToken !== 'string') return null;
+
+    // 1. Check with Firebase Identity Toolkit endpoint (for tokens from Firebase Client SDK)
     try {
-      const { email, password, name, avatar, provider, action } = req.body;
+      const firebaseApiKey = process.env.FIREBASE_API_KEY || 'AIzaSyA_M_UwFyqQWHBCb5zqqfUeq8KXmLQFsow';
+      const fbRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      if (fbRes.ok) {
+        const fbData: any = await fbRes.json();
+        const fbUser = fbData.users?.[0];
+        if (fbUser && fbUser.email) {
+          return {
+            email: fbUser.email.toLowerCase(),
+            name: fbUser.displayName || fbUser.email.split('@')[0],
+            avatar: fbUser.photoUrl || '',
+            sub: fbUser.localId,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Firebase token verification lookup warning:', err);
+    }
+
+    // 2. Check with Google tokeninfo endpoint (for tokens directly from Google Sign-In SDK on Android or Web)
+    try {
+      const gRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+      if (gRes.ok) {
+        const gData: any = await gRes.json();
+        if (gData.email && (gData.email_verified === 'true' || gData.email_verified === true)) {
+          return {
+            email: gData.email.toLowerCase(),
+            name: gData.name || gData.email.split('@')[0],
+            avatar: gData.picture || '',
+            sub: gData.sub,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Google tokeninfo verification lookup warning:', err);
+    }
+
+    // 3. Fallback: Local cryptographic verification using google-auth-library
+    try {
+      const { OAuth2Client } = await import('google-auth-library');
+      const client = new OAuth2Client();
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: [
+          '764412082432-q5d25pi0er4lnevgagscd26h7mkm8kcb.apps.googleusercontent.com',
+        ],
+      });
+      const payload = ticket.getPayload();
+      if (payload && payload.email) {
+        return {
+          email: payload.email.toLowerCase(),
+          name: payload.name || payload.email.split('@')[0],
+          avatar: payload.picture || '',
+          sub: payload.sub,
+        };
+      }
+    } catch (err) {
+      // Ignored if invalid token
+    }
+
+    return null;
+  }
+
+  // API Route: Cloud Sync Auth (Login, Register, Google)
+  app.post('/api/cloud-sync/auth', async (req, res) => {
+    try {
+      const { email, password, name, avatar, provider, action, idToken } = req.body;
       if (!email || typeof email !== 'string') {
         return res.status(400).json({ success: false, error: 'Wymagany jest poprawny adres e-mail.' });
       }
@@ -99,13 +176,39 @@ async function startServer() {
       let user = db.users[normalizedEmail];
       const generatedToken = 'tok_' + crypto.randomBytes(24).toString('hex');
 
-      // 1. Google Provider Sign-in
+      // 1. Google Provider Sign-in (Secure OIDC Verification)
       if (provider === 'google' || action === 'google') {
+        if (!idToken || typeof idToken !== 'string') {
+          return res.status(401).json({
+            success: false,
+            error: 'Brak bezpiecznego tokenu tożsamości Google (idToken). Autoryzacja odrzucona ze względów bezpieczeństwa.',
+          });
+        }
+
+        const verifiedUser = await verifyGoogleOrFirebaseToken(idToken);
+        if (!verifiedUser || !verifiedUser.email) {
+          return res.status(401).json({
+            success: false,
+            error: 'Nieprawidłowy lub wygasły token konta Google. Odmowa dostępu.',
+          });
+        }
+
+        // Must match the verified identity from Google
+        if (normalizedEmail !== verifiedUser.email) {
+          return res.status(403).json({
+            success: false,
+            error: 'Wykryto niezgodność adresu e-mail z podpisanym tokenem Google.',
+          });
+        }
+
+        const effectiveName = name || verifiedUser.name || normalizedEmail.split('@')[0];
+        const effectiveAvatar = avatar || verifiedUser.avatar || '';
+
         if (!user) {
           user = {
             email: normalizedEmail,
-            name: name || normalizedEmail.split('@')[0],
-            avatar: avatar || '',
+            name: effectiveName,
+            avatar: effectiveAvatar,
             provider: 'google',
             token: generatedToken,
             lastSyncTime: null,
@@ -123,8 +226,8 @@ async function startServer() {
           db.users[normalizedEmail] = user;
         } else {
           user.token = generatedToken;
-          if (name) user.name = name;
-          if (avatar) user.avatar = avatar;
+          if (effectiveName) user.name = effectiveName;
+          if (effectiveAvatar) user.avatar = effectiveAvatar;
           user.provider = 'google';
         }
         writeSyncDB(db);
@@ -265,7 +368,7 @@ async function startServer() {
       const db = readSyncDB();
       const user = db.users[normalizedEmail];
 
-      if (!user || !user.token || user.token !== token) {
+      if (!token || typeof token !== 'string' || !user || !user.token || user.token !== token) {
         return res.status(401).json({ 
           success: false, 
           error: 'Brak autoryzacji sesji. Zaloguj się ponownie.' 
@@ -305,10 +408,11 @@ async function startServer() {
         return res.status(404).json({ success: false, error: 'Nie znaleziono konta w chmurze.' });
       }
 
-      if (user.token && token && user.token !== token) {
+      // Strict security: Require matching active session token
+      if (!token || typeof token !== 'string' || !user.token || user.token !== token) {
         return res.status(401).json({ 
           success: false, 
-          error: 'Brak autoryzacji sesji. Zaloguj się ponownie.' 
+          error: 'Brak autoryzacji sesji. Wymagany jest ważny token sesji.' 
         });
       }
 

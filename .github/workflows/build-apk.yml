@@ -62,14 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.28.0
-          name: "PetCare v2.28.0 - Dedykowany transfer QR między telefonami i automatyczne przywracanie kopii z chmury"
+          tag_name: v2.29.0
+          name: "PetCare v2.29.0 - Bezpieczne komercyjne logowanie Google (OAuth 2.0 / OIDC) i zabezpieczenie chmury"
           body: |
-            ### 🐾 PetCare v2.28.0 - Nowy transfer QR i przywracanie po reinstalacji
-            
-            - 📲 **Dedykowany transfer QR:** Nowy moduł QRTransferModal z trybem „Nadaj (Pokaż kod)” i „Odbierz (Skanuj aparatem)” dostępny bezpośrednio na ekranie powitalnym, w nagłówku i w menu narzędzi.
-            - ☁️ **Inteligentne przywracanie po reinstalacji:** Aplikacja automatycznie sprawdza chmurę i Dysk Google po zalogowaniu, wyświetlając okno z pytaniem o przywrócenie bazy zwierzaków.
-            - ⚡ **Brak konieczności logowania przy transferze:** Bezpośredni aparat na ekranie startowym pozwala przenieść 100% danych ze starego telefonu w 1 sekundę.
+            ### 🐾 PetCare v2.29.0 - Bezpieczne logowanie Google & Ochrona danych
+
+            - 🔐 **Komercyjne logowanie Google (OAuth 2.0 / OIDC):** Wdrożono kryptograficzną weryfikację tokenów tożsamości `id_token` (JWT) po stronie backendu i oficjalne SDK Google Sign-In.
+            - 🛡️ **Załatanie luk bezpieczeństwa:** Wyeliminowano możliwość podszywania się pod dowolny adres e-mail oraz zabezpieczono pobieranie danych ze ścisłą weryfikacją tokenu sesji.
+            - 📱 **Obsługa Android & Web:** W pełni bezpieczne logowanie w aplikacji mobilnej oraz przeglądarce.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

@@ -21,7 +21,7 @@ import {
   signInWithGoogle,
   ensureGuestSession
 } from '../services/cloudSyncService';
-import { promptAndroidNativeGoogleSignIn } from '../services/nativeGoogleAuth';
+import { performSecureGoogleSignIn } from '../services/nativeGoogleAuth';
 import { QRTransferModal } from './QRTransferModal';
 
 interface AuthScreenProps {
@@ -39,8 +39,6 @@ const GoogleGIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [emailMode, setEmailMode] = useState<'login' | 'register'>('login');
-  const [showWebGoogleInput, setShowWebGoogleInput] = useState(false);
-  const [webGoogleEmail, setWebGoogleEmail] = useState('');
 
   // Email / Password inputs
   const [email, setEmail] = useState('');
@@ -53,46 +51,33 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
 
-  // Native Android Google Sign-In Trigger
-  const handleNativeGoogleLogin = async () => {
+  // Commercial-Grade Google OAuth / OIDC Sign-In Trigger
+  const handleGoogleLogin = async () => {
     setErrorMsg(null);
     setIsLoading(true);
 
     try {
-      // Calls native Android system dialog (AccountPicker / GoogleSignIn)
-      const account = await promptAndroidNativeGoogleSignIn();
-      if (account && account.email) {
-        await signInWithGoogle(account.email, account.name, account.photoUrl);
+      // Authenticates with Google (Official Android SDK or Web Firebase Popup)
+      const account = await performSecureGoogleSignIn();
+      if (account && account.email && account.idToken) {
+        await signInWithGoogle(account.email, account.idToken, account.name, account.photoUrl);
         onLoginSuccess();
         return;
       }
+      throw new Error('Nie udało się uzyskać bezpiecznego tokenu Google.');
     } catch (err: any) {
-      if (err.message === 'WEB_PREVIEW') {
-        // If testing on desktop web browser where Android OS doesn't exist
-        setShowWebGoogleInput(true);
+      console.warn('Google Auth Error:', err);
+      if (
+        err.code === 'auth/popup-closed-by-user' ||
+        err.code === 'auth/cancelled-popup-request' ||
+        err.message?.includes('Anulowano')
+      ) {
+        setErrorMsg('Logowanie przez Google zostało przerwane.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setErrorMsg('Błąd połączenia z serwerami Google. Sprawdź połączenie z internetem.');
       } else {
-        setErrorMsg(err.message || 'Wybór konta Google został przerwany.');
+        setErrorMsg(err.message || 'Wystąpił błąd podczas autoryzacji kontem Google.');
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleWebGoogleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    const clean = webGoogleEmail.trim().toLowerCase();
-    if (!clean || !clean.includes('@')) {
-      setErrorMsg('Wprowadź prawidłowy adres e-mail konta Google.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await signInWithGoogle(clean);
-      onLoginSuccess();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Błąd logowania kontem Google.');
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +128,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
             PetCare
             <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-              Android v2.28
+              Android v2.29
             </span>
           </h1>
           <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
@@ -199,18 +184,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        {/* 3. NATIVE ANDROID GOOGLE LOGIN BUTTON */}
+        {/* 3. COMMERCIAL GOOGLE OAUTH / OIDC SIGN-IN */}
         <div className="mb-5">
           <button
             type="button"
-            onClick={handleNativeGoogleLogin}
+            onClick={handleGoogleLogin}
             disabled={isLoading}
             className="w-full py-3.5 px-4 bg-white hover:bg-slate-100 active:scale-98 text-slate-900 font-extrabold rounded-2xl text-sm shadow-xl transition flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
           >
             {isLoading ? (
               <span className="flex items-center gap-2 text-xs text-slate-700">
                 <span className="w-4 h-4 border-2 border-slate-400 border-t-teal-600 rounded-full animate-spin" />
-                Otwieranie systemowego wyboru konta...
+                Autoryzacja konta Google...
               </span>
             ) : (
               <>
@@ -219,29 +204,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               </>
             )}
           </button>
-
-          {/* Web Preview input only shown in desktop browser */}
-          {showWebGoogleInput && (
-            <form onSubmit={handleWebGoogleSubmit} className="mt-3 p-3 bg-slate-800/80 border border-slate-700 rounded-2xl space-y-2 animate-fadeIn">
-              <p className="text-[11px] text-slate-300 font-semibold">
-                Podgląd przeglądarki Web (poza Androidem):
-              </p>
-              <input
-                type="email"
-                required
-                value={webGoogleEmail}
-                onChange={(e) => setWebGoogleEmail(e.target.value)}
-                placeholder="twoj.adres@gmail.com"
-                className="w-full bg-slate-900 border border-slate-700 focus:border-teal-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
-              />
-              <button
-                type="submit"
-                className="w-full py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition"
-              >
-                Zaloguj w podglądzie
-              </button>
-            </form>
-          )}
+          <div className="mt-2 flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+            <span>Bezpieczne logowanie OAuth 2.0 / OpenID Connect</span>
+          </div>
         </div>
 
         {/* Separator */}
