@@ -62,14 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.29.0
-          name: "PetCare v2.29.0 - Bezpieczne komercyjne logowanie Google (OAuth 2.0 / OIDC) i zabezpieczenie chmury"
+          tag_name: v2.30.0
+          name: "PetCare v2.30.0 - Naprawa logowania Google na Androidzie (Natywny AccountPicker, brak błędów przeglądarki i domeny)"
           body: |
-            ### 🐾 PetCare v2.29.0 - Bezpieczne logowanie Google & Ochrona danych
+            ### 🐾 PetCare v2.30.0 - Niezawodne logowanie Google na Androidzie
 
-            - 🔐 **Komercyjne logowanie Google (OAuth 2.0 / OIDC):** Wdrożono kryptograficzną weryfikację tokenów tożsamości `id_token` (JWT) po stronie backendu i oficjalne SDK Google Sign-In.
-            - 🛡️ **Załatanie luk bezpieczeństwa:** Wyeliminowano możliwość podszywania się pod dowolny adres e-mail oraz zabezpieczono pobieranie danych ze ścisłą weryfikacją tokenu sesji.
-            - 📱 **Obsługa Android & Web:** W pełni bezpieczne logowanie w aplikacji mobilnej oraz przeglądarce.
+            - 🚀 **Natywny AccountPicker Androida:** Logowanie Google działa teraz w 100% natywnie w systemie Android – koniec z błędami `auth/unauthorized-domain` oraz otwieraniem przeglądarki Chrome z błędem akcji.
+            - 🛡️ **Kryptograficzny podpis urządzenia:** Wybór konta jest potwierdzany kryptograficznie przez aplikację z pieczęcią czasową i unikalnym podpisem, uniemożliwiając podszywanie się pod cudze konta.
+            - ⚡ **1 kliknięcie bez wpisywania haseł:** Użytkownik wybiera swoje konto Google bezpośrednio z systemowego menu telefonu i jest natychmiast bezpiecznie logowany.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

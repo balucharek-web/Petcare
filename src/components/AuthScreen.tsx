@@ -51,32 +51,42 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
 
-  // Commercial-Grade Google OAuth / OIDC Sign-In Trigger
+  // Commercial-Grade Google Sign-In Trigger
   const handleGoogleLogin = async () => {
     setErrorMsg(null);
     setIsLoading(true);
 
     try {
-      // Authenticates with Google (Official Android SDK or Web Firebase Popup)
+      // Authenticates with Google (Official Android OS AccountPicker or Web OAuth)
       const account = await performSecureGoogleSignIn();
-      if (account && account.email && account.idToken) {
-        await signInWithGoogle(account.email, account.idToken, account.name, account.photoUrl);
+      if (account && account.email) {
+        await signInWithGoogle(
+          account.email, 
+          account.idToken, 
+          account.name, 
+          account.photoUrl,
+          account.androidProof
+        );
         onLoginSuccess();
         return;
       }
-      throw new Error('Nie udało się uzyskać bezpiecznego tokenu Google.');
+      throw new Error('Nie udało się wybrać konta Google.');
     } catch (err: any) {
       console.warn('Google Auth Error:', err);
+      const msg = err.message || '';
       if (
         err.code === 'auth/popup-closed-by-user' ||
         err.code === 'auth/cancelled-popup-request' ||
-        err.message?.includes('Anulowano')
+        msg.includes('Anulowano') ||
+        msg.includes('przerwane') ||
+        msg.includes('cancel')
       ) {
-        setErrorMsg('Logowanie przez Google zostało przerwane.');
+        // User cancelled account selection dialog
+        setErrorMsg('Wybór konta Google został anulowany.');
       } else if (err.code === 'auth/network-request-failed') {
         setErrorMsg('Błąd połączenia z serwerami Google. Sprawdź połączenie z internetem.');
       } else {
-        setErrorMsg(err.message || 'Wystąpił błąd podczas autoryzacji kontem Google.');
+        setErrorMsg(msg || 'Wystąpił błąd podczas autoryzacji kontem Google.');
       }
     } finally {
       setIsLoading(false);
@@ -128,7 +138,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
             PetCare
             <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-              Android v2.29
+              Android v2.30
             </span>
           </h1>
           <p className="text-xs text-slate-400 max-w-xs leading-relaxed">

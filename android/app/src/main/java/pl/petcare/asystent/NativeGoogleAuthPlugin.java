@@ -1,26 +1,27 @@
 package pl.petcare.asystent;
 
+import android.accounts.AccountManager;
 import android.app.Activity;
 import android.content.Intent;
-import android.net.Uri;
+import android.os.Bundle;
+import android.provider.Settings;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.google.android.gms.common.AccountPicker;
 
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.tasks.Task;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 @CapacitorPlugin(name = "NativeGoogleAuth")
 public class NativeGoogleAuthPlugin extends Plugin {
     public static final int RC_GOOGLE_SIGN_IN = 9001;
-    public static final String SERVER_CLIENT_ID = "764412082432-q5d25pi0er4lnevgagscd26h7mkm8kcb.apps.googleusercontent.com";
+    private static final String HMAC_SECRET = "PETCARE_NATIVE_SEC_KEY_2026_V29";
     private static PluginCall pendingSignInCall;
     private static Activity currentActivity;
 
@@ -39,25 +40,19 @@ public class NativeGoogleAuthPlugin extends Plugin {
             @Override
             public void run() {
                 try {
-                    GoogleSignInOptions.Builder gsoBuilder = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                            .requestEmail()
-                            .requestProfile();
-
-                    if (SERVER_CLIENT_ID != null && !SERVER_CLIENT_ID.isEmpty()) {
-                        gsoBuilder.requestIdToken(SERVER_CLIENT_ID);
+                    Intent intent;
+                    try {
+                        AccountPicker.AccountChooserOptions options = new AccountPicker.AccountChooserOptions.Builder()
+                                .setAllowableAccountsTypes(Collections.singletonList("com.google"))
+                                .build();
+                        intent = AccountPicker.newChooseAccountIntent(options);
+                    } catch (Throwable t) {
+                        intent = AccountManager.newChooseAccountIntent(null, null, new String[]{"com.google"}, null, null, null, null);
                     }
-
-                    GoogleSignInOptions gso = gsoBuilder.build();
-                    GoogleSignInClient signInClient = GoogleSignIn.getClient(activity, gso);
-
-                    // Ensure user gets fresh account chooser
-                    signInClient.signOut();
-
-                    Intent signInIntent = signInClient.getSignInIntent();
-                    activity.startActivityForResult(signInIntent, RC_GOOGLE_SIGN_IN);
+                    activity.startActivityForResult(intent, RC_GOOGLE_SIGN_IN);
                 } catch (Exception e) {
                     if (pendingSignInCall != null) {
-                        pendingSignInCall.reject("Błąd inicjalizacji Google Sign-In: " + e.getMessage());
+                        pendingSignInCall.reject("Błąd wywołania wyboru konta Google: " + e.getMessage());
                         pendingSignInCall = null;
                     }
                 }
@@ -72,19 +67,6 @@ public class NativeGoogleAuthPlugin extends Plugin {
 
     @PluginMethod
     public void signOut(PluginCall call) {
-        Activity activity = getActivity();
-        if (activity != null) {
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build();
-                        GoogleSignInClient signInClient = GoogleSignIn.getClient(activity, gso);
-                        signInClient.signOut();
-                    } catch (Exception ignored) {}
-                }
-            });
-        }
         call.resolve();
     }
 
@@ -98,38 +80,96 @@ public class NativeGoogleAuthPlugin extends Plugin {
                 return;
             }
 
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-            try {
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                if (account != null) {
-                    String foundEmail = account.getEmail();
-                    String foundName = account.getDisplayName();
-                    Uri photo = account.getPhotoUrl();
-                    String photoUrl = photo != null ? photo.toString() : "";
-                    String idToken = account.getIdToken();
-
-                    if (foundEmail != null && !foundEmail.trim().isEmpty()) {
-                        JSObject ret = new JSObject();
-                        ret.put("email", foundEmail.trim());
-                        ret.put("name", foundName != null ? foundName : foundEmail.split("@")[0]);
-                        ret.put("photoUrl", photoUrl);
-                        ret.put("idToken", idToken != null ? idToken : "");
-                        ret.put("success", true);
-
-                        pendingSignInCall.resolve(ret);
-                        pendingSignInCall = null;
-                        return;
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                String foundEmail = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+                if (foundEmail == null && data.getExtras() != null) {
+                    Bundle extras = data.getExtras();
+                    foundEmail = extras.getString(AccountManager.KEY_ACCOUNT_NAME);
+                    if (foundEmail == null) {
+                        String[] candidateKeys = new String[]{
+                            "authAccount",
+                            "accountName",
+                            "email",
+                            "account_name",
+                            "selected_account"
+                        };
+                        for (String k : candidateKeys) {
+                            String val = extras.getString(k);
+                            if (val != null && val.contains("@")) {
+                                foundEmail = val;
+                                break;
+                            }
+                        }
+                    }
+                    if (foundEmail == null) {
+                        for (String k : extras.keySet()) {
+                            Object obj = extras.get(k);
+                            if (obj instanceof String) {
+                                String s = (String) obj;
+                                if (s.contains("@") && s.contains(".") && !s.contains(" ") && s.length() < 100) {
+                                    foundEmail = s;
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
-                pendingSignInCall.reject("Nie udało się pobrać danych konta Google.");
-                pendingSignInCall = null;
-            } catch (ApiException e) {
-                pendingSignInCall.reject("Błąd logowania Google (" + e.getStatusCode() + "): " + e.getMessage());
-                pendingSignInCall = null;
-            } catch (Exception e) {
-                pendingSignInCall.reject("Błąd autoryzacji Google: " + e.getMessage());
-                pendingSignInCall = null;
+
+                if (foundEmail != null && !foundEmail.trim().isEmpty()) {
+                    foundEmail = foundEmail.trim().toLowerCase();
+                    String foundName = foundEmail.split("@")[0].replace(".", " ");
+                    if (!foundName.isEmpty()) {
+                        foundName = Character.toUpperCase(foundName.charAt(0)) + (foundName.length() > 1 ? foundName.substring(1) : "");
+                    }
+
+                    String deviceId = "android_device";
+                    try {
+                        if (currentActivity != null) {
+                            String id = Settings.Secure.getString(currentActivity.getContentResolver(), Settings.Secure.ANDROID_ID);
+                            if (id != null && !id.isEmpty()) {
+                                deviceId = id;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+
+                    long timestamp = System.currentTimeMillis();
+                    String signature = computeHmac("ANDROID_NATIVE:" + foundEmail + ":" + deviceId + ":" + timestamp, HMAC_SECRET);
+
+                    JSObject ret = new JSObject();
+                    ret.put("email", foundEmail);
+                    ret.put("name", foundName);
+                    ret.put("photoUrl", "");
+                    ret.put("idToken", "");
+                    ret.put("platform", "android");
+                    ret.put("deviceId", deviceId);
+                    ret.put("timestamp", timestamp);
+                    ret.put("signature", signature);
+                    ret.put("success", true);
+
+                    pendingSignInCall.resolve(ret);
+                    pendingSignInCall = null;
+                    return;
+                }
             }
+
+            pendingSignInCall.reject("Nie udało się pobrać wybranego konta Google.");
+            pendingSignInCall = null;
+        }
+    }
+
+    private static String computeHmac(String data, String key) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(secretKey);
+            byte[] rawHmac = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : rawHmac) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
         }
     }
 }

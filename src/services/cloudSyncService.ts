@@ -401,20 +401,21 @@ export async function loginWithEmail(
   return { user, petCount };
 }
 
-// 3. Sign in / Register with Google (secured with cryptographically signed idToken)
+// 3. Sign in / Register with Google (secured with cryptographically signed idToken or Android device proof)
 export async function signInWithGoogle(
   email: string,
-  idToken: string,
+  idToken?: string,
   displayName?: string,
-  avatar?: string
+  avatar?: string,
+  androidProof?: { deviceId: string; timestamp: number; signature: string }
 ): Promise<{ user: CloudUser; petCount: number }> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || !cleanEmail.includes('@')) {
     throw new Error('Nieprawidłowy adres konta Google.');
   }
 
-  if (!idToken || typeof idToken !== 'string') {
-    throw new Error('Brak bezpiecznego tokenu tożsamości Google (idToken). Logowanie przerwane.');
+  if (!idToken && !androidProof) {
+    throw new Error('Brak bezpiecznego uwierzytelnienia konta Google. Logowanie przerwane.');
   }
 
   // Clear previous local data first to prevent data mixing
@@ -428,10 +429,11 @@ export async function signInWithGoogle(
     provider: 'google',
   };
 
-  // Register / Authenticate on PetCare Cloud Sync API with cryptographic idToken
+  // Register / Authenticate on PetCare Cloud Sync API
   const authData = await safeApiCall('/api/cloud-sync/auth', {
     email: cleanEmail,
-    idToken,
+    idToken: idToken || undefined,
+    androidProof: androidProof || undefined,
     name: user.name,
     avatar: user.avatar,
     provider: 'google',

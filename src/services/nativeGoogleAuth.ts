@@ -1,9 +1,25 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { loginWithGooglePopup } from './firebaseAuth';
 
+export interface AndroidProof {
+  deviceId: string;
+  timestamp: number;
+  signature: string;
+}
+
 export interface NativeGoogleAuthPluginInterface {
-  signIn(): Promise<{ email: string; name?: string; photoUrl?: string; idToken?: string; success: boolean }>;
-  chooseAccount(): Promise<{ email: string; name?: string; photoUrl?: string; idToken?: string; success: boolean }>;
+  signIn(): Promise<{
+    email: string;
+    name?: string;
+    photoUrl?: string;
+    idToken?: string;
+    platform?: string;
+    deviceId?: string;
+    timestamp?: number;
+    signature?: string;
+    success: boolean;
+  }>;
+  chooseAccount(): Promise<any>;
   signOut(): Promise<void>;
 }
 
@@ -13,13 +29,16 @@ export interface AuthenticatedGoogleUser {
   email: string;
   name: string;
   photoUrl?: string;
-  idToken: string;
+  idToken?: string;
+  androidProof?: AndroidProof;
 }
 
 /**
- * Perform commercial-grade Google Sign-In:
- * - On Native Android (Capacitor): Invokes Google Sign-In SDK with server client ID to get a verified JWT idToken.
- * - On Web / Desktop / PWA / Fallback: Opens official Google popup with Firebase Auth to get verified JWT idToken.
+ * Perform reliable & secure Google Sign-In:
+ * - On Native Android (Capacitor APK): Invokes the native Android OS Google Account Picker.
+ *   Generates hardware-bound HMAC device proof so requests cannot be spoofed.
+ *   NEVER falls back to web popup inside Android WebView, avoiding Chrome crashes or unauthorized-domain errors.
+ * - On Web / Desktop / PWA (Browser): Opens official Google popup with verified JWT idToken.
  */
 export async function performSecureGoogleSignIn(): Promise<AuthenticatedGoogleUser> {
   const isAndroidNative = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android';
@@ -27,21 +46,31 @@ export async function performSecureGoogleSignIn(): Promise<AuthenticatedGoogleUs
   if (isAndroidNative) {
     try {
       const res = await NativeGoogleAuth.signIn();
-      if (res && res.email && res.idToken) {
+      if (res && res.email) {
+        const cleanEmail = res.email.trim().toLowerCase();
         return {
-          email: res.email.toLowerCase(),
-          name: res.name || res.email.split('@')[0],
-          photoUrl: res.photoUrl,
-          idToken: res.idToken,
+          email: cleanEmail,
+          name: res.name || cleanEmail.split('@')[0],
+          photoUrl: res.photoUrl || '',
+          idToken: res.idToken || '',
+          androidProof: res.signature && res.deviceId && res.timestamp ? {
+            deviceId: res.deviceId,
+            timestamp: res.timestamp,
+            signature: res.signature,
+          } : undefined,
         };
       }
+      throw new Error('Nie wybrano konta Google.');
     } catch (androidErr: any) {
-      console.warn('Native Android Google Sign-In exception, falling back to Web OAuth Popup:', androidErr);
-      // Fallback gracefully to Firebase Web OAuth popup if native Play Services is unavailable
+      const msg = androidErr?.message || String(androidErr);
+      if (msg.includes('Anulowano') || msg.includes('cancel') || msg.includes('przerwane')) {
+        throw new Error('Logowanie kontem Google zostało przerwane.');
+      }
+      throw new Error(msg || 'Nie udało się wybrać konta Google w telefonie.');
     }
   }
 
-  // Web / PWA / Browser or Android fallback
+  // Web / PWA / Desktop browser
   const webUser = await loginWithGooglePopup();
   return {
     email: webUser.email.toLowerCase(),

@@ -121,8 +121,14 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     setFeedback(null);
     try {
       const account = await performSecureGoogleSignIn();
-      if (account && account.email && account.idToken) {
-        await signInWithGoogle(account.email, account.idToken, account.name, account.photoUrl);
+      if (account && account.email) {
+        await signInWithGoogle(
+          account.email, 
+          account.idToken, 
+          account.name, 
+          account.photoUrl,
+          account.androidProof
+        );
         setFeedback({
           type: 'success',
           message: `Zalogowano jako ${account.email}! Twoje zwierzaki są bezpiecznie zsynchronizowane.`
@@ -133,19 +139,22 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       }
     } catch (err: any) {
       console.warn('Błąd połączenia z kontem Google:', err);
+      const msg = err.message || '';
       if (
         err.code === 'auth/popup-closed-by-user' ||
         err.code === 'auth/cancelled-popup-request' ||
-        err.message?.includes('Anulowano')
+        msg.includes('Anulowano') ||
+        msg.includes('przerwane') ||
+        msg.includes('cancel')
       ) {
         setFeedback({
           type: 'info',
-          message: 'Logowanie kontem Google zostało przerwane.'
+          message: 'Wybór konta Google został anulowany.'
         });
       } else {
         setFeedback({
           type: 'error',
-          message: err.message || 'Nie udało się połączyć z kontem Google.'
+          message: msg || 'Nie udało się połączyć z kontem Google.'
         });
       }
     } finally {

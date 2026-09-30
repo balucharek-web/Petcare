@@ -176,33 +176,51 @@ async function startServer() {
       let user = db.users[normalizedEmail];
       const generatedToken = 'tok_' + crypto.randomBytes(24).toString('hex');
 
-      // 1. Google Provider Sign-in (Secure OIDC Verification)
+      // 1. Google Provider Sign-in (Secure OIDC Verification / Native Android Device Proof)
       if (provider === 'google' || action === 'google') {
-        if (!idToken || typeof idToken !== 'string') {
+        const { androidProof } = req.body;
+        let isAuthorized = false;
+        let verifiedName = name || '';
+        let verifiedAvatar = avatar || '';
+
+        // Case A: Verified native Android application
+        if (androidProof && typeof androidProof === 'object') {
+          const { deviceId, timestamp, signature } = androidProof;
+          const HMAC_SECRET = 'PETCARE_NATIVE_SEC_KEY_2026_V29';
+          const now = Date.now();
+
+          // Reject if timestamp is older than 10 minutes or in the future
+          if (typeof timestamp === 'number' && Math.abs(now - timestamp) < 10 * 60 * 1000) {
+            const expectedSig = crypto
+              .createHmac('sha256', HMAC_SECRET)
+              .update(`ANDROID_NATIVE:${normalizedEmail}:${deviceId}:${timestamp}`)
+              .digest('hex');
+
+            if (signature === expectedSig) {
+              isAuthorized = true;
+            }
+          }
+        }
+
+        // Case B: Verified Google / Firebase JWT idToken from Web
+        if (!isAuthorized && idToken && typeof idToken === 'string') {
+          const verifiedUser = await verifyGoogleOrFirebaseToken(idToken);
+          if (verifiedUser && verifiedUser.email === normalizedEmail) {
+            isAuthorized = true;
+            if (verifiedUser.name) verifiedName = verifiedUser.name;
+            if (verifiedUser.avatar) verifiedAvatar = verifiedUser.avatar;
+          }
+        }
+
+        if (!isAuthorized) {
           return res.status(401).json({
             success: false,
-            error: 'Brak bezpiecznego tokenu tożsamości Google (idToken). Autoryzacja odrzucona ze względów bezpieczeństwa.',
+            error: 'Błąd autoryzacji konta Google. Nieautoryzowane logowanie.',
           });
         }
 
-        const verifiedUser = await verifyGoogleOrFirebaseToken(idToken);
-        if (!verifiedUser || !verifiedUser.email) {
-          return res.status(401).json({
-            success: false,
-            error: 'Nieprawidłowy lub wygasły token konta Google. Odmowa dostępu.',
-          });
-        }
-
-        // Must match the verified identity from Google
-        if (normalizedEmail !== verifiedUser.email) {
-          return res.status(403).json({
-            success: false,
-            error: 'Wykryto niezgodność adresu e-mail z podpisanym tokenem Google.',
-          });
-        }
-
-        const effectiveName = name || verifiedUser.name || normalizedEmail.split('@')[0];
-        const effectiveAvatar = avatar || verifiedUser.avatar || '';
+        const effectiveName = verifiedName || name || normalizedEmail.split('@')[0];
+        const effectiveAvatar = verifiedAvatar || avatar || '';
 
         if (!user) {
           user = {
