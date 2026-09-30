@@ -5,12 +5,15 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Log;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.google.android.gms.auth.GoogleAuthUtil;
+import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.common.AccountPicker;
 
 import java.nio.charset.StandardCharsets;
@@ -21,8 +24,13 @@ import javax.crypto.spec.SecretKeySpec;
 @CapacitorPlugin(name = "NativeGoogleAuth")
 public class NativeGoogleAuthPlugin extends Plugin {
     public static final int RC_GOOGLE_SIGN_IN = 9001;
+    public static final int RC_DRIVE_AUTH = 9002;
     private static final String HMAC_SECRET = "PETCARE_NATIVE_SEC_KEY_2026_V29";
+    private static final String DRIVE_SCOPE = "oauth2:https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata";
+
     private static PluginCall pendingSignInCall;
+    private static PluginCall pendingDriveCall;
+    private static String pendingEmailForDrive;
     private static Activity currentActivity;
 
     @PluginMethod
@@ -61,6 +69,62 @@ public class NativeGoogleAuthPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getDriveToken(PluginCall call) {
+        String email = call.getString("email");
+        if (email == null || email.trim().isEmpty()) {
+            call.reject("Brak adresu e-mail.");
+            return;
+        }
+
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject("Brak aktywnego okna Androida");
+            return;
+        }
+
+        currentActivity = activity;
+        final String cleanEmail = email.trim().toLowerCase();
+        pendingDriveCall = call;
+        pendingEmailForDrive = cleanEmail;
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String token = GoogleAuthUtil.getToken(activity.getApplicationContext(), cleanEmail, DRIVE_SCOPE);
+                    if (token != null && !token.isEmpty()) {
+                        JSObject ret = new JSObject();
+                        ret.put("token", token);
+                        ret.put("success", true);
+                        if (pendingDriveCall != null) {
+                            pendingDriveCall.resolve(ret);
+                            pendingDriveCall = null;
+                        }
+                    } else {
+                        if (pendingDriveCall != null) {
+                            pendingDriveCall.reject("Nie udało się uzyskać tokenu Dysku Google.");
+                            pendingDriveCall = null;
+                        }
+                    }
+                } catch (UserRecoverableAuthException recoverable) {
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            activity.startActivityForResult(recoverable.getIntent(), RC_DRIVE_AUTH);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.w("PetCareAuth", "Błąd pobierania tokenu Dysku Google: " + e.getMessage());
+                    if (pendingDriveCall != null) {
+                        pendingDriveCall.reject("Błąd autoryzacji Dysku Google: " + e.getMessage());
+                        pendingDriveCall = null;
+                    }
+                }
+            }
+        }).start();
+    }
+
+    @PluginMethod
     public void chooseAccount(PluginCall call) {
         signIn(call);
     }
@@ -71,6 +135,40 @@ public class NativeGoogleAuthPlugin extends Plugin {
     }
 
     public static void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // 1. Google Drive Permission Consent Result
+        if (requestCode == RC_DRIVE_AUTH) {
+            if (resultCode == Activity.RESULT_OK && pendingEmailForDrive != null && currentActivity != null) {
+                final String targetEmail = pendingEmailForDrive;
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            String token = GoogleAuthUtil.getToken(currentActivity.getApplicationContext(), targetEmail, DRIVE_SCOPE);
+                            JSObject ret = new JSObject();
+                            ret.put("token", token);
+                            ret.put("success", true);
+                            if (pendingDriveCall != null) {
+                                pendingDriveCall.resolve(ret);
+                                pendingDriveCall = null;
+                            }
+                        } catch (Exception e) {
+                            if (pendingDriveCall != null) {
+                                pendingDriveCall.reject("Błąd autoryzacji: " + e.getMessage());
+                                pendingDriveCall = null;
+                            }
+                        }
+                    }
+                }).start();
+            } else {
+                if (pendingDriveCall != null) {
+                    pendingDriveCall.reject("Użytkownik odmówił dostępu do Dysku Google.");
+                    pendingDriveCall = null;
+                }
+            }
+            return;
+        }
+
+        // 2. Google Account Selection Result
         if (pendingSignInCall == null) return;
 
         if (requestCode == RC_GOOGLE_SIGN_IN) {
@@ -116,8 +214,8 @@ public class NativeGoogleAuthPlugin extends Plugin {
                 }
 
                 if (foundEmail != null && !foundEmail.trim().isEmpty()) {
-                    foundEmail = foundEmail.trim().toLowerCase();
-                    String foundName = foundEmail.split("@")[0].replace(".", " ");
+                    final String finalEmail = foundEmail.trim().toLowerCase();
+                    String foundName = finalEmail.split("@")[0].replace(".", " ");
                     if (!foundName.isEmpty()) {
                         foundName = Character.toUpperCase(foundName.charAt(0)) + (foundName.length() > 1 ? foundName.substring(1) : "");
                     }
@@ -133,10 +231,10 @@ public class NativeGoogleAuthPlugin extends Plugin {
                     } catch (Exception ignored) {}
 
                     long timestamp = System.currentTimeMillis();
-                    String signature = computeHmac("ANDROID_NATIVE:" + foundEmail + ":" + deviceId + ":" + timestamp, HMAC_SECRET);
+                    String signature = computeHmac("ANDROID_NATIVE:" + finalEmail + ":" + deviceId + ":" + timestamp, HMAC_SECRET);
 
-                    JSObject ret = new JSObject();
-                    ret.put("email", foundEmail);
+                    final JSObject ret = new JSObject();
+                    ret.put("email", finalEmail);
                     ret.put("name", foundName);
                     ret.put("photoUrl", "");
                     ret.put("idToken", "");
@@ -146,8 +244,26 @@ public class NativeGoogleAuthPlugin extends Plugin {
                     ret.put("signature", signature);
                     ret.put("success", true);
 
-                    pendingSignInCall.resolve(ret);
-                    pendingSignInCall = null;
+                    // Try to pre-fetch Drive Token in background if already granted
+                    final Activity act = currentActivity;
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if (act != null) {
+                                    String driveToken = GoogleAuthUtil.getToken(act.getApplicationContext(), finalEmail, DRIVE_SCOPE);
+                                    if (driveToken != null && !driveToken.isEmpty()) {
+                                        ret.put("accessToken", driveToken);
+                                    }
+                                }
+                            } catch (Throwable ignored) {}
+
+                            if (pendingSignInCall != null) {
+                                pendingSignInCall.resolve(ret);
+                                pendingSignInCall = null;
+                            }
+                        }
+                    }).start();
                     return;
                 }
             }

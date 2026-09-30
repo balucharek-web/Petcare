@@ -127,7 +127,8 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
           account.idToken, 
           account.name, 
           account.photoUrl,
-          account.androidProof
+          account.androidProof,
+          account.accessToken
         );
         setFeedback({
           type: 'success',

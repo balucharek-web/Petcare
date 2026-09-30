@@ -13,6 +13,7 @@ export interface NativeGoogleAuthPluginInterface {
     name?: string;
     photoUrl?: string;
     idToken?: string;
+    accessToken?: string;
     platform?: string;
     deviceId?: string;
     timestamp?: number;
@@ -21,6 +22,7 @@ export interface NativeGoogleAuthPluginInterface {
   }>;
   chooseAccount(): Promise<any>;
   signOut(): Promise<void>;
+  getDriveToken(options: { email: string }): Promise<{ token: string; success: boolean }>;
 }
 
 export const NativeGoogleAuth = registerPlugin<NativeGoogleAuthPluginInterface>('NativeGoogleAuth');
@@ -30,15 +32,15 @@ export interface AuthenticatedGoogleUser {
   name: string;
   photoUrl?: string;
   idToken?: string;
+  accessToken?: string;
   androidProof?: AndroidProof;
 }
 
 /**
  * Perform reliable & secure Google Sign-In:
  * - On Native Android (Capacitor APK): Invokes the native Android OS Google Account Picker.
- *   Generates hardware-bound HMAC device proof so requests cannot be spoofed.
- *   NEVER falls back to web popup inside Android WebView, avoiding Chrome crashes or unauthorized-domain errors.
- * - On Web / Desktop / PWA (Browser): Opens official Google popup with verified JWT idToken.
+ *   Retrieves Google Drive OAuth scopes and hardware-bound HMAC device proof.
+ * - On Web / Desktop / PWA (Browser): Opens official Google popup with verified JWT idToken and Drive scope.
  */
 export async function performSecureGoogleSignIn(): Promise<AuthenticatedGoogleUser> {
   const isAndroidNative = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android';
@@ -53,6 +55,7 @@ export async function performSecureGoogleSignIn(): Promise<AuthenticatedGoogleUs
           name: res.name || cleanEmail.split('@')[0],
           photoUrl: res.photoUrl || '',
           idToken: res.idToken || '',
+          accessToken: res.accessToken || undefined,
           androidProof: res.signature && res.deviceId && res.timestamp ? {
             deviceId: res.deviceId,
             timestamp: res.timestamp,
@@ -78,6 +81,19 @@ export async function performSecureGoogleSignIn(): Promise<AuthenticatedGoogleUs
     photoUrl: webUser.photoUrl,
     idToken: webUser.idToken,
   };
+}
+
+export async function fetchNativeDriveToken(email: string): Promise<string | null> {
+  const isAndroidNative = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android';
+  if (!isAndroidNative) return null;
+
+  try {
+    const res = await NativeGoogleAuth.getDriveToken({ email });
+    return res?.token || null;
+  } catch (e) {
+    console.warn('Błąd pobierania natywnego tokenu Dysku Google:', e);
+    return null;
+  }
 }
 
 /**

@@ -65,7 +65,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           account.idToken, 
           account.name, 
           account.photoUrl,
-          account.androidProof
+          account.androidProof,
+          account.accessToken
         );
         onLoginSuccess();
         return;
@@ -138,7 +139,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
             PetCare
             <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-              Android v2.31
+              Android v2.32
             </span>
           </h1>
           <p className="text-xs text-slate-400 max-w-xs leading-relaxed">

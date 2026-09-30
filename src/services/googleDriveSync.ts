@@ -9,6 +9,8 @@ import {
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { storage, subscribeToStorageChanges } from './storage';
+import { Capacitor } from '@capacitor/core';
+import { fetchNativeDriveToken } from './nativeGoogleAuth';
 
 // Initialize Firebase App
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -143,7 +145,22 @@ export const googleSignOut = async (): Promise<void> => {
   });
 };
 
-export const getAccessToken = async (): Promise<string | null> => {
+export const getAccessToken = async (userEmail?: string): Promise<string | null> => {
+  if (cachedAccessToken) return cachedAccessToken;
+
+  const email = userEmail || getStoredSyncMetadata().userEmail;
+  if (email && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
+    try {
+      const nativeToken = await fetchNativeDriveToken(email);
+      if (nativeToken) {
+        cachedAccessToken = nativeToken;
+        return nativeToken;
+      }
+    } catch (e) {
+      console.warn('Błąd pobierania natywnego tokenu Dysku Google:', e);
+    }
+  }
+
   return cachedAccessToken;
 };
 
@@ -179,7 +196,25 @@ export async function findDriveBackupFile(token?: string): Promise<{ id: string;
 
 // Upload current local database to Google Drive (ONLY Google Drive, no server DB)
 export const uploadPetDataToDrive = async (silent = false): Promise<{ success: boolean; fileId: string; timestamp: string }> => {
-  const token = await getAccessToken();
+  let token = await getAccessToken();
+  if (!token) {
+    const meta = getStoredSyncMetadata();
+    if (meta.userEmail && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
+      token = await fetchNativeDriveToken(meta.userEmail);
+      if (token) cachedAccessToken = token;
+    }
+  }
+
+  if (!token) {
+    if (silent) return { success: false, fileId: '', timestamp: '' };
+    if (!Capacitor.isNativePlatform() && Capacitor.getPlatform() !== 'android') {
+      try {
+        const loginRes = await googleSignIn();
+        token = loginRes.accessToken;
+      } catch {}
+    }
+  }
+
   if (!token) {
     if (silent) return { success: false, fileId: '', timestamp: '' };
     throw new Error('Brak aktywnego połączenia z Dyskiem Google. Zaloguj się ponownie.');
@@ -261,7 +296,24 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
 
 // Download backup from Google Drive and restore to local storage
 export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<{ success: boolean; petCount: number; timestamp: string }> => {
-  const token = tokenOverride || await getAccessToken();
+  let token = tokenOverride || await getAccessToken();
+  if (!token) {
+    const meta = getStoredSyncMetadata();
+    if (meta.userEmail && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
+      token = await fetchNativeDriveToken(meta.userEmail);
+      if (token) cachedAccessToken = token;
+    }
+  }
+
+  if (!token) {
+    if (!Capacitor.isNativePlatform() && Capacitor.getPlatform() !== 'android') {
+      try {
+        const loginRes = await googleSignIn();
+        token = loginRes.accessToken;
+      } catch {}
+    }
+  }
+
   if (!token) {
     throw new Error('Brak autoryzacji Dysku Google. Zaloguj się, aby pobrać kopię.');
   }

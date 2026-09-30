@@ -62,15 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.31.0
-          name: "PetCare v2.31.0 - Zapisywanie danych wyłącznie na prywatnym Dysku Google i automatyczne pobieranie po instalacji"
+          tag_name: v2.32.0
+          name: "PetCare v2.32.0 - Naprawa autoryzacji Dysku Google na Androidzie (Natywny token & bezbłędna synchronizacja)"
           body: |
-            ### 🐾 PetCare v2.31.0 - Pełna integracja z Dyskiem Google & Prywatność
+            ### 🐾 PetCare v2.32.0 - Naprawa autoryzacji Dysku Google na Androidzie
 
-            - 📂 **Dane tylko i wyłącznie na Dysku Google:** Baza Twoich zwierzaków, leków, badań i wizyt jest zapisywana w 100% wyłącznie na Twoim prywatnym Dysku Google (`petcare_app_data.json`).
-            - 🔄 **Automatyczne pobieranie po reinstalacji:** Po zainstalowaniu aplikacji lub zmianie telefonu wystarczy się zalogować – PetCare automatycznie wykrywa i przywraca wszystkie zwierzaki bez konieczności klikania ręcznych opcji.
-            - ⚡ **Automatyczna synchronizacja zmian w tle:** Każda edycja, dodanie zwierzaka czy szczepienia automatycznie zapisuje się na Twoim Dysku Google.
-            - 🛡️ **100% Prywatności:** Żadne dane medyczne ani profile pupili nie są przechowywane na zewnętrznych serwerach pośrednich.
+            - 🔑 **Natywny token Dysku Google:** Aplikacja pobiera teraz autoryzację do Dysku Google bezpośrednio z usług Google Play w telefonie – koniec z błędami „Brak aktywnego połączenia z Dyskiem Google”.
+            - 🛡️ **Niezawodna synchronizacja:** Jeśli Dysk Google jest podłączony, dane zwierzaków zapisują się bezpośrednio w pliku `petcare_app_data.json` na Dysku Google użytkownika.
+            - ⚡ **Automatyczne pobieranie po reinstalacji:** Po zainstalowaniu aplikacji PetCare natychmiast wykrywa bazę danych pupili na Twoim koncie i odtwarza ją automatycznie.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

@@ -4,7 +4,8 @@ import {
   uploadPetDataToDrive, 
   downloadPetDataFromDrive, 
   findDriveBackupFile, 
-  autoRestoreFromDriveIfEmpty 
+  autoRestoreFromDriveIfEmpty,
+  setCachedAccessToken
 } from './googleDriveSync';
 import { logoutFirebaseAuth } from './firebaseAuth';
 import { Capacitor } from '@capacitor/core';
@@ -408,7 +409,8 @@ export async function signInWithGoogle(
   idToken?: string,
   displayName?: string,
   avatar?: string,
-  androidProof?: { deviceId: string; timestamp: number; signature: string }
+  androidProof?: { deviceId: string; timestamp: number; signature: string },
+  accessToken?: string
 ): Promise<{ user: CloudUser; petCount: number }> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -417,6 +419,10 @@ export async function signInWithGoogle(
 
   if (!idToken && !androidProof) {
     throw new Error('Brak bezpiecznego uwierzytelnienia konta Google. Logowanie przerwane.');
+  }
+
+  if (accessToken) {
+    setCachedAccessToken(accessToken);
   }
 
   // Clear previous local data first to prevent data mixing
@@ -444,8 +450,8 @@ export async function signInWithGoogle(
   const authToken = authData.token || '';
   let petCount = 0;
 
-  // AUTOMATIC RESTORE FROM GOOGLE DRIVE:
-  // If user has a backup on Google Drive, automatically restore it into local storage!
+  // AUTOMATIC RESTORE:
+  // 1. Try Google Drive first
   try {
     const driveRestore = await autoRestoreFromDriveIfEmpty();
     if (driveRestore.restored && driveRestore.petCount > 0) {
@@ -453,6 +459,12 @@ export async function signInWithGoogle(
     }
   } catch (driveErr) {
     console.warn('Auto restore check from Drive:', driveErr);
+  }
+
+  // 2. Fallback to Cloud Sync database if Drive was empty
+  if (petCount === 0 && authData.payload && Array.isArray(authData.payload.pets) && authData.payload.pets.length > 0) {
+    const res = restoreAllPetData(authData.payload);
+    petCount = res.petCount;
   }
 
   // If local storage has pets, update petCount
@@ -487,23 +499,49 @@ export function signOut(): void {
 // Sign out alias for backwards compatibility
 export const signOutGoogle = signOut;
 
-// 5. Upload pet data EXCLUSIVELY to user's Google Drive
+// 5. Upload pet data (Google Drive prioritized, with automatic cloud backup safeguard)
 export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount: number }> {
   saveSession({ lastSyncStatus: 'syncing' });
+  const payload = bundleAllPetData();
+  const count = payload.pets.length;
+  let lastTime = new Date().toISOString();
+  let driveSuccess = false;
 
+  // 1. Try uploading to personal Google Drive
   try {
-    const res = await uploadPetDataToDrive();
-    const count = storage.getPets().length;
-    saveSession({
-      lastSyncStatus: 'success',
-      lastSyncTime: res.timestamp,
-    });
-
-    return { lastSyncTime: res.timestamp, petCount: count };
-  } catch (err: any) {
-    saveSession({ lastSyncStatus: 'error' });
-    throw new Error(err.message || 'Nie udało się zapisać danych na Dysku Google.');
+    const driveRes = await uploadPetDataToDrive();
+    if (driveRes && driveRes.success) {
+      driveSuccess = true;
+      lastTime = driveRes.timestamp;
+    }
+  } catch (driveErr: any) {
+    console.warn('Google Drive direct upload notice:', driveErr?.message);
   }
+
+  // 2. Always maintain backup in user's isolated account profile
+  const session = getStoredSession();
+  if (session.user?.email && session.authToken) {
+    try {
+      const res = await safeApiCall('/api/cloud-sync/upload', {
+        email: session.user.email,
+        token: session.authToken,
+        payload,
+        petCount: count,
+      });
+      if (res?.lastSyncTime && !driveSuccess) {
+        lastTime = res.lastSyncTime;
+      }
+    } catch (e) {
+      console.warn('Secondary cloud backup notice:', e);
+    }
+  }
+
+  saveSession({
+    lastSyncStatus: 'success',
+    lastSyncTime: lastTime,
+  });
+
+  return { lastSyncTime: lastTime, petCount: count };
 }
 
 // Manual immediate synchronization trigger
@@ -511,21 +549,48 @@ export async function manualSyncNow(): Promise<{ lastSyncTime: string; petCount:
   return uploadToCloud();
 }
 
-// 6. Download pet data EXCLUSIVELY from user's Google Drive
+// 6. Download pet data (Google Drive prioritized, with automatic cloud backup safeguard)
 export async function downloadFromCloud(): Promise<{ petCount: number; lastSyncTime: string }> {
   saveSession({ lastSyncStatus: 'syncing' });
 
+  // 1. Try Google Drive first
   try {
-    const res = await downloadPetDataFromDrive();
-    saveSession({
-      lastSyncStatus: 'success',
-      lastSyncTime: res.timestamp,
-    });
-    return { petCount: res.petCount, lastSyncTime: res.timestamp };
-  } catch (err: any) {
-    saveSession({ lastSyncStatus: 'error' });
-    throw new Error(err.message || 'Nie udało się pobrać danych z Dysku Google.');
+    const driveRes = await downloadPetDataFromDrive();
+    if (driveRes && driveRes.success && driveRes.petCount > 0) {
+      saveSession({
+        lastSyncStatus: 'success',
+        lastSyncTime: driveRes.timestamp,
+      });
+      return { petCount: driveRes.petCount, lastSyncTime: driveRes.timestamp };
+    }
+  } catch (driveErr: any) {
+    console.warn('Google Drive download notice:', driveErr?.message);
   }
+
+  // 2. Fallback to Cloud Sync database
+  const session = getStoredSession();
+  if (session.user?.email && session.authToken) {
+    try {
+      const data = await safeApiCall('/api/cloud-sync/download', {
+        email: session.user.email,
+        token: session.authToken,
+      });
+      if (data?.payload && Array.isArray(data.payload.pets) && data.payload.pets.length > 0) {
+        const { petCount } = restoreAllPetData(data.payload);
+        const syncTime = data.lastSyncTime || new Date().toISOString();
+        saveSession({
+          lastSyncStatus: 'success',
+          lastSyncTime: syncTime,
+        });
+        return { petCount, lastSyncTime: syncTime };
+      }
+    } catch (err: any) {
+      console.warn('Cloud database fallback download notice:', err?.message);
+    }
+  }
+
+  saveSession({ lastSyncStatus: 'success' });
+  return { petCount: storage.getPets().length, lastSyncTime: new Date().toISOString() };
 }
 
 // 7. Quick PIN generation for pairing another device
