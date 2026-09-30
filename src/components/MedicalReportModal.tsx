@@ -18,6 +18,11 @@ import {
   X
 } from 'lucide-react';
 import { Pet, Vaccination, Medication, MedicalExam, MedicalCondition, VetVisit } from '../types/pet';
+import { 
+  triggerPrint, 
+  downloadPetMedicalReportPdf, 
+  sharePetMedicalReportPdf 
+} from '../services/pdfReportGenerator';
 
 interface MedicalReportModalProps {
   isOpen: boolean;
@@ -41,6 +46,8 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
   visits,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfSuccess, setPdfSuccess] = useState(false);
 
   if (!isOpen) return null;
 
@@ -63,8 +70,46 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
     return `${years} lat ${months > 0 ? `${months} mies.` : ''}`;
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    await triggerPrint(`PetCare-${pet.name}-Raport-Medyczny`);
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      await downloadPetMedicalReportPdf({
+        pet,
+        vaccinations,
+        medications,
+        exams,
+        conditions,
+        visits,
+      });
+      setPdfSuccess(true);
+      setTimeout(() => setPdfSuccess(false), 2500);
+    } catch (err) {
+      console.error('Błąd pobierania PDF:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      await sharePetMedicalReportPdf({
+        pet,
+        vaccinations,
+        medications,
+        exams,
+        conditions,
+        visits,
+      });
+    } catch (err) {
+      console.error('Błąd udostępniania PDF:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const generateTextSummary = () => {
@@ -125,23 +170,49 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <button
-              onClick={handleCopy}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm active:scale-95 ${
+                pdfSuccess 
+                  ? 'bg-emerald-600 text-white' 
+                  : 'bg-teal-600 hover:bg-teal-500 text-white shadow-teal-600/30'
               }`}
+              title="Pobierz gotowy dokument PDF na telefon"
             >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Skopiowano tekst' : 'Kopiuj tekst'}</span>
+              {pdfSuccess ? <Check className="w-3.5 h-3.5" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{pdfSuccess ? 'Zapisano PDF' : isGeneratingPdf ? 'Generowanie...' : 'Pobierz PDF'}</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-md shadow-teal-600/30 transition active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold transition active:scale-95 border border-slate-700"
+              title="Otwórz podgląd wydruku w systemie Android lub przeglądarce"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Drukuj / PDF</span>
+              <Printer className="w-3.5 h-3.5 text-teal-400" />
+              <span>Drukuj</span>
+            </button>
+
+            <button
+              onClick={handleSharePdf}
+              disabled={isGeneratingPdf}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold transition active:scale-95 border border-slate-700"
+              title="Udostępnij PDF przez WhatsApp, Email lub Dysk Google"
+            >
+              <Share2 className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Udostępnij</span>
+            </button>
+
+            <button
+              onClick={handleCopy}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
+              title="Kopiuj tekstowe podsumowanie"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{copied ? 'Skopiowano' : 'Kopiuj'}</span>
             </button>
 
             <button

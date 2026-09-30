@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Pet, Medication, PetsitterPlan } from '../types/pet';
 import { storage } from '../services/storage';
+import { triggerPrint } from '../services/pdfReportGenerator';
 
 interface PetsitterModalProps {
   isOpen: boolean;
@@ -108,8 +109,8 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    await triggerPrint(`PetCare-${pet.name}-Instrukcja-Petsitter`);
   };
 
   return (

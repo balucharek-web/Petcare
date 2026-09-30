@@ -62,14 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.22.0
-          name: "PetCare v2.22.0 - 100% Natywny wybór konta Google Play Services (bez błędu 10)"
+          tag_name: v2.23.0
+          name: "PetCare v2.23.0 - Drukuj i pobieranie PDF dla karty weterynarza"
           body: |
-            ### 🐾 PetCare v2.22.0 - Ostateczne rozwiązanie logowania Google
+            ### 🐾 PetCare v2.23.0 - Pełna obsługa Drukowania i Generowania PDF
             
-            - 🛡️ **Brak błędu kod 10 (brak SHA-1):** Przejście na `AccountPicker` z Google Play Services, który nie wymaga rejestracji SHA-1 w chmurze i nie zwraca błędu 10.
-            - 👤 **Jedno natywne okno systemowe:** Użytkownik widzi tylko jedno systemowe okno z wyborem swoich kont Google w telefonie.
-            - ⚡ **Natychmiastowe logowanie:** Po jednorazowym dotknięciu konta następuje bezpośrednie zalogowanie do aplikacji.
+            - 📄 **Pobierz PDF:** Generowanie profesjonalnego, wektorowego dokumentu PDF karty zdrowia zwierzaka i zapis na telefonie.
+            - 🖨️ **Natywne Drukowanie Android (PrintManager):** Nowa wtyczka `NativePrint` pozwalająca na bezpośredni wydruk przez Wi-Fi/Bluetooth lub zapis jako systemowy PDF Androida.
+            - 📲 **Udostępnianie raportu:** Możliwość natychmiastowego przesłania karty zdrowia w formacie PDF do lekarza weterynarii przez WhatsApp, Gmail lub Dysk Google.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

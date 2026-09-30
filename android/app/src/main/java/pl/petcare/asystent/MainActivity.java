@@ -12,6 +12,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NativeLocationPlugin.class);
         registerPlugin(NativeGoogleAuthPlugin.class);
+        registerPlugin(NativePrintPlugin.class);
         super.onCreate(savedInstanceState);
         Window window = getWindow();
         WindowInsetsControllerCompat insetsController =
