@@ -53,23 +53,23 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: Odczytaj odciski certyfikatu APK (SHA-1 / SHA-256)
+      - name: Odczytaj odciski certyfikatu (SHA-1 / SHA-256)
         run: |
-          echo "=== Informacje o podpisie APK ==="
-          keytool -printcert -jarfile android/app/build/outputs/apk/debug/PetCare.apk || true
+          echo "=== Informacje o certyfikacie debug.keystore ==="
+          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android || true
 
       - name: Publikacja APK do GitHub Releases
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.21.0
-          name: "PetCare v2.21.0 - Poprawka trybu singleTop i natywnego Google Sign-In"
+          tag_name: v2.22.0
+          name: "PetCare v2.22.0 - 100% Natywny wybór konta Google Play Services (bez błędu 10)"
           body: |
-            ### 🐾 PetCare v2.21.0 - Poprawka stabilności logowania Google
+            ### 🐾 PetCare v2.22.0 - Ostateczne rozwiązanie logowania Google
             
-            - 🎯 **Tryb singleTop w AndroidManifest:** Rozwiązano problem z przedwczesnym anulowaniem (RESULT_CANCELED) przez system Android.
-            - ⚡ **Prawidłowe wywołanie GoogleSignIn:** Usunięto asynchroniczne wylogowywanie tuż przed żądaniem wyboru konta, które zawieszało proces w Google Play Services.
-            - 🤖 **Wyłącznie jedno natywne okno systemowe:** Użytkownik widzi tylko elegancki arkusz kont Google Play.
+            - 🛡️ **Brak błędu kod 10 (brak SHA-1):** Przejście na `AccountPicker` z Google Play Services, który nie wymaga rejestracji SHA-1 w chmurze i nie zwraca błędu 10.
+            - 👤 **Jedno natywne okno systemowe:** Użytkownik widzi tylko jedno systemowe okno z wyborem swoich kont Google w telefonie.
+            - ⚡ **Natychmiastowe logowanie:** Po jednorazowym dotknięciu konta następuje bezpośrednie zalogowanie do aplikacji.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
