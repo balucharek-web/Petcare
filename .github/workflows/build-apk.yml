@@ -62,14 +62,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.32.0
-          name: "PetCare v2.32.0 - Naprawa autoryzacji Dysku Google na Androidzie (Natywny token & bezbłędna synchronizacja)"
+          tag_name: v2.33.0
+          name: "PetCare v2.33.0 - Opcjonalny widżet zadań, Karta Pacjenta (Tryb Lekarza SOR), Oś Czasu Zdrowia, Tryb Współwłaściciela i Audyt Prywatności"
           body: |
-            ### 🐾 PetCare v2.32.0 - Naprawa autoryzacji Dysku Google na Androidzie
+            ### 🐾 PetCare v2.33.0 - Nowe funkcje i standard komercyjny
 
-            - 🔑 **Natywny token Dysku Google:** Aplikacja pobiera teraz autoryzację do Dysku Google bezpośrednio z usług Google Play w telefonie – koniec z błędami „Brak aktywnego połączenia z Dyskiem Google”.
-            - 🛡️ **Niezawodna synchronizacja:** Jeśli Dysk Google jest podłączony, dane zwierzaków zapisują się bezpośrednio w pliku `petcare_app_data.json` na Dysku Google użytkownika.
-            - ⚡ **Automatyczne pobieranie po reinstalacji:** Po zainstalowaniu aplikacji PetCare natychmiast wykrywa bazę danych pupili na Twoim koncie i odtwarza ją automatycznie.
+            - 🌟 **Opcjonalny widżet na ekranie głównym:** Dzisiejsze leki z natychmiastowym odznaczaniem `[ ✓ Podano ]`, stan profilaktyki (odrobaczenie, kleszcze, wścieklizna) oraz możliwość ukrycia 1 kliknięciem.
+            - 🩺 **Karta Pacjenta (Tryb Lekarza SOR):** Czysty, wysokokontrastowy ekran z wagą, wiekiem, numerem chipu, alergiami, lekami stałymi i kodem QR dla lekarza weterynarii.
+            - 📜 **Zintegrowana Oś Czasu Zdrowia:** Wszystkie szczepienia, badania, wizyty i leki w jednym chronologicznym widoku z filtrami i wyszukiwarką.
+            - 👥 **Tryb Współwłaściciela (Rodzina & Petsitter):** Zapobiega podwójnemu podaniu dawek – rejestruje kto nakarmił psa lub podał tabletkę o danej godzinie.
+            - 🛡️ **Prywatność & Standard Google Play:** Zgodność z RODO, eksport kopii JSON oraz bezpieczne usuwanie konta i danych.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
