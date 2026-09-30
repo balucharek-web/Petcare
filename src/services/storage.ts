@@ -498,5 +498,13 @@ export const storage = {
     safeRemoveItem(STORAGE_KEYS.PETSITTER);
     safeRemoveItem(STORAGE_KEYS.DASHBOARD_CONFIG);
     safeSetItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
+  },
+
+  seedSampleData(): void {
+    this.savePets(DEFAULT_INITIAL_PETS);
+    this.saveVaccinations(DEFAULT_INITIAL_VACCINATIONS);
+    if (DEFAULT_INITIAL_PETS[0]) {
+      this.setActivePetId(DEFAULT_INITIAL_PETS[0].id);
+    }
   }
 };
