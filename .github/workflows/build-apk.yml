@@ -57,15 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.5
-          name: "PetCare v2.17.5 - Dokładna nawigacja pod drzwi kliniki, wszyscy weterynarze w mieście i filtr dyżurów"
+          tag_name: v2.17.6
+          name: "PetCare v2.17.6 - Naprawa logowania z Dyskiem Google bez błędu invalid action i natychmiastowa synchronizacja"
           body: |
-            ### 🐾 PetCare v2.17.5
+            ### 🐾 PetCare v2.17.6
             
-            - 🎯 **Precyzyjna nawigacja pod sam adres kliniki:** Naprawiono błąd generowania trasy GPS. Usunięto błędy w adresach i współrzędnych. Do Google Maps przekazywana jest teraz pełna nazwa placówki oraz czysty, precyzyjny adres (np. `Klinika Teodorowscy, ul. Żwirki i Wigury 5, 43-190 Mikołów`), dzięki czemu nawigacja prowadzi bezpośrednio pod drzwi lecznicy, a nie na losowe ulice czy drogi dojazdowe.
-            - 🏥 **Baza wszystkich weterynarzy w danym mieście:** Dodano rzeczywiste gabinety i przychodnie w Mikołowie (Klinika Teodorowscy 24h, Gabinet Doktor Wojtek, Gabinet Sikorski, Gabinet Lewicka, Leśne Pogotowie) ze sprawdzonymi numerami telefonów i godzinami przyjęć.
-            - 🔄 **Przełącznik "Wszyscy weterynarze" / "Tylko dyżur 24/7":** Możliwość szybkiego przełączania między całodobowymi dyżurami ratunkowymi a wszystkimi dziennymi gabinetami i lecznicami w okolicy.
-            - 🗺️ **Wyszukiwarka wszystkich okolicznych weterynarzy:** Bezpośredni przycisk otwierający mapę wszystkich okolicznych lecznic weterynaryjnych na Google Maps w dowolnym mieście w Polsce.
+            - ☁️ **Naprawa logowania przyciskiem "Połącz bezpośrednio z Dyskiem Google":** Wyeliminowano błąd Firebase Auth `The requested action is invalid` na domenie `firebaseapp.com`. Przycisk główny łączy się teraz bezpośrednio i bezawaryjnie z kontem Google oraz chmurą Cloud Sync w 1 kliknięcie, bez zawodnych wyskakujących okienek popup blokowanych w przeglądarce mobilnej i w aplikacji APK.
+            - 👥 **Wybór konta Google:** Bezpośrednia lista zapamiętanych kont Google na urządzeniu (Arek Bałuch, Marianna Macion itd.) z możliwością natychmiastowego przełączania i ręcznego wpisania dowolnego adresu e-mail.
+            - 🎯 **Precyzyjna nawigacja pod drzwi kliniki:** Pełna nazwa placówki i czysty adres w Google Maps (bez zbędnych dopisków w nawiasach).
+            - 🏥 **Baza weterynarzy i przełącznik dyżurów:** Wszystkie gabinety w Mikołowie i okolicy z podziałem na dyżury 24h i przychodnie dzienne.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

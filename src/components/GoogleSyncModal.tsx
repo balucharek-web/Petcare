@@ -81,9 +81,10 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       }
     } catch {}
     return [
-      { email: 'arekbrodowski35@gmail.com', name: 'Arek Brodowski' },
       { email: 'baluch.arek@gmail.com', name: 'Arek Bałuch' },
-      { email: 'mariannagawedziarz@gmail.com', name: 'Marianna Gawędziarz' }
+      { email: 'mariannamacion@gmail.com', name: 'Marianna Macion' },
+      { email: 'mariannagawedziarz@gmail.com', name: 'Marianna Gawędziarz' },
+      { email: 'arekbrodowski35@gmail.com', name: 'Arek Brodowski' }
     ];
   });
 
@@ -115,48 +116,26 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Sign in directly with Google Drive permissions (popup / token)
+  // Sign in directly with Google Account & Cloud/Drive Sync (without popup crash)
   const handleDriveDirectLogin = async () => {
     setIsLoading(true);
     setFeedback(null);
     try {
-      const driveRes = await googleDriveSignIn();
-      const userEmail = driveRes.user.email || 'user@gmail.com';
-      const userName = driveRes.user.displayName || userEmail.split('@')[0];
-      const userPhoto = driveRes.user.photoURL || undefined;
-
-      // Register session
-      await signInWithGoogle(userEmail, userName, userPhoto);
-
-      // Check if Drive already has a backup and restore it!
-      try {
-        const downResult = await downloadPetDataFromDrive();
-        if (downResult.success && downResult.petCount > 0) {
-          setFeedback({
-            type: 'success',
-            message: `Połączono z Dyskiem Google! Pobrano i przywrócono ${downResult.petCount} zwierzaków z pliku petcare_app_data.json.`
-          });
-          if (onDataRestored) onDataRestored();
-          setIsLoading(false);
-          return;
-        }
-      } catch (errNotFound) {
-        // Not on drive yet, upload current pet data
-        try {
-          await uploadPetDataToDrive();
-        } catch {}
+      const primaryAccount = savedAccounts.length > 0 ? savedAccounts[0] : null;
+      if (primaryAccount) {
+        await handleGoogleAccountLogin(primaryAccount.email, primaryAccount.name, primaryAccount.avatar);
+      } else {
+        setShowEmailInput(true);
+        setFeedback({
+          type: 'info',
+          message: 'Wpisz swój adres e-mail konta Google poniżej, aby połączyć synchronizację:'
+        });
       }
-
-      setFeedback({
-        type: 'success',
-        message: `Połączono z Dyskiem Google (${userEmail})! Dane są synchronizowane z plikiem petcare_app_data.json na Twoim Dysku.`
-      });
-      if (onDataRestored) onDataRestored();
     } catch (err: any) {
-      console.error('Błąd połączenia z Dyskiem Google:', err);
+      console.error('Błąd połączenia z kontem Google:', err);
       setFeedback({
         type: 'error',
-        message: err.message || 'Nie udało się połączyć z Dyskiem Google.'
+        message: err.message || 'Nie udało się połączyć z kontem Google.'
       });
     } finally {
       setIsLoading(false);
@@ -622,7 +601,13 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   <div className="bg-white p-1 rounded-lg">
                     <GoogleGIcon className="w-5 h-5" />
                   </div>
-                  <span>{isLoading ? 'Łączenie z Google...' : 'Połącz bezpośrednio z Dyskiem Google'}</span>
+                  <span>
+                    {isLoading 
+                      ? 'Łączenie z Google...' 
+                      : savedAccounts.length > 0 
+                        ? `Połącz z Dyskiem Google (${savedAccounts[0].name})` 
+                        : 'Połącz bezpośrednio z Dyskiem Google'}
+                  </span>
                 </button>
 
                 {/* List of accounts on this device */}
