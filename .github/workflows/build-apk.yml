@@ -57,15 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.0
-          name: "PetCare v2.17.0 - Precyzyjny GPS, dyżury 24h, natywny dialog i obsługa wszystkich wsi"
+          tag_name: v2.17.1
+          name: "PetCare v2.17.1 - Obsługa lokalizacji Android, @capacitor/geolocation i systemowy modal GPS"
           body: |
-            ### 🐾 PetCare v2.17.0
+            ### 🐾 PetCare v2.17.1
             
+            - 🧭 **Wsparcie dla natywnego GPS na Androidzie:** Zintegrowano `@capacitor/geolocation` oraz uprawnienia `ACCESS_FINE_LOCATION` i `ACCESS_COARSE_LOCATION` w AndroidManifest.
+            - 📡 **Systemowe powiadomienie o wyłączonej lokalizacji:** Gdy GPS w telefonie jest wyłączony, aplikacja nie gaśnie bez słowa, lecz wyświetla dedykowane systemowe okno z instrukcją i natychmiastowym ponowieniem.
             - 🏥 **Natychmiast widoczne kostki klinik 24/7:** Przeprojektowano widok, eliminując zasłaniające nagłówki.
-            - 🧭 **Automatyczne natywne wywołanie systemowego okna GPS:** Aplikacja wywołuje bezpośredni systemowy monit urządzenia o dostęp do lokalizacji.
             - 📍 **Obsługa dowolnej wsi i miasta w Polsce:** Geokodowanie OpenStreetMap dla ponad 50 000 miejscowości.
-            - ☁️ **Synchronizacja przez prywatny Dysk Google:** Bezpieczne przechowywanie danych i profil wzorcowy pupila Bono.
             - 📱 **Gotowy plik APK do instalacji.**
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk

@@ -23,6 +23,7 @@ import {
   normalizePolishText 
 } from '../data/polishCitiesData';
 import { COMPREHENSIVE_24H_CLINICS } from '../data/emergencyClinicsData';
+import { requestDeviceLocation, LocationError } from '../services/geolocationService';
 
 // Re-export for compatibility
 export type { EmergencyClinic } from '../data/emergencyClinicsData';
@@ -53,6 +54,10 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
   const [currentCityName, setCurrentCityName] = useState<string | null>(null);
   const [locationSource, setLocationSource] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+
+  // System GPS dialog state when location is off or denied
+  const [showSystemGpsDialog, setShowSystemGpsDialog] = useState(false);
+  const [systemGpsError, setSystemGpsError] = useState<LocationError | null>(null);
 
   // City & Village Autocomplete search state
   const [cityInputQuery, setCityInputQuery] = useState('');
@@ -93,10 +98,8 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
       // Ignore
     }
 
-    // Automatically trigger system/browser native location modal on open if location not yet set!
-    if (navigator.geolocation) {
-      handleGetGPSLocation();
-    }
+    // Automatically trigger system/browser location on open if location not yet set
+    handleGetGPSLocation(false);
   }, [isOpen]);
 
   // Debounced search for any Polish village, town, or city
@@ -311,94 +314,99 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
     }
   };
 
-  // Ultra-Accurate GPS with Reverse Geocoding: triggers native browser/system popup
-  const handleGetGPSLocation = () => {
-    if (!navigator.geolocation) {
-      return;
-    }
-
+  // Ultra-Accurate GPS with Reverse Geocoding and System Fallback Dialog
+  const handleGetGPSLocation = async (isUserInitiated: boolean = false) => {
     setIsLocating(true);
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const accuracy = Math.round(pos.coords.accuracy || 0);
+    const result = await requestDeviceLocation();
 
-        let detectedPlaceName = '';
-        let detectedVoiv = '';
-        let detectedDetails = '';
+    if (!result.success) {
+      setIsLocating(false);
+      setSystemGpsError(result.error);
+      
+      // When user clicks the GPS button, or when GPS is required:
+      // Show the system dialog so user can easily enable device location!
+      setShowSystemGpsDialog(true);
 
-        // Reverse geocoding via backend proxy to get exact village and voivodeship
+      // Soft tactile feedback on mobile devices
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
         try {
-          const res = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`, {
-            signal: AbortSignal.timeout(5000),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.location) {
-              detectedPlaceName = data.location.name;
-              detectedVoiv = data.location.voivodeship;
-              detectedDetails = data.location.details;
-            }
-          }
-        } catch {
-          // Direct client fallback to OpenStreetMap reverse geocoding
-          try {
-            const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-            const nomRes = await fetch(nomUrl, {
-              headers: { 'Accept-Language': 'pl,en' },
-              signal: AbortSignal.timeout(4000),
-            });
-            if (nomRes.ok) {
-              const data = await nomRes.json();
-              const addr = data.address || {};
-              detectedPlaceName = addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || addr.municipality || '';
-              detectedVoiv = (addr.state || '').replace(/^województwo\s+/i, '');
-              const gmina = (addr.municipality || '').replace(/^gmina\s+/i, '');
-              const county = addr.county || '';
-              const parts: string[] = [];
-              if (gmina && gmina.toLowerCase() !== detectedPlaceName.toLowerCase()) parts.push(`gm. ${gmina}`);
-              if (county) parts.push(county);
-              if (detectedVoiv) parts.push(`woj. ${detectedVoiv}`);
-              detectedDetails = parts.join(', ');
-            }
-          } catch {
-            // Keep empty
-          }
-        }
-
-        // Fallback to closest static Polish city if reverse geocoding is unavailable
-        if (!detectedPlaceName) {
-          const nearest = getNearestPolishCity(lat, lng);
-          detectedPlaceName = nearest.city.name;
-          detectedVoiv = nearest.city.voivodeship;
-          detectedDetails = `woj. ${detectedVoiv}`;
-        }
-
-        const fullLabel = detectedDetails ? `${detectedPlaceName} (${detectedDetails})` : detectedPlaceName;
-        setUserCoords({ lat, lng });
-        setCurrentCityName(fullLabel);
-        setLocationSource(`GPS urządzenia (±${accuracy}m)`);
-        setIsLocating(false);
-
-        try {
-          localStorage.setItem(STORAGE_KEY_CITY, fullLabel);
-          localStorage.setItem(STORAGE_KEY_COORDS, JSON.stringify({ lat, lng }));
+          navigator.vibrate([100, 50, 100]);
         } catch {
           // Ignore
         }
-      },
-      (err) => {
-        console.warn('GPS location declined or off:', err);
-        setIsLocating(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0, // CRITICAL: Never accept stale cached position from another city or voivodeship!
       }
-    );
+      return;
+    }
+
+    // Success!
+    setShowSystemGpsDialog(false);
+    setSystemGpsError(null);
+
+    const { lat, lng, accuracy } = result.coords;
+    let detectedPlaceName = '';
+    let detectedVoiv = '';
+    let detectedDetails = '';
+
+    // Reverse geocoding via backend proxy to get exact village and voivodeship
+    try {
+      const res = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.location) {
+          detectedPlaceName = data.location.name;
+          detectedVoiv = data.location.voivodeship;
+          detectedDetails = data.location.details;
+        }
+      }
+    } catch {
+      // Direct client fallback to OpenStreetMap reverse geocoding
+      try {
+        const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+        const nomRes = await fetch(nomUrl, {
+          headers: { 'Accept-Language': 'pl,en' },
+          signal: AbortSignal.timeout(4000),
+        });
+        if (nomRes.ok) {
+          const data = await nomRes.json();
+          const addr = data.address || {};
+          detectedPlaceName = addr.village || addr.town || addr.city || addr.hamlet || addr.suburb || addr.municipality || '';
+          detectedVoiv = (addr.state || '').replace(/^województwo\s+/i, '');
+          const gmina = (addr.municipality || '').replace(/^gmina\s+/i, '');
+          const county = addr.county || '';
+          const parts: string[] = [];
+          if (gmina && gmina.toLowerCase() !== detectedPlaceName.toLowerCase()) parts.push(`gm. ${gmina}`);
+          if (county) parts.push(county);
+          if (detectedVoiv) parts.push(`woj. ${detectedVoiv}`);
+          detectedDetails = parts.join(', ');
+        }
+      } catch {
+        // Keep empty
+      }
+    }
+
+    // Fallback to closest static Polish city if reverse geocoding is unavailable
+    if (!detectedPlaceName) {
+      const nearest = getNearestPolishCity(lat, lng);
+      detectedPlaceName = nearest.city.name;
+      detectedVoiv = nearest.city.voivodeship;
+      detectedDetails = `woj. ${detectedVoiv}`;
+    }
+
+    const fullLabel = detectedDetails ? `${detectedPlaceName} (${detectedDetails})` : detectedPlaceName;
+    setUserCoords({ lat, lng });
+    setCurrentCityName(fullLabel);
+    setLocationSource(accuracy ? `GPS urządzenia (±${accuracy}m)` : 'GPS urządzenia');
+    setIsLocating(false);
+
+    try {
+      localStorage.setItem(STORAGE_KEY_CITY, fullLabel);
+      localStorage.setItem(STORAGE_KEY_COORDS, JSON.stringify({ lat, lng }));
+    } catch {
+      // Ignore
+    }
   };
 
   // Calculate distance from user coords to every clinic
@@ -584,7 +592,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
             {/* GPS Button (Triggers native system/browser popup directly) */}
             <button
               type="button"
-              onClick={handleGetGPSLocation}
+              onClick={() => handleGetGPSLocation(true)}
               disabled={isLocating}
               className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0 active:scale-95 disabled:opacity-50"
               title="Włącz systemową lokalizację GPS"
@@ -883,6 +891,105 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
           </button>
         </div>
       </div>
+
+      {/* System-Style Device GPS Prompt Modal (triggered when phone GPS is off or denied) */}
+      {showSystemGpsDialog && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="system-gps-title"
+        >
+          <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header with radar / system animation */}
+            <div className="bg-gradient-to-br from-amber-500 via-rose-600 to-rose-700 p-5 text-white text-center relative overflow-hidden">
+              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
+              <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md mb-2.5 shadow-inner ring-4 ring-white/30">
+                <Compass className="w-7 h-7 text-white animate-spin [animation-duration:6s]" />
+              </div>
+              <h3 id="system-gps-title" className="text-base font-black text-white tracking-tight">
+                Włącz lokalizację w telefonie
+              </h3>
+              <p className="text-xs text-rose-100 mt-1 font-medium">
+                Powiadomienie systemowe urządzenia
+              </p>
+            </div>
+
+            {/* Content body */}
+            <div className="p-4 sm:p-5 space-y-3.5">
+              <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-3 text-xs text-amber-950 leading-relaxed flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-extrabold text-amber-950">
+                    {systemGpsError?.code === 'PERMISSION_DENIED'
+                      ? 'Wymagana zgoda na lokalizację'
+                      : 'Moduł lokalizacji (GPS) jest wyłączony'}
+                  </p>
+                  <p className="mt-0.5 text-amber-800 text-[11px]">
+                    Aby automatycznie wyliczyć odległość i pokazać najbliższy ostry dyżur całodobowy, włącz GPS w swoim telefonie.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3-step rapid guide */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  Jak włączyć w 2 sekundy:
+                </p>
+                <div className="space-y-2 text-xs text-slate-700">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 font-black text-[11px] flex items-center justify-center shrink-0">1</span>
+                    <span>Zsuń palcem z samej góry ekranu belkę powiadomień.</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 font-black text-[11px] flex items-center justify-center shrink-0">2</span>
+                    <span>Dotknij kafel <strong>„Lokalizacja”</strong> lub <strong>„GPS”</strong> 📍.</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 font-black text-[11px] flex items-center justify-center shrink-0">3</span>
+                    <span>Kliknij przycisk poniżej, aby pobrać pozycję.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleGetGPSLocation(true)}
+                  disabled={isLocating}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white rounded-2xl font-bold text-xs shadow-md shadow-rose-600/25 active:scale-[0.98] transition flex items-center justify-center gap-2"
+                >
+                  <Compass className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
+                  <span>{isLocating ? 'Sprawdzam sygnał GPS...' : 'Włączono GPS – Wykryj moją pozycję'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSystemGpsDialog(false);
+                    setTimeout(() => {
+                      cityInputRef.current?.focus();
+                    }, 100);
+                  }}
+                  className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-2"
+                >
+                  <Search className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Wpisz wieś lub miasto ręcznie</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSystemGpsDialog(false)}
+                  className="w-full py-1.5 text-slate-400 hover:text-slate-600 text-xs font-semibold text-center transition"
+                >
+                  Zamknij powiadomienie
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
