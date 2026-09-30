@@ -455,7 +455,22 @@ export const storage = {
 
   importAllData(jsonStr: string): boolean {
     try {
-      const parsed = JSON.parse(jsonStr);
+      let parsed = JSON.parse(jsonStr);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.payload && typeof parsed.payload === 'object') {
+          parsed = { ...parsed, ...parsed.payload };
+        } else if (parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
+          parsed = { ...parsed, ...parsed.data };
+        }
+      }
+
+      // If root is directly an array of pets
+      if (Array.isArray(parsed)) {
+        this.savePets(parsed);
+        if (parsed.length > 0) this.setActivePetId(parsed[0].id);
+        return true;
+      }
+
       if (Array.isArray(parsed.pets)) this.savePets(parsed.pets);
       if (Array.isArray(parsed.vaccinations)) this.saveVaccinations(parsed.vaccinations);
       if (Array.isArray(parsed.exams)) this.saveExams(parsed.exams);

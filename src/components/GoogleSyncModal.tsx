@@ -205,10 +205,17 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
     try {
       const res = await downloadFromCloud();
-      setFeedback({
-        type: 'success',
-        message: `Pobrano dane z Twojego Dysku Google! Przywrócono ${res.petCount} zwierzaków wraz z historią medyczną.`
-      });
+      if (res.petCount > 0) {
+        setFeedback({
+          type: 'success',
+          message: `Pobrano dane z Twojego Dysku Google! Przywrócono ${res.petCount} zwierzaków wraz z historią medyczną.`
+        });
+      } else {
+        setFeedback({
+          type: 'info',
+          message: 'Pobieranie zakończone. Jeśli masz plik kopii z wcześniejszej wersji, sprawdź czy na Dysku Google plik nie znajduje się w koszu.'
+        });
+      }
       if (onDataRestored) {
         onDataRestored();
       }

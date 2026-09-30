@@ -62,11 +62,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.33.0
-          name: "PetCare v2.33.0 - Opcjonalny widżet zadań, Karta Pacjenta (Tryb Lekarza SOR), Oś Czasu Zdrowia, Tryb Współwłaściciela i Audyt Prywatności"
+          tag_name: v2.33.1
+          name: "PetCare v2.33.1 - Naprawa przywracania kopii z Dysku Google & Nowe Moduły"
           body: |
-            ### 🐾 PetCare v2.33.0 - Nowe funkcje i standard komercyjny
+            ### 🐾 PetCare v2.33.1 - Nowości i usprawnienia synchronizacji
 
+            - 🔄 **Naprawa wykrywania kopii Dysku Google:** Rozszerzone wyszukiwanie plików kopii (`petcare_app_data.json` oraz `petcare_sync_data.json`) z sortowaniem wg najnowszego pliku oraz automatyczne rozpakowywanie zagnieżdżonych struktur JSON.
             - 🌟 **Opcjonalny widżet na ekranie głównym:** Dzisiejsze leki z natychmiastowym odznaczaniem `[ ✓ Podano ]`, stan profilaktyki (odrobaczenie, kleszcze, wścieklizna) oraz możliwość ukrycia 1 kliknięciem.
             - 🩺 **Karta Pacjenta (Tryb Lekarza SOR):** Czysty, wysokokontrastowy ekran z wagą, wiekiem, numerem chipu, alergiami, lekami stałymi i kodem QR dla lekarza weterynarii.
             - 📜 **Zintegrowana Oś Czasu Zdrowia:** Wszystkie szczepienia, badania, wizyty i leki w jednym chronologicznym widoku z filtrami i wyszukiwarką.

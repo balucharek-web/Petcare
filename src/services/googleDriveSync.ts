@@ -170,8 +170,8 @@ export async function findDriveBackupFile(token?: string): Promise<{ id: string;
   if (!authToken) return null;
 
   try {
-    const query = encodeURIComponent(`name = '${DRIVE_BACKUP_FILENAME}' and trashed = false`);
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size)&spaces=drive`, {
+    const query = encodeURIComponent("(name = 'petcare_app_data.json' or name = 'petcare_sync_data.json' or name contains 'petcare') and trashed = false");
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
 

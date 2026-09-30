@@ -451,9 +451,9 @@ export async function signInWithGoogle(
   let petCount = 0;
 
   // AUTOMATIC RESTORE:
-  // 1. Try Google Drive first
+  // 1. Try Google Drive first (with accessToken passed directly)
   try {
-    const driveRestore = await autoRestoreFromDriveIfEmpty();
+    const driveRestore = await autoRestoreFromDriveIfEmpty(accessToken);
     if (driveRestore.restored && driveRestore.petCount > 0) {
       petCount = driveRestore.petCount;
     }
