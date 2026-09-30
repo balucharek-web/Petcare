@@ -333,12 +333,12 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               <span>Menu</span>
             </button>
 
-            {/* Notifications Button */}
+            {/* Notifications Button (Notification Center) */}
             <button
               onClick={onOpenNotifications}
-              title={alertCount > 0 ? `Powiadomienia (${alertCount} aktywne przypomnienia)` : 'Powiadomienia w telefonie (Brak aktywnych alertów)'}
+              title={alertCount > 0 ? `Centrum powiadomień (${alertCount} ${alertCount === 1 ? 'nowy alert' : 'nowe alerty'})` : 'Centrum powiadomień (Brak nowych alertów)'}
               className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer relative"
-              aria-label="Powiadomienia"
+              aria-label="Centrum powiadomień"
             >
               <Bell className="w-4 h-4" />
               {alertCount > 0 && (

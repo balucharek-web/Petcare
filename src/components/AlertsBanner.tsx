@@ -18,9 +18,10 @@ import { NavTab } from './BottomNav';
 interface AlertsBannerProps {
   alerts: AlertItem[];
   onNavigateToTab: (tab: NavTab) => void;
+  onDismissAlert?: (alertId: string) => void;
 }
 
-export const AlertsBanner: React.FC<AlertsBannerProps> = ({ alerts, onNavigateToTab }) => {
+export const AlertsBanner: React.FC<AlertsBannerProps> = ({ alerts, onNavigateToTab, onDismissAlert }) => {
   const [isDismissed, setIsDismissed] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState<NotificationPermission>('default');
 
@@ -100,8 +101,13 @@ export const AlertsBanner: React.FC<AlertsBannerProps> = ({ alerts, onNavigateTo
 
           <button
             type="button"
-            onClick={() => setIsDismissed(true)}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-black/5"
+            onClick={() => {
+              setIsDismissed(true);
+              if (onDismissAlert && primaryAlert) {
+                onDismissAlert(primaryAlert.id);
+              }
+            }}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-black/5 cursor-pointer"
             title="Ukryj powiadomienie"
           >
             <X className="w-4 h-4" />

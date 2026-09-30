@@ -27,6 +27,7 @@ const STORAGE_KEYS = {
   PETSITTER: 'petcare_petsitter_v2',
   DASHBOARD_CONFIG: 'petcare_dashboard_config_v2',
   CLEAN_INITIALIZED: 'petcare_clean_initialized_v2',
+  DISMISSED_ALERTS: 'petcare_dismissed_alerts_v2',
 };
 
 const memoryStore: Record<string, string> = {};
@@ -82,9 +83,9 @@ const DEFAULT_INITIAL_VACCINATIONS: Vaccination[] = [
     petId: 'pet-1',
     name: 'Wścieklizna (Rabisin)',
     category: 'rabies',
-    dateAdministered: '2025-06-15',
-    validUntil: '2026-06-15',
-    batchNumber: 'RB-2025-99A',
+    dateAdministered: '2026-06-15',
+    validUntil: '2027-06-15',
+    batchNumber: 'RB-2026-99A',
     vetClinic: 'Lecznica Weterynaryjna Cztery Łapy',
     vetDoctor: 'dr Anna Nowak',
   }
@@ -506,5 +507,34 @@ export const storage = {
     if (DEFAULT_INITIAL_PETS[0]) {
       this.setActivePetId(DEFAULT_INITIAL_PETS[0].id);
     }
+  },
+
+  // Dismissed Alerts Management
+  getDismissedAlertIds(): string[] {
+    const raw = safeGetItem(STORAGE_KEYS.DISMISSED_ALERTS);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  },
+
+  dismissAlert(id: string): void {
+    const current = this.getDismissedAlertIds();
+    if (!current.includes(id)) {
+      safeSetItem(STORAGE_KEYS.DISMISSED_ALERTS, JSON.stringify([...current, id]));
+    }
+  },
+
+  dismissAlerts(ids: string[]): void {
+    const current = new Set(this.getDismissedAlertIds());
+    ids.forEach(id => current.add(id));
+    safeSetItem(STORAGE_KEYS.DISMISSED_ALERTS, JSON.stringify(Array.from(current)));
+  },
+
+  clearDismissedAlerts(): void {
+    safeRemoveItem(STORAGE_KEYS.DISMISSED_ALERTS);
   }
 };

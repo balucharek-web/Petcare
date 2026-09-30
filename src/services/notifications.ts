@@ -1,5 +1,7 @@
 import { Vaccination, Medication, VetVisit, MedicalExam, Pet } from '../types/pet';
 
+import { storage } from './storage';
+
 export interface AlertItem {
   id: string;
   type: 'vaccine' | 'deworming' | 'medication' | 'visit' | 'exam';
@@ -8,6 +10,8 @@ export interface AlertItem {
   dueDate: string;
   daysRemaining: number;
   severity: 'urgent' | 'warning' | 'info';
+  petId?: string;
+  petName?: string;
 }
 
 /**
@@ -26,16 +30,24 @@ export function getUpcomingAlerts(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const dismissedIds = new Set(storage.getDismissedAlertIds());
+
   // 1. Vaccinations & Deworming
   vaccinations.forEach((v) => {
+    if (!v.validUntil) return;
     const exp = new Date(v.validUntil);
+    if (isNaN(exp.getTime())) return;
     exp.setHours(0, 0, 0, 0);
     const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-    const isDeworming = v.category === 'deworming';
-    const isAntiParasitic = v.category === 'antiparasitic';
+    // Only alert if within 30 days ahead, and not older than 120 days overdue
+    if (diffDays <= 30 && diffDays >= -120) {
+      const alertId = `alert-vac-${v.id}`;
+      if (dismissedIds.has(alertId)) return;
 
-    if (diffDays <= 30) {
+      const isDeworming = v.category === 'deworming';
+      const isAntiParasitic = v.category === 'antiparasitic';
+
       let severity: AlertItem['severity'] = 'info';
       let title = '';
 
@@ -59,13 +71,15 @@ export function getUpcomingAlerts(
       }
 
       alerts.push({
-        id: `alert-vac-${v.id}`,
+        id: alertId,
         type: isDeworming ? 'deworming' : 'vaccine',
         title,
-        description: `Ważność mija: ${v.validUntil} (jeszcze ${diffDays < 0 ? 'przeterminowane o ' + Math.abs(diffDays) : diffDays} dni)`,
+        description: `Ważność: ${v.validUntil} (${diffDays < 0 ? 'przeterminowane o ' + Math.abs(diffDays) + ' dni' : 'pozostało ' + diffDays + ' dni'})`,
         dueDate: v.validUntil,
         daysRemaining: diffDays,
         severity,
+        petId: pet.id,
+        petName: pet.name,
       });
     }
   });
@@ -75,41 +89,73 @@ export function getUpcomingAlerts(
     const targetDate = vis.nextAppointmentDate;
     if (targetDate) {
       const vDate = new Date(targetDate);
+      if (isNaN(vDate.getTime())) return;
       vDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((vDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
       if (diffDays >= 0 && diffDays <= 7) {
+        const alertId = `alert-visit-${vis.id}`;
+        if (dismissedIds.has(alertId)) return;
+
         alerts.push({
-          id: `alert-visit-${vis.id}`,
+          id: alertId,
           type: 'visit',
-          title: `Zaplanowana wizyta za ${diffDays === 0 ? 'dzisiaj' : diffDays + ' dni'}`,
-          description: `${vis.reason} w ${vis.clinic || 'Klinice'}${vis.time ? ' o godz. ' + vis.time : ''}`,
+          title: `Zaplanowana wizyta: ${diffDays === 0 ? 'dzisiaj' : 'za ' + diffDays + ' dni'}`,
+          description: `${vis.reason || 'Kontrola'} w ${vis.clinic || 'Klinice'}${vis.time ? ' o godz. ' + vis.time : ''}`,
           dueDate: targetDate,
           daysRemaining: diffDays,
           severity: diffDays <= 1 ? 'urgent' : 'warning',
+          petId: pet.id,
+          petName: pet.name,
         });
       }
     }
   });
 
-  // 3. Upcoming Recommended Exams
+  // 3. Upcoming Recommended Exams (within 14 days, max 30 days overdue)
   exams.forEach((ex) => {
     if (ex.nextRecommendedDate) {
       const eDate = new Date(ex.nextRecommendedDate);
+      if (isNaN(eDate.getTime())) return;
       eDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((eDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-      if (diffDays <= 14) {
+      if (diffDays <= 14 && diffDays >= -30) {
+        const alertId = `alert-exam-${ex.id}`;
+        if (dismissedIds.has(alertId)) return;
+
         alerts.push({
-          id: `alert-exam-${ex.id}`,
+          id: alertId,
           type: 'exam',
-          title: diffDays < 0 ? `Zalecana kontrola badania` : `Badanie kontrolne za ${diffDays} dni`,
-          description: `${ex.title} (zalecany termin: ${ex.nextRecommendedDate})`,
+          title: diffDays < 0 ? `Zaległe badanie kontrolne` : `Badanie kontrolne za ${diffDays} dni`,
+          description: `${ex.title} (termin: ${ex.nextRecommendedDate})`,
           dueDate: ex.nextRecommendedDate,
           daysRemaining: diffDays,
           severity: diffDays <= 3 ? 'urgent' : 'info',
+          petId: pet.id,
+          petName: pet.name,
         });
       }
+    }
+  });
+
+  // 4. Low stock medications
+  medications.forEach((med) => {
+    if (med.isActive && med.currentStock !== undefined && med.currentStock <= 3 && med.currentStock >= 0) {
+      const alertId = `alert-med-stock-${med.id}`;
+      if (dismissedIds.has(alertId)) return;
+
+      alerts.push({
+        id: alertId,
+        type: 'medication',
+        title: `Kończy się lek: ${med.name}`,
+        description: `Zostało tylko ${med.currentStock} dawek/tabletek w apteczce.`,
+        dueDate: today.toISOString().slice(0, 10),
+        daysRemaining: 0,
+        severity: med.currentStock <= 1 ? 'urgent' : 'warning',
+        petId: pet.id,
+        petName: pet.name,
+      });
     }
   });
 

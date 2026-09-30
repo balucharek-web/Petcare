@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Smartphone, 
   Monitor, 
@@ -267,12 +267,27 @@ export default function App() {
   };
 
   // Badges & Alerts
+  const [alertsDismissVersion, setAlertsDismissVersion] = useState(0);
   const activeMedsCount = medications.filter(m => m.isActive).length;
   const expiringVaccinesCount = vaccinations.filter(v => {
     const diff = (new Date(v.validUntil).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24);
     return diff <= 30;
   }).length;
-  const upcomingAlerts = getUpcomingAlerts(activePet, vaccinations, medications, visits, exams);
+
+  const upcomingAlerts = useMemo(() => {
+    return getUpcomingAlerts(activePet, vaccinations, medications, visits, exams);
+  }, [activePet, vaccinations, medications, visits, exams, alertsDismissVersion]);
+
+  const handleDismissAlert = (alertId: string) => {
+    storage.dismissAlert(alertId);
+    setAlertsDismissVersion(v => v + 1);
+  };
+
+  const handleClearAllAlerts = () => {
+    const ids = upcomingAlerts.map(a => a.id);
+    storage.dismissAlerts(ids);
+    setAlertsDismissVersion(v => v + 1);
+  };
 
   if (!activePet) {
     return (
@@ -424,6 +439,7 @@ export default function App() {
         <AlertsBanner
           alerts={upcomingAlerts}
           onNavigateToTab={(tab) => setCurrentTab(tab)}
+          onDismissAlert={handleDismissAlert}
         />
 
         {/* Main Body */}
@@ -672,11 +688,16 @@ export default function App() {
         />
       )}
 
-      {/* Push Notifications Settings & Test Modal */}
+      {/* Push Notifications & Notification Center Modal */}
       {isNotificationsOpen && (
         <NotificationSettingsModal
           isOpen={isNotificationsOpen}
           onClose={() => setIsNotificationsOpen(false)}
+          alerts={upcomingAlerts}
+          onNavigateToTab={(tab) => setCurrentTab(tab)}
+          onDismissAlert={handleDismissAlert}
+          onClearAllAlerts={handleClearAllAlerts}
+          initialTab={upcomingAlerts.length > 0 ? 'alerts' : 'alerts'}
         />
       )}
     </div>

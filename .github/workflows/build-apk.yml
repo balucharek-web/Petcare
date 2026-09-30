@@ -57,15 +57,17 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.7
-          name: "PetCare v2.17.7 - Nowa ikona aplikacji z 3 łapkami, naprawiona kropka powiadomień na dzwonku oraz nowe ekrany startowe splash"
+          tag_name: v2.17.8
+          name: "PetCare v2.17.8 - Nowe intuicyjne Centrum Powiadomień, lista alertów i oznaczanie jako odczytane"
           body: |
-            ### 🐾 PetCare v2.17.7
+            ### 🐾 PetCare v2.17.8
             
-            - 🐾 **Nowa ikona aplikacji (3 urocze łapki zwierzaka):** Nowy, nowoczesny motyw ikony aplikacji z trzema łapkami w pięknej szmaragdowo-morskiej i ciepłej złotej tonacji z miękkim cieniem 3D, zaktualizowany dla ikon PWA na pulpicie, ikon aplikacji na Androidzie (adaptive launcher icons) oraz ekranów powitalnych (splash screens).
-            - 🔔 **Naprawa kropki na ikonce powiadomień (dzwonek):** Kropka / wskaźnik na dzwonku nie świeci się już bez przerwy! Pojawia się wyłącznie wtedy, gdy rzeczywiście masz aktywne przypomnienie lub zaległy wpis (szczepienie, lek, wizyta u weterynarza) z dokładną liczbą alertów. Gdy nie ma nowych alertów, ikona dzwonka jest czysta i nie wprowadza w błąd.
-            - ☁️ **Stabilna synchronizacja z Dyskiem Google:** Bezawaryjne łączenie konta Google w 1 kliknięcie bez błędów popup.
-            - 🎯 **Precyzyjna nawigacja pod drzwi kliniki:** Pełna nazwa placówki i czysty adres w Google Maps z podziałem na dyżury 24h i gabinety dzienne.
+            - 🔔 **Nowe, w pełni intuicyjne Centrum Powiadomień:** Kliknięcie w dzwonek na górnym pasku otwiera teraz listę Twoich powiadomień i alertów (a nie same techniczne przełączniki wibracji i dźwięku!).
+            - 📋 **Przejrzysta lista alertów:** Każde powiadomienie wyświetla rodzaj zdarzenia (szczepienie, odrobaczenie, wizyta, lek), imię pupila, termin oraz stopień pilności.
+            - ✅ **Oznaczanie jako odczytane i czyszczenie:** Przycisk „Oznacz jako odczytane” oraz „Wyczyść wszystkie” pozwala natychmiast wyczyścić badge (czerwoną cyfrę 1) na dzwonku!
+            - 🚀 **Szybkie przejście do szczegółów:** Bezpośredni przycisk „Przejdź do szczegółów” przenosi od razu do odpowiedniej zakładki (np. szczepień lub wizyt).
+            - ⚙️ **Dedykowana zakładka Ustawień:** Przełączniki dźwięków, wibracji, kategorii i powiadomień testowych są teraz wygodnie dostępne w zakładce „Ustawienia powiadomień”.
+            - 🐾 **Nowa ikona aplikacji (3 łapki):** Piękne logo z trzema łapkami na pulpicie i ekranie powitalnym.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
