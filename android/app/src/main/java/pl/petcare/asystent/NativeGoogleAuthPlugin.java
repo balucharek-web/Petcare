@@ -24,6 +24,7 @@ public class NativeGoogleAuthPlugin extends Plugin {
     public static final int RC_GOOGLE_SIGN_IN = 9001;
     public static final int RC_CHOOSE_ACCOUNT = 9002;
     private static PluginCall pendingSignInCall;
+    private static Activity currentActivity;
 
     @PluginMethod
     public void signIn(PluginCall call) {
@@ -33,6 +34,7 @@ public class NativeGoogleAuthPlugin extends Plugin {
             return;
         }
 
+        currentActivity = activity;
         pendingSignInCall = call;
 
         activity.runOnUiThread(new Runnable() {
@@ -70,6 +72,7 @@ public class NativeGoogleAuthPlugin extends Plugin {
             call.reject("Brak aktywnego okna Androida");
             return;
         }
+        currentActivity = activity;
         pendingSignInCall = call;
         activity.runOnUiThread(new Runnable() {
             @Override
@@ -120,7 +123,7 @@ public class NativeGoogleAuthPlugin extends Plugin {
                     }
                 } catch (ApiException e) {
                     // Fallback to system AccountPicker
-                    Activity act = pendingSignInCall.getActivity();
+                    Activity act = currentActivity;
                     if (act != null) {
                         openSystemAccountPicker(act, pendingSignInCall);
                         return;
