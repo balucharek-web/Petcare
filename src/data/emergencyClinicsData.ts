@@ -10,6 +10,8 @@ export interface EmergencyClinic {
   open24h: boolean;
   notes?: string;
   services?: string[];
+  hours?: string;
+  type?: 'clinic24h' | 'vet_cabinet' | 'vet_clinic';
 }
 
 export const COMPREHENSIVE_24H_CLINICS: EmergencyClinic[] = [
@@ -71,7 +73,7 @@ export const COMPREHENSIVE_24H_CLINICS: EmergencyClinic[] = [
     name: 'Lecznica Weterynaryjna Żoliborz 24h',
     city: 'Warszawa',
     voivodeship: 'Mazowieckie',
-    address: 'ul. Schroegera 72, 01-828 Warszawa (Bielany)',
+    address: 'ul. Schroegera 72, 01-828 Warszawa',
     phone: '22 834 54 53',
     lat: 52.2798,
     lng: 20.9491,
@@ -151,7 +153,7 @@ export const COMPREHENSIVE_24H_CLINICS: EmergencyClinic[] = [
     name: 'Lecznica Weterynaryjna Therios (Dyżur 24h)',
     city: 'Myślenice',
     voivodeship: 'Małopolskie',
-    address: 'ul. Słowackiego 100, 32-400 Myślenice (rejon Krakowa)',
+    address: 'ul. Słowackiego 100, 32-400 Myślenice',
     phone: '12 274 00 24',
     lat: 49.8335,
     lng: 19.9405,
@@ -201,43 +203,109 @@ export const COMPREHENSIVE_24H_CLINICS: EmergencyClinic[] = [
 
   // =================== ŚLĄSKIE ===================
   {
-    id: 'mik-1',
-    name: 'Dyżur Ratunkowy Zwierząt Mikołów / Aglomeracja Śląska',
+    id: 'mik-teodorowscy',
+    name: 'Klinika Teodorowscy – Całodobowa Klinika Weterynaryjna 24h',
     city: 'Mikołów',
     voivodeship: 'Śląskie',
-    address: 'ul. Rybnicka 18, 43-190 Mikołów (oraz wsparcie Kliniki Brynów 24h)',
-    phone: '32 251 75 30',
-    lat: 50.1694,
-    lng: 18.9056,
+    address: 'ul. Żwirki i Wigury 5, 43-190 Mikołów',
+    phone: '32 738 40 41',
+    lat: 50.16905,
+    lng: 18.89915,
     open24h: true,
-    notes: 'Dyżur ostrych przypadków dla Mikołowa i okolicznych gmin (Łaziska, Wyry, Orzesze). Szybki dojazd do Kliniki Brynów (10-12 minut trasą DK81)',
-    services: ['Ostry dyżur 24h', 'Pogotowie urazowe', 'Intensywna opieka']
+    notes: 'Klinika całodobowa w Mikołowie – ostry dyżur 24/7, intensywna terapia, chirurgia urazowa, tomografia, szpital stacjonarny.',
+    services: ['Ostry dyżur 24/7', 'Szpital stacjonarny', 'Tomografia', 'Chirurgia urazowa', 'Tlenoterapia'],
+    hours: 'Czynne całą dobę (24/7)',
+    type: 'clinic24h'
+  },
+  {
+    id: 'mik-wojtek',
+    name: 'Gabinet Weterynaryjny Doktor Wojtek (Wojciech Adamski)',
+    city: 'Mikołów',
+    voivodeship: 'Śląskie',
+    address: 'ul. Gliwicka 44, 43-190 Mikołów',
+    phone: '517 438 555',
+    lat: 50.18415,
+    lng: 18.88070,
+    open24h: false,
+    notes: 'Leczenie psów i kotów, chirurgia miękka, profilaktyka, badania krwi.',
+    services: ['Interna', 'Chirurgia miękka', 'Badania krwi', 'Szczepienia'],
+    hours: 'Pon-Pt: 9:00-17:00, Sob: 9:00-14:00',
+    type: 'vet_cabinet'
+  },
+  {
+    id: 'mik-sikorski',
+    name: 'Gabinet Weterynaryjny lek. wet. Krzysztof Sikorski',
+    city: 'Mikołów',
+    voivodeship: 'Śląskie',
+    address: 'ul. Konstytucji 3 Maja 13, 43-190 Mikołów',
+    phone: '32 226 22 42',
+    lat: 50.16724,
+    lng: 18.90163,
+    open24h: false,
+    notes: 'Gabinet weterynaryjny w centrum Mikołowa. Profilaktyka, stomatologia, dermatologia.',
+    services: ['Interna', 'Dermatologia', 'Stomatologia', 'Profilaktyka'],
+    hours: 'Pon-Pt: 9:00-12:00, 14:00-18:00, Sob: 9:00-12:00',
+    type: 'vet_cabinet'
+  },
+  {
+    id: 'mik-lewicka',
+    name: 'Gabinet Weterynaryjny lek. wet. Mirosława Lewicka',
+    city: 'Mikołów',
+    voivodeship: 'Śląskie',
+    address: 'ul. Rybnicka 4, 43-190 Mikołów',
+    phone: '605 332 553',
+    lat: 50.17255,
+    lng: 18.89643,
+    open24h: false,
+    notes: 'Porady weterynaryjne, interna, szczepienia, opieka profilaktyczna.',
+    services: ['Interna', 'Szczepienia', 'Dietetyka'],
+    hours: 'Pon-Pt: 10:00-12:00, 15:00-17:00, Sob: 9:00-12:00',
+    type: 'vet_cabinet'
+  },
+  {
+    id: 'mik-lesne',
+    name: 'Leśne Pogotowie – Ośrodek Pomocy i Rehabilitacji Zwierząt',
+    city: 'Mikołów',
+    voivodeship: 'Śląskie',
+    address: 'ul. Tadeusza Kościuszki 70, 43-190 Mikołów',
+    phone: '605 100 179',
+    lat: 50.19379,
+    lng: 18.91749,
+    open24h: false,
+    notes: 'Pogotowie i ośrodek pomocy dla zwierząt. Pomoc interwencyjna.',
+    services: ['Pomoc interwencyjna', 'Rehabilitacja'],
+    hours: 'Pon-Pt: 7:00-15:00',
+    type: 'vet_clinic'
   },
   {
     id: 'tyc-1',
-    name: 'Całodobowe Pogotowie Weterynaryjne Tychy / Mikołów',
+    name: 'Całodobowe Pogotowie Weterynaryjne Tychy / Śląskie Centrum',
     city: 'Tychy',
     voivodeship: 'Śląskie',
-    address: 'al. Bielska 105, 43-100 Tychy (obok Mikołowa)',
+    address: 'al. Bielska 105, 43-100 Tychy',
     phone: '32 327 00 22',
-    lat: 50.1142,
-    lng: 18.9721,
+    lat: 50.11529,
+    lng: 18.98284,
     open24h: true,
-    notes: 'Całodobowy dyżur dla Tychów, Mikołowa, Łazisk Górnych i Bierunia',
-    services: ['Dyżur 24/7', 'RTG cyfrowe', 'Chirurgia miękka']
+    notes: 'Całodobowy dyżur dla Tychów, Mikołowa, Łazisk Górnych i Bierunia. RTG cyfrowe, chirurgia miękka.',
+    services: ['Dyżur 24/7', 'RTG cyfrowe', 'Chirurgia miękka'],
+    hours: 'Czynne całą dobę (24/7)',
+    type: 'clinic24h'
   },
   {
     id: 'kat-1',
     name: 'Klinika Weterynaryjna Brynów 24h',
     city: 'Katowice',
     voivodeship: 'Śląskie',
-    address: 'ul. Brynowska 25c, 40-584 Katowice (bezpośredni dojazd DK81 z Mikołowa)',
+    address: 'ul. Brynowska 25c, 40-584 Katowice',
     phone: '32 251 75 30',
     lat: 50.2372,
     lng: 18.9984,
     open24h: true,
-    notes: 'Całodobowy dyżur chirurgiczny i szpital dla zwierząt. Główny ośrodek referencyjny Śląska (10 km od Mikołowa)',
-    services: ['Ostry dyżur 24h', 'Chirurgia urazowa', 'Tomografia', 'Szpital stacjonarny']
+    notes: 'Całodobowy dyżur chirurgiczny i szpital dla zwierząt. Główny ośrodek referencyjny Śląska (10 km od Mikołowa).',
+    services: ['Ostry dyżur 24h', 'Chirurgia urazowa', 'Tomografia', 'Szpital stacjonarny'],
+    hours: 'Czynne całą dobę (24/7)',
+    type: 'clinic24h'
   },
   {
     id: 'kat-2',
@@ -799,7 +867,7 @@ export const COMPREHENSIVE_24H_CLINICS: EmergencyClinic[] = [
     name: 'Poliklinika Weterynaryjna UWM Kortowo 24h Olsztyn',
     city: 'Olsztyn',
     voivodeship: 'Warmińsko-Mazurskie',
-    address: 'ul. Oczapowskiego 14, 10-719 Olsztyn (Kortowo)',
+    address: 'ul. Oczapowskiego 14, 10-719 Olsztyn',
     phone: '89 523 37 40',
     lat: 53.7582,
     lng: 20.4552,

@@ -75,6 +75,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
 
   const [savedClinicId, setSavedClinicId] = useState<string | null>(null);
   const [gpsNotice, setGpsNotice] = useState<{ type: string; message: string; isNative?: boolean } | null>(null);
+  const [vetFilterType, setVetFilterType] = useState<'all' | '24h'>('all');
 
   const voivodeshipSelectId = useId();
 
@@ -441,6 +442,11 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
   // Filtered and sorted clinics
   const filteredClinics = useMemo(() => {
     return clinicsWithDistance.filter(clinic => {
+      // 24h Emergency filter
+      if (vetFilterType === '24h' && !clinic.open24h) {
+        return false;
+      }
+
       // Voivodeship filter
       if (selectedVoivodeship !== 'all' && clinic.voivodeship !== selectedVoivodeship) {
         return false;
@@ -474,7 +480,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
       if (b.distanceKm !== null) return 1;
       return a.city.localeCompare(b.city, 'pl');
     });
-  }, [clinicsWithDistance, selectedVoivodeship, maxRadiusKm, searchQuery]);
+  }, [clinicsWithDistance, selectedVoivodeship, maxRadiusKm, searchQuery, vetFilterType]);
 
   if (!isOpen) return null;
 
@@ -709,7 +715,33 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* Filter mode: All Vets vs 24h Emergency */}
+              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setVetFilterType('all')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                    vetFilterType === 'all'
+                      ? 'bg-white text-slate-900 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>🏥 Wszyscy weterynarze</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVetFilterType('24h')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                    vetFilterType === '24h'
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>🚨 Tylko dyżur 24/7</span>
+                </button>
+              </div>
+
               <label htmlFor={voivodeshipSelectId} className="sr-only">Województwo</label>
               <select
                 id={voivodeshipSelectId}
@@ -835,7 +867,9 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
             </div>
           ) : (
             filteredClinics.map((clinic, index) => {
-              const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${clinic.lat},${clinic.lng}`;
+              const cleanAddress = clinic.address.replace(/\s*\([^)]*\)/g, '').trim();
+              const navDestination = encodeURIComponent(`${clinic.name}, ${cleanAddress}`);
+              const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${navDestination}&travelmode=driving`;
               const isNearest = index === 0 && clinic.distanceKm !== null;
 
               return (
@@ -855,10 +889,17 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                           {clinic.name}
                         </span>
 
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />
-                          24h / 7 dni
-                        </span>
+                        {clinic.open24h ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5 text-emerald-600" />
+                            Dyżur 24h / 7 dni
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5 text-blue-600" />
+                            {clinic.hours || 'Przychodnia dzienna'}
+                          </span>
+                        )}
 
                         {isNearest && (
                           <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
@@ -889,7 +930,8 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                       <p className="text-xs text-slate-600 flex items-center gap-1.5 flex-wrap">
                         <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                         <span className="font-extrabold text-slate-800">{clinic.city}:</span>
-                        <span>{clinic.address} (woj. {clinic.voivodeship})</span>
+                        <span className="text-slate-800 font-semibold">{cleanAddress}</span>
+                        <span className="text-slate-400 text-[11px]">(woj. {clinic.voivodeship})</span>
                       </p>
 
                       {clinic.notes && (
@@ -970,6 +1012,32 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
               );
             })
           )}
+
+          {/* Direct Google Maps discovery card to find all local veterinary offices */}
+          <div className="bg-gradient-to-r from-rose-50 to-amber-50 border border-rose-200 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs mt-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-xs">
+                🐾
+              </div>
+              <div>
+                <p className="font-bold text-sm text-slate-900">
+                  Szukasz innego gabinetu w {currentCityName ? currentCityName.split('(')[0].trim() : 'swojej okolicy'}?
+                </p>
+                <p className="text-slate-600 text-[11px] mt-0.5">
+                  Otwórz wyszukiwarkę wszystkich lokalnych weterynarzy i przychodni bezpośrednio w Google Maps
+                </p>
+              </div>
+            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`weterynarz gabinet przychodnia ${currentCityName ? currentCityName.split('(')[0].trim() : 'w pobliżu'}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap inline-flex items-center gap-1.5 shrink-0 active:scale-95"
+            >
+              <Navigation className="w-3.5 h-3.5 text-white" />
+              <span>Wszyscy weterynarze na mapie</span>
+            </a>
+          </div>
         </div>
 
         {/* Footer */}

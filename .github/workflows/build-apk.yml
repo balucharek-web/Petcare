@@ -57,15 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.4
-          name: "PetCare v2.17.4 - Bezpośrednie wywoływanie natywnego okna Androida do włączenia lokalizacji (Google Play Services ResolvableApiException)"
+          tag_name: v2.17.5
+          name: "PetCare v2.17.5 - Dokładna nawigacja pod drzwi kliniki, wszyscy weterynarze w mieście i filtr dyżurów"
           body: |
-            ### 🐾 PetCare v2.17.4
+            ### 🐾 PetCare v2.17.5
             
-            - 🧭 **Bezpośrednie wywołanie natywnego okna Androida do włączenia lokalizacji:** Naprawiono kolejność wywołań w aplikacji na telefonie. Wcześniej `@capacitor/geolocation` blokował wywołanie błędem przy wyłączonym GPS zanim wtyczka natywna zdążyła pokazać okno systemowe. Teraz `NativeLocation.promptEnableLocation()` jest wywoływany w pierwszej kolejności, bez zbędnych blokad, co natychmiastowo otwiera bezpośredni dialog systemowy Androida (Google Play Services `ResolvableApiException`) z prośbą o włączenie lokalizacji jednym kliknięciem ("Włącz lokalizację w urządzeniu" -> [OK]).
-            - 🛡️ **Odporne sprawdzanie i żądanie uprawnień Androida:** Zabezpieczono metody sprawdzania uprawnień `checkPermissions` i `requestPermissions`, dzięki czemu natywne okno zezwolenia na lokalizację dla PetCare ("Zezwalaj aplikacji PetCare na dostęp do informacji o lokalizacji tego urządzenia") pojawia się prawidłowo.
-            - ⚙️ **Bezpośrednie przyciski do Ustawień Androida:** Jeśli użytkownik trwale odrzuci uprawnienia lub wyłączy GPS, aplikacja wyświetla wygodne przyciski kierujące bezpośrednio do ustawień uprawnień aplikacji PetCare lub systemowych ustawień GPS w telefonie.
-            - 🏥 **Wyświetlanie klinik z miast ościennych:** Pełne sortowanie według odległości wokół Mikołowa (Mikołów, Tychy, Brynów, Gliwice, Chorzów itd.) z szacowanym czasem dojazdu samochodem.
+            - 🎯 **Precyzyjna nawigacja pod sam adres kliniki:** Naprawiono błąd generowania trasy GPS. Usunięto błędy w adresach i współrzędnych. Do Google Maps przekazywana jest teraz pełna nazwa placówki oraz czysty, precyzyjny adres (np. `Klinika Teodorowscy, ul. Żwirki i Wigury 5, 43-190 Mikołów`), dzięki czemu nawigacja prowadzi bezpośrednio pod drzwi lecznicy, a nie na losowe ulice czy drogi dojazdowe.
+            - 🏥 **Baza wszystkich weterynarzy w danym mieście:** Dodano rzeczywiste gabinety i przychodnie w Mikołowie (Klinika Teodorowscy 24h, Gabinet Doktor Wojtek, Gabinet Sikorski, Gabinet Lewicka, Leśne Pogotowie) ze sprawdzonymi numerami telefonów i godzinami przyjęć.
+            - 🔄 **Przełącznik "Wszyscy weterynarze" / "Tylko dyżur 24/7":** Możliwość szybkiego przełączania między całodobowymi dyżurami ratunkowymi a wszystkimi dziennymi gabinetami i lecznicami w okolicy.
+            - 🗺️ **Wyszukiwarka wszystkich okolicznych weterynarzy:** Bezpośredni przycisk otwierający mapę wszystkich okolicznych lecznic weterynaryjnych na Google Maps w dowolnym mieście w Polsce.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
