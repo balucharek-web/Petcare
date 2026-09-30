@@ -12,7 +12,7 @@ import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://ais-dev-aii73malc2rhndjfpz7ldp-559140193543.europe-west3.run.app');
+const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || 'https://ais-pre-jncmusdflv7zr74uqtfecz-503832482938.europe-west2.run.app';
 
 export interface CloudUser {
   email: string;
@@ -465,6 +465,22 @@ export async function signInWithGoogle(
   if (petCount === 0 && authData.payload && Array.isArray(authData.payload.pets) && authData.payload.pets.length > 0) {
     const res = restoreAllPetData(authData.payload);
     petCount = res.petCount;
+  }
+
+  // 3. Fallback to explicit cloud download
+  if (petCount === 0 && authToken) {
+    try {
+      const down = await safeApiCall('/api/cloud-sync/download', {
+        email: cleanEmail,
+        token: authToken,
+      });
+      if (down?.payload && Array.isArray(down.payload.pets) && down.payload.pets.length > 0) {
+        const res = restoreAllPetData(down.payload);
+        petCount = res.petCount;
+      }
+    } catch (downErr) {
+      console.warn('Fallback cloud download check notice:', downErr);
+    }
   }
 
   // If local storage has pets, update petCount

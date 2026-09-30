@@ -17,7 +17,8 @@ import {
   HeartPulse,
   History,
   Users,
-  Lock
+  Lock,
+  LayoutGrid
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 
@@ -41,6 +42,7 @@ interface ToolsHubModalProps {
   onOpenHealthTimeline?: () => void;
   onOpenFamilySharing?: () => void;
   onOpenPrivacyPolicy?: () => void;
+  onOpenHomeScreenWidget?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -64,6 +66,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenHealthTimeline,
   onOpenFamilySharing,
   onOpenPrivacyPolicy,
+  onOpenHomeScreenWidget,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
@@ -199,6 +202,14 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
       color: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
       action: onOpenPetsitter,
     },
+    ...(onOpenHomeScreenWidget ? [{
+      id: 'home-screen-widget',
+      label: 'Widżet na Pulpit Telefonu',
+      desc: 'Dodaj kafelek leków i profilaktyki na ekran główny Androida',
+      icon: LayoutGrid,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      action: onOpenHomeScreenWidget,
+    }] : []),
     {
       id: 'customizer',
       label: 'Dostosuj Stronę Główną',

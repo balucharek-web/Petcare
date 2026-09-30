@@ -15,7 +15,8 @@ import {
   Users, 
   History,
   Check,
-  Calendar
+  Calendar,
+  LayoutGrid
 } from 'lucide-react';
 import { Pet, Medication, Vaccination, DoseLogEntry, DashboardConfig } from '../types/pet';
 import { storage } from '../services/storage';
@@ -30,6 +31,7 @@ interface TodayQuickActionsWidgetProps {
   onOpenFamilySharing: () => void;
   onOpenWeightModal: () => void;
   onToggleHideWidget: () => void;
+  onOpenHomeScreenWidgetModal?: () => void;
   onDoseLogged?: () => void;
 }
 
@@ -43,6 +45,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
   onOpenFamilySharing,
   onOpenWeightModal,
   onToggleHideWidget,
+  onOpenHomeScreenWidgetModal,
   onDoseLogged
 }) => {
   const [doseLogs, setDoseLogs] = useState<DoseLogEntry[]>([]);
@@ -148,15 +151,29 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           </div>
         </div>
 
-        {/* Hide optional widget button */}
-        <button
-          onClick={onToggleHideWidget}
-          title="Ukryj ten widżet (możesz go włączyć w Dostosuj Pulpit)"
-          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 rounded-xl transition-colors cursor-pointer text-xs flex items-center gap-1"
-        >
-          <EyeOff className="w-4 h-4" />
-          <span className="hidden sm:inline text-[11px] font-medium">Ukryj widżet</span>
-        </button>
+        {/* Actions */}
+        <div className="flex items-center gap-1.5">
+          {onOpenHomeScreenWidgetModal && (
+            <button
+              onClick={onOpenHomeScreenWidgetModal}
+              title="Dodaj ten widżet na pulpit telefonu (Android Home Screen)"
+              className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/90 rounded-xl transition-all cursor-pointer text-xs flex items-center gap-1 font-bold shadow-2xs active:scale-95"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-teal-600" />
+              <span className="text-[11px]">Pulpit telefonu</span>
+            </button>
+          )}
+
+          {/* Hide optional widget button */}
+          <button
+            onClick={onToggleHideWidget}
+            title="Ukryj ten widżet (możesz go włączyć w Dostosuj Pulpit)"
+            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 rounded-xl transition-colors cursor-pointer text-xs flex items-center gap-1"
+          >
+            <EyeOff className="w-4 h-4" />
+            <span className="hidden sm:inline text-[11px] font-medium">Ukryj</span>
+          </button>
+        </div>
       </div>
 
       {/* Quick Action Pills */}

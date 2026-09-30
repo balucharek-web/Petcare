@@ -65,6 +65,8 @@ import { VetCardModal } from './components/VetCardModal';
 import { HealthTimelineModal } from './components/HealthTimelineModal';
 import { FamilySharingModal } from './components/FamilySharingModal';
 import { CommercialPrivacyModal } from './components/CommercialPrivacyModal';
+import { HomeScreenWidgetModal } from './components/HomeScreenWidgetModal';
+import { syncWidgetWithLatestData } from './services/nativeWidget';
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
@@ -102,9 +104,15 @@ export default function App() {
   const [isHealthTimelineOpen, setIsHealthTimelineOpen] = useState(false);
   const [isFamilySharingOpen, setIsFamilySharingOpen] = useState(false);
   const [isCommercialPrivacyOpen, setIsCommercialPrivacyOpen] = useState(false);
+  const [isHomeScreenWidgetModalOpen, setIsHomeScreenWidgetModalOpen] = useState(false);
   const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
   const [qrInitialMode, setQrInitialMode] = useState<'send' | 'receive'>('send');
   const [restoreToast, setRestoreToast] = useState<string | null>(null);
+
+  // Sync native Android home screen widget with latest pet and task data
+  useEffect(() => {
+    syncWidgetWithLatestData();
+  }, [pets, activePetId]);
 
   // Auto-download and restore from Google Drive if user has 0 pets on device (e.g. after reinstalling or clean phone)
   useEffect(() => {
@@ -620,6 +628,7 @@ export default function App() {
               onOpenVetCard={() => setIsVetCardOpen(true)}
               onOpenHealthTimeline={() => setIsHealthTimelineOpen(true)}
               onOpenFamilySharing={() => setIsFamilySharingOpen(true)}
+              onOpenHomeScreenWidgetModal={() => setIsHomeScreenWidgetModalOpen(true)}
             />
           )}
 
@@ -831,6 +840,10 @@ export default function App() {
             setIsToolsHubOpen(false);
             setIsCommercialPrivacyOpen(true);
           }}
+          onOpenHomeScreenWidget={() => {
+            setIsToolsHubOpen(false);
+            setIsHomeScreenWidgetModalOpen(true);
+          }}
           onOpenSettings={() => {
             // Can be opened from HeaderNav
             setIsToolsHubOpen(false);
@@ -934,6 +947,16 @@ export default function App() {
           isOpen={isCommercialPrivacyOpen}
           onClose={() => setIsCommercialPrivacyOpen(false)}
           onDataReset={reloadData}
+        />
+      )}
+
+      {/* Feature 13: Natywny Widżet na Pulpit Telefonu (Android Home Screen) */}
+      {isHomeScreenWidgetModalOpen && (
+        <HomeScreenWidgetModal
+          isOpen={isHomeScreenWidgetModalOpen}
+          onClose={() => setIsHomeScreenWidgetModalOpen(false)}
+          activePet={activePet}
+          pendingMedicationsCount={activeMedsCount}
         />
       )}
     </div>

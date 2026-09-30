@@ -70,6 +70,7 @@ interface PetProfileViewProps {
   onOpenVetCard?: () => void;
   onOpenHealthTimeline?: () => void;
   onOpenFamilySharing?: () => void;
+  onOpenHomeScreenWidgetModal?: () => void;
 }
 
 export const PetProfileView: React.FC<PetProfileViewProps> = ({
@@ -94,6 +95,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   onOpenVetCard,
   onOpenHealthTimeline,
   onOpenFamilySharing,
+  onOpenHomeScreenWidgetModal,
 }) => {
   const [copiedChip, setCopiedChip] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -615,6 +617,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             onOpenMedications={() => onNavigateToTab('medications')}
             onOpenFamilySharing={onOpenFamilySharing || (() => {})}
             onOpenWeightModal={() => setIsAddingWeight(true)}
+            onOpenHomeScreenWidgetModal={onOpenHomeScreenWidgetModal}
             onToggleHideWidget={() => {
               const updatedConfig = { ...dashboardConfig, todayQuickActions: false };
               storage.saveDashboardConfig(updatedConfig);

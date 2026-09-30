@@ -4,4 +4,6 @@
     <string name="title_activity_main">PetCare</string>
     <string name="package_name">pl.petcare.asystent</string>
     <string name="custom_url_scheme">pl.petcare.asystent</string>
+    <string name="widget_name">PetCare: Pupil i Leki</string>
+    <string name="widget_description">Podgląd stanu zdrowia pupila, profilaktyki i leków na dziś bezpośrednio na pulpicie telefonu</string>
 </resources>
