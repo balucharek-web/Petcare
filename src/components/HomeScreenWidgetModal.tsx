@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { LayoutGrid, X, Check, Smartphone, Sparkles, ExternalLink, ArrowRight, ShieldCheck, Heart } from 'lucide-react';
+import { LayoutGrid, X, Check, Smartphone, Sparkles, ExternalLink, ArrowRight, ShieldCheck, Heart, AlertCircle, Info } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { Pet } from '../types/pet';
 import { pinPetCareWidgetToHomeScreen, syncWidgetWithLatestData } from '../services/nativeWidget';
 
@@ -17,21 +18,31 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
   pendingMedicationsCount,
 }) => {
   const [isPinning, setIsPinning] = useState(false);
-  const [pinSuccess, setPinSuccess] = useState(false);
+  const [pinStatus, setPinStatus] = useState<'idle' | 'success' | 'manual_required' | 'web_mode'>('idle');
+  const isAndroidNative = Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android';
 
   if (!isOpen) return null;
 
   const handlePin = async () => {
     setIsPinning(true);
+    setPinStatus('idle');
+
+    if (!isAndroidNative) {
+      setPinStatus('web_mode');
+      setIsPinning(false);
+      return;
+    }
+
     try {
       await syncWidgetWithLatestData();
       const res = await pinPetCareWidgetToHomeScreen();
       if (res.requested) {
-        setPinSuccess(true);
-        setTimeout(() => setPinSuccess(false), 5000);
+        setPinStatus('success');
+      } else {
+        setPinStatus('manual_required');
       }
     } catch {
-      // Ignored
+      setPinStatus('manual_required');
     } finally {
       setIsPinning(false);
     }
@@ -64,13 +75,37 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
 
         {/* Content */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
-          {/* Success Banner */}
-          {pinSuccess && (
+          {/* Status Banners */}
+          {pinStatus === 'success' && (
             <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-900 dark:text-emerald-200 animate-fadeIn">
               <Check className="w-5 h-5 text-emerald-600 shrink-0" />
               <span>
-                <strong>System Android wyświetlił zapytanie o dodanie widżetu!</strong> Potwierdź dodanie na ekranie telefonu.
+                <strong>System Android wyświetlił zapytanie o dodanie widżetu!</strong> Kliknij „Dodaj automatycznie” w oknie systemowym.
               </span>
+            </div>
+          )}
+
+          {pinStatus === 'manual_required' && (
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200 animate-fadeIn">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <strong>Twój launcher Androida wymaga ręcznego dodania widżetu.</strong>
+                <p className="mt-0.5 text-[11px] text-amber-800 dark:text-amber-300">
+                  Przytrzymaj palec na wolnym miejscu na pulpicie telefonu ➔ wybierz <strong>„Widżety”</strong> ➔ przeciągnij <strong>„PetCare: Pupil i Leki”</strong>.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {pinStatus === 'web_mode' && (
+            <div className="p-3.5 bg-sky-50 dark:bg-sky-950/60 border border-sky-300 dark:border-sky-800 rounded-2xl flex items-start gap-2.5 text-xs text-sky-900 dark:text-sky-200 animate-fadeIn">
+              <Info className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
+              <div>
+                <strong>Jesteś w wersji webowej (przeglądarka / PWA).</strong>
+                <p className="mt-0.5 text-[11px] text-sky-800 dark:text-sky-300">
+                  Natywny widżet pulpitu 4x2 działa w <strong>aplikacji zainstalowanej z pliku APK na telefonie</strong>. W przeglądarce możesz skorzystać z opcji menu: <em>„Dodaj do ekranu głównego”</em>, aby zainstalować aplikację.
+                </p>
+              </div>
             </div>
           )}
 

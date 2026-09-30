@@ -12,7 +12,7 @@ import {
   Smartphone,
   EyeOff
 } from 'lucide-react';
-import { bundleAllPetData, exportBackupFile } from '../services/cloudSyncService';
+import { bundleAllPetData, exportBackupFile, deleteCloudAccount } from '../services/cloudSyncService';
 import { storage } from '../services/storage';
 
 interface CommercialPrivacyModalProps {
@@ -33,12 +33,18 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleExecuteDeleteAllData = () => {
+  const handleExecuteDeleteAllData = async () => {
     if (deleteConfirmationText.trim().toUpperCase() !== 'USUŃ') {
       return;
     }
 
     setIsDeleting(true);
+    try {
+      await deleteCloudAccount();
+    } catch (e) {
+      console.warn('Błąd usuwania konta w chmurze:', e);
+    }
+
     setTimeout(() => {
       // Clear all local storage
       localStorage.clear();

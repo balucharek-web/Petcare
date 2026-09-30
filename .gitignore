@@ -7,4 +7,9 @@ coverage/
 .env*
 !.env.example
 public/*.apk
+public/*.tar.gz
+public/*.zip
 bun.lock
+data/*.json
+*.keystore
+*.jks

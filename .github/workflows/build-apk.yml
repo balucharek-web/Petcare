@@ -62,16 +62,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.34.0
-          name: "PetCare v2.34.0 - Natywny Widżet na Pulpit Smartfona (Home Screen) & Naprawa Przywracania z Chmury/Dysku"
+          tag_name: v2.35.0
+          name: "PetCare v2.35.0 - Poprawka Widżetu Pulpitu Androida & Zabezpieczenia Publiczne"
           body: |
-            ### 🐾 PetCare v2.34.0 - Natywny Widżet Androida na Pulpit & Naprawa Kopii
+            ### 🐾 PetCare v2.35.0 - Nowe wydanie aplikacji na Androida
 
-            - 📲 **Natywny widżet na pulpit telefonu (Android Home Screen):** Prawdziwy widżet systemowy (format 4x2) z imieniem pupila, lekiem do podania na dziś, statusem ochrony przed kleszczami i szybkim otwieraniem aplikacji – dodawany 1 kliknięciem lub gestem przytrzymania pulpitu!
-            - 🔄 **Pełna naprawa przywracania konta i kopii zapasowej:** Poprawiono adres serwera chmurowego w aplikacji mobilnej, automatyczne pobieranie pupila po zalogowaniu kontem Google oraz elastyczne odczytywanie kopii z Dysku Google.
-            - 🩺 **Karta Pacjenta (Tryb SOR / Wizyta u Lekarza):** Z kodem QR dla weterynarza.
-            - 📜 **Zintegrowana Oś Czasu Zdrowia:** Chronologiczna historia leczenia.
-            - 👥 **Tryb Współwłaściciela:** Zabezpieczenie przed podwójnym podaniem leków.
+            - 🛠️ **Poprawka widżetu pulpitu (Android Home Screen):** Usunięto błąd wywołania API systemowego Androida (poprawne wywołanie `requestPinAppWidget` na Androidzie 12-15) oraz dodano obsługę nakładek OEM (Xiaomi, Samsung).
+            - 🔒 **Wzmocnione zabezpieczenia:** Kryptograficzna weryfikacja tokenów Google, rate limiting zapytań PIN/auth, jednorazowe kody parowania urządzeń.
+            - 🗑️ **Prawo do usunięcia danych (RODO Art. 17):** Możliwość trwałego usunięcia konta i kopii w chmurze bezpośrednio z aplikacji.
+            - 💊 **Medyczny asystent pupila:** Dawkowanie mg/kg, harmonogramy leków, szczepienia, skaner badań Gemini OCR i karta SOS.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

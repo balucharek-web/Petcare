@@ -12,7 +12,7 @@ import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || 'https://ais-pre-jncmusdflv7zr74uqtfecz-503832482938.europe-west2.run.app';
+const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('capacitor:') && !window.location.origin.startsWith('file:') && window.location.origin.includes('.run.app') ? window.location.origin : 'https://ais-pre-2wxylgsln7fo5palu6lxux-929301533450.europe-west2.run.app');
 
 export interface CloudUser {
   email: string;
@@ -417,7 +417,7 @@ export async function signInWithGoogle(
     throw new Error('Nieprawidłowy adres konta Google.');
   }
 
-  if (!idToken && !androidProof) {
+  if (!idToken && !accessToken && !androidProof) {
     throw new Error('Brak bezpiecznego uwierzytelnienia konta Google. Logowanie przerwane.');
   }
 
@@ -440,7 +440,7 @@ export async function signInWithGoogle(
   const authData = await safeApiCall('/api/cloud-sync/auth', {
     email: cleanEmail,
     idToken: idToken || undefined,
-    androidProof: androidProof || undefined,
+    accessToken: accessToken || undefined,
     name: user.name,
     avatar: user.avatar,
     provider: 'google',
@@ -696,3 +696,39 @@ export async function checkDailyAutoSync(): Promise<boolean> {
   }
   return false;
 }
+
+// 11. Permanently delete cloud account and backup data (GDPR / RODO Art. 17 - Right to Erasure)
+export async function deleteCloudAccount(): Promise<boolean> {
+  const session = getStoredSession();
+  const email = session.user?.email;
+  const token = session.authToken;
+
+  if (email) {
+    const accountKey = getUserAccountKey(email);
+    localStorage.removeItem(accountKey);
+  }
+
+  if (email && token) {
+    try {
+      const url = getApiUrl('/api/cloud-sync/account');
+      await fetch(url, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token }),
+      });
+    } catch (e) {
+      console.warn('Błąd sieci podczas usuwania konta z chmury:', e);
+    }
+  }
+
+  saveSession({
+    user: null,
+    authToken: undefined,
+    lastSyncTime: null,
+    lastSyncStatus: 'idle',
+    autoSync: true,
+  });
+
+  return true;
+}
+

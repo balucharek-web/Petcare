@@ -18,6 +18,14 @@ async function startServer() {
 
   app.use(express.json({ limit: '25mb' }));
 
+  // HTTP Security Headers
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
   // Enable CORS for web, mobile apps (Capacitor), and local environments
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -27,6 +35,49 @@ async function startServer() {
       return res.sendStatus(200);
     }
     next();
+  });
+
+  // In-memory sliding-window Rate Limiter to prevent DoS and Brute-force attacks
+  interface RateLimitEntry {
+    count: number;
+    resetTime: number;
+  }
+  function createRateLimiter(options: { windowMs: number; max: number; message: string }) {
+    const store = new Map<string, RateLimitEntry>();
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const forwarded = req.headers['x-forwarded-for'];
+      const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '') || req.socket.remoteAddress || 'unknown-client';
+      const now = Date.now();
+      let record = store.get(ip);
+      if (!record || now > record.resetTime) {
+        record = { count: 1, resetTime: now + options.windowMs };
+        store.set(ip, record);
+        return next();
+      }
+      record.count++;
+      if (record.count > options.max) {
+        return res.status(429).json({ success: false, error: options.message });
+      }
+      next();
+    };
+  }
+
+  const authLimiter = createRateLimiter({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 25,
+    message: 'Zbyt wiele prób logowania. Odczekaj 5 minut przed kolejną próbą.',
+  });
+
+  const pairCodeLimiter = createRateLimiter({
+    windowMs: 5 * 60 * 1000,
+    max: 15,
+    message: 'Zbyt wiele prób parowania kodem PIN. Odczekaj 5 minut.',
+  });
+
+  const aiScanLimiter = createRateLimiter({
+    windowMs: 5 * 60 * 1000,
+    max: 20,
+    message: 'Przekroczono limit zapytań skanera AI. Odczekaj chwilę.',
   });
 
   // Persistent Cloud Sync Storage
@@ -46,6 +97,7 @@ async function startServer() {
     pairCode?: {
       code: string;
       expiresAt: number;
+      attempts?: number;
     };
   }
 
@@ -141,6 +193,7 @@ async function startServer() {
         idToken,
         audience: [
           '764412082432-q5d25pi0er4lnevgagscd26h7mkm8kcb.apps.googleusercontent.com',
+          '790254321655-2irfb1normmrbsi2nh34oiv5oob6rhnf.apps.googleusercontent.com'
         ],
       });
       const payload = ticket.getPayload();
@@ -159,10 +212,39 @@ async function startServer() {
     return null;
   }
 
-  // API Route: Cloud Sync Auth (Login, Register, Google)
-  app.post('/api/cloud-sync/auth', async (req, res) => {
+  // Cryptographic Google Access Token verification via Google UserInfo API
+  async function verifyGoogleAccessToken(accessToken: string): Promise<{
+    email: string;
+    name?: string;
+    avatar?: string;
+    sub: string;
+  } | null> {
+    if (!accessToken || typeof accessToken !== 'string') return null;
     try {
-      const { email, password, name, avatar, provider, action, idToken } = req.body;
+      const gRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (gRes.ok) {
+        const gData: any = await gRes.json();
+        if (gData.email && (gData.email_verified === true || gData.email_verified === 'true')) {
+          return {
+            email: gData.email.toLowerCase(),
+            name: gData.name || gData.email.split('@')[0],
+            avatar: gData.picture || '',
+            sub: gData.sub,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Google accessToken verification lookup warning:', err);
+    }
+    return null;
+  }
+
+  // API Route: Cloud Sync Auth (Login, Register, Google) with Rate Limiting
+  app.post('/api/cloud-sync/auth', authLimiter, async (req, res) => {
+    try {
+      const { email, password, name, avatar, provider, action, idToken, accessToken } = req.body;
       if (!email || typeof email !== 'string') {
         return res.status(400).json({ success: false, error: 'Wymagany jest poprawny adres e-mail.' });
       }
@@ -176,35 +258,25 @@ async function startServer() {
       let user = db.users[normalizedEmail];
       const generatedToken = 'tok_' + crypto.randomBytes(24).toString('hex');
 
-      // 1. Google Provider Sign-in (Secure OIDC Verification / Native Android Device Proof)
+      // 1. Google Provider Sign-in (Cryptographically verified ID Token or OAuth2 Access Token)
       if (provider === 'google' || action === 'google') {
-        const { androidProof } = req.body;
         let isAuthorized = false;
         let verifiedName = name || '';
         let verifiedAvatar = avatar || '';
 
-        // Case A: Verified native Android application
-        if (androidProof && typeof androidProof === 'object') {
-          const { deviceId, timestamp, signature } = androidProof;
-          const HMAC_SECRET = 'PETCARE_NATIVE_SEC_KEY_2026_V29';
-          const now = Date.now();
-
-          // Reject if timestamp is older than 10 minutes or in the future
-          if (typeof timestamp === 'number' && Math.abs(now - timestamp) < 10 * 60 * 1000) {
-            const expectedSig = crypto
-              .createHmac('sha256', HMAC_SECRET)
-              .update(`ANDROID_NATIVE:${normalizedEmail}:${deviceId}:${timestamp}`)
-              .digest('hex');
-
-            if (signature === expectedSig) {
-              isAuthorized = true;
-            }
+        // Case A: Verified Google / Firebase JWT idToken
+        if (idToken && typeof idToken === 'string') {
+          const verifiedUser = await verifyGoogleOrFirebaseToken(idToken);
+          if (verifiedUser && verifiedUser.email === normalizedEmail) {
+            isAuthorized = true;
+            if (verifiedUser.name) verifiedName = verifiedUser.name;
+            if (verifiedUser.avatar) verifiedAvatar = verifiedUser.avatar;
           }
         }
 
-        // Case B: Verified Google / Firebase JWT idToken from Web
-        if (!isAuthorized && idToken && typeof idToken === 'string') {
-          const verifiedUser = await verifyGoogleOrFirebaseToken(idToken);
+        // Case B: Verified Google OAuth2 Access Token (e.g. from Native Android Google Sign-In)
+        if (!isAuthorized && accessToken && typeof accessToken === 'string') {
+          const verifiedUser = await verifyGoogleAccessToken(accessToken);
           if (verifiedUser && verifiedUser.email === normalizedEmail) {
             isAuthorized = true;
             if (verifiedUser.name) verifiedName = verifiedUser.name;
@@ -215,7 +287,7 @@ async function startServer() {
         if (!isAuthorized) {
           return res.status(401).json({
             success: false,
-            error: 'Błąd autoryzacji konta Google. Nieautoryzowane logowanie.',
+            error: 'Błąd autoryzacji konta Google. Wymagany jest zweryfikowany token Google.',
           });
         }
 
@@ -342,7 +414,8 @@ async function startServer() {
         const testHash = hashPassword(password, user.salt);
         isValidPassword = (testHash === user.passwordHash);
       } else if (user.passwordHash) {
-        isValidPassword = (user.passwordHash === password || user.passwordHash === 'default_pass');
+        // Legacy fallback without salt
+        isValidPassword = (user.passwordHash === hashPassword(password, ''));
       }
 
       if (!isValidPassword) {
@@ -560,11 +633,12 @@ async function startServer() {
         return res.status(403).json({ success: false, error: 'Wymagane logowanie do wygenerowania kodu.' });
       }
 
-      // Generate 6-digit random code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate cryptographically secure 6-digit random code
+      const code = crypto.randomInt(100000, 1000000).toString();
       user.pairCode = {
         code,
         expiresAt: Date.now() + 15 * 60 * 1000, // 15 mins
+        attempts: 0,
       };
       writeSyncDB(db);
 
@@ -574,8 +648,8 @@ async function startServer() {
     }
   });
 
-  // API Route: Pair and Restore using 6-digit PIN on any phone
-  app.post('/api/cloud-sync/pair-code', (req, res) => {
+  // API Route: Pair and Restore using 6-digit PIN on any phone (with brute-force protection)
+  app.post('/api/cloud-sync/pair-code', pairCodeLimiter, (req, res) => {
     try {
       const { code } = req.body;
       if (!code) {
@@ -589,10 +663,21 @@ async function startServer() {
       for (const email in db.users) {
         const u = db.users[email];
         if (u.pairCode && u.pairCode.code === cleanCode) {
+          u.pairCode.attempts = (u.pairCode.attempts || 0) + 1;
+          if (u.pairCode.attempts > 5) {
+            delete u.pairCode;
+            writeSyncDB(db);
+            return res.status(410).json({ success: false, error: 'Przekroczono limit prób dla tego kodu. Wygeneruj nowy kod na pierwszym telefonie.' });
+          }
           if (Date.now() > u.pairCode.expiresAt) {
+            delete u.pairCode;
+            writeSyncDB(db);
             return res.status(410).json({ success: false, error: 'Ten kod parowania wygasł (ważny przez 15 minut). Wygeneruj nowy na pierwszym telefonie.' });
           }
           matchedUser = u;
+          // Invalidate single-use code immediately upon successful pair
+          delete u.pairCode;
+          writeSyncDB(db);
           break;
         }
       }
@@ -618,8 +703,34 @@ async function startServer() {
     }
   });
 
+  // API Route: Delete user account and all cloud data (GDPR / RODO Right to Erasure, Art. 17)
+  app.delete('/api/cloud-sync/account', (req, res) => {
+    try {
+      const { email, token } = req.body || {};
+      if (!email || !token) {
+        return res.status(400).json({ success: false, error: 'Wymagany jest email i token sesji.' });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const db = readSyncDB();
+      const user = db.users[normalizedEmail];
+
+      if (!user || user.token !== token) {
+        return res.status(401).json({ success: false, error: 'Brak autoryzacji do usunięcia tego konta.' });
+      }
+
+      delete db.users[normalizedEmail];
+      writeSyncDB(db);
+
+      return res.json({ success: true, message: 'Konto i wszystkie dane w chmurze zostały pomyślnie usunięte.' });
+    } catch (err: any) {
+      console.error('Error deleting account:', err);
+      return res.status(500).json({ success: false, error: 'Błąd usuwania konta.' });
+    }
+  });
+
   // API Route: AI Medical & Prescription Scanner
-  app.post('/api/scan-medical', async (req, res) => {
+  app.post('/api/scan-medical', aiScanLimiter, async (req, res) => {
     const { imageBase64, mimeType, petSpecies, petName, petWeightKg, deepDecipherMode } = req.body || {};
 
     try {

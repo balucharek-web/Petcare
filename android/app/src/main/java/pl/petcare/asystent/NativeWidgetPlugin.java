@@ -70,22 +70,19 @@ public class NativeWidgetPlugin extends Plugin {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            AppWidgetManager appWidgetManager = context.getSystemService(AppWidgetManager.class);
-            if (appWidgetManager != null && appWidgetManager.isRequestPinAppWidgetSupported()) {
-                ComponentName provider = new ComponentName(context, PetCareWidgetProvider.class);
-                Intent callbackIntent = new Intent(context, MainActivity.class);
-                PendingIntent successCallback = PendingIntent.getActivity(
-                        context,
-                        0,
-                        callbackIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                );
-
-                boolean requested = appWidgetManager.requestPinAppWidget(provider, null, successCallback);
-                JSObject res = new JSObject();
-                res.put("requested", requested);
-                call.resolve(res);
-                return;
+            try {
+                AppWidgetManager appWidgetManager = context.getSystemService(AppWidgetManager.class);
+                if (appWidgetManager != null && appWidgetManager.isRequestPinAppWidgetSupported()) {
+                    ComponentName provider = new ComponentName(context, PetCareWidgetProvider.class);
+                    // Using null callback is the officially supported, most compatible way across all Android launchers
+                    boolean requested = appWidgetManager.requestPinAppWidget(provider, null, null);
+                    JSObject res = new JSObject();
+                    res.put("requested", requested);
+                    call.resolve(res);
+                    return;
+                }
+            } catch (Exception e) {
+                // Some custom OEM launchers (e.g. Xiaomi, Huawei) throw SecurityException if permission is denied
             }
         }
 
