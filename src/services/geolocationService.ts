@@ -1,5 +1,12 @@
-import { Capacitor } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
+
+interface NativeLocationPlugin {
+  promptEnableLocation(): Promise<{ enabled: boolean }>;
+  openLocationSettings(): Promise<{ opened: boolean }>;
+}
+
+const NativeLocation = registerPlugin<NativeLocationPlugin>('NativeLocation');
 
 export interface LocationCoordinates {
   lat: number;
@@ -21,21 +28,21 @@ export interface LocationError {
 }
 
 /**
- * Robust device location fetcher supporting:
- * 1. Capacitor Native Android (with native system runtime permission prompt)
- * 2. Web Browser & PWA (with navigator.geolocation)
- * 3. Graceful error reporting for disabled GPS or denied permission
+ * Robust device location fetcher:
+ * - On Android APK: Invokes the DIRECT Android system prompt (Google Play Services ResolvableApiException)
+ *   to turn on device GPS directly via OS dialog.
+ * - On Web Browser / PWA: Uses native navigator.geolocation.
+ * - Zero custom HTML modals.
  */
 export async function requestDeviceLocation(): Promise<
   { success: true; coords: LocationCoordinates } | { success: false; error: LocationError }
 > {
-  // 1. Native Capacitor platform (Android / iOS)
+  // 1. Android / iOS Native Capacitor Platform
   if (Capacitor.isNativePlatform()) {
     try {
+      // Step A: Request Android OS runtime permissions if needed
       let status = await Geolocation.checkPermissions();
-
       if (status.location !== 'granted' && status.coarseLocation !== 'granted') {
-        // Triggers Android OS native runtime permission modal
         status = await Geolocation.requestPermissions({
           permissions: ['location', 'coarseLocation'],
         });
@@ -46,12 +53,30 @@ export async function requestDeviceLocation(): Promise<
           success: false,
           error: {
             code: 'PERMISSION_DENIED',
-            message: 'Aplikacja nie ma uprawnień do lokalizacji w systemie telefonu.',
+            message: 'Odmowa uprawnień do lokalizacji w systemie Android.',
             isNative: true,
           },
         };
       }
 
+      // Step B: Trigger the DIRECT native Android OS dialog to turn on GPS if disabled
+      try {
+        const resolution = await NativeLocation.promptEnableLocation();
+        if (!resolution.enabled) {
+          return {
+            success: false,
+            error: {
+              code: 'LOCATION_DISABLED',
+              message: 'Lokalizacja w systemie Android nie została włączona.',
+              isNative: true,
+            },
+          };
+        }
+      } catch (nativeErr) {
+        console.warn('NativeLocation prompt error (falling back to direct getPosition):', nativeErr);
+      }
+
+      // Step C: Fetch coordinates using GPS
       const pos = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 10000,
@@ -67,28 +92,19 @@ export async function requestDeviceLocation(): Promise<
         },
       };
     } catch (err: any) {
-      console.warn('Native Capacitor Geolocation error:', err);
-      const errMsg = (err?.message || '').toLowerCase();
-      const isOff =
-        errMsg.includes('disabled') ||
-        errMsg.includes('not enabled') ||
-        errMsg.includes('provider') ||
-        errMsg.includes('services are not enabled');
-
+      console.warn('Capacitor Geolocation error:', err);
       return {
         success: false,
         error: {
-          code: isOff ? 'LOCATION_DISABLED' : 'UNAVAILABLE',
-          message: isOff
-            ? 'Moduł lokalizacji (GPS) w telefonie jest wyłączony w menu skrótów.'
-            : err?.message || 'Nie udało się uzyskać pozycji GPS.',
+          code: 'LOCATION_DISABLED',
+          message: err?.message || 'Nie udało się uzyskać pozycji GPS.',
           isNative: true,
         },
       };
     }
   }
 
-  // 2. Web Browser / PWA environment
+  // 2. Web Browser / PWA Environment
   if (typeof window === 'undefined' || !navigator.geolocation) {
     return {
       success: false,
@@ -101,7 +117,6 @@ export async function requestDeviceLocation(): Promise<
   }
 
   return new Promise((resolve) => {
-    // Attempt high accuracy first
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         resolve({
@@ -116,31 +131,21 @@ export async function requestDeviceLocation(): Promise<
       (err) => {
         console.warn('Navigator Geolocation error:', err);
         let code: LocationErrorCode = 'LOCATION_DISABLED';
-        let message = 'Lokalizacja w telefonie jest wyłączona lub zablokowana.';
-
-        if (err.code === 1) {
-          code = 'PERMISSION_DENIED';
-          message = 'Brak zgody na dostęp do lokalizacji w przeglądarce lub telefonie.';
-        } else if (err.code === 2) {
-          code = 'LOCATION_DISABLED';
-          message = 'Moduł GPS/Lokalizacja w urządzeniu jest wyłączony.';
-        } else if (err.code === 3) {
-          code = 'TIMEOUT';
-          message = 'Przekroczono limit czasu oczekiwania na sygnał satelitów GPS.';
-        }
+        if (err.code === 1) code = 'PERMISSION_DENIED';
+        else if (err.code === 3) code = 'TIMEOUT';
 
         resolve({
           success: false,
           error: {
             code,
-            message,
+            message: err.message,
             isNative: false,
           },
         });
       },
       {
         enableHighAccuracy: true,
-        timeout: 9000,
+        timeout: 10000,
         maximumAge: 0,
       }
     );

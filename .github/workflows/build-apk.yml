@@ -57,15 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.1
-          name: "PetCare v2.17.1 - Obsługa lokalizacji Android, @capacitor/geolocation i systemowy modal GPS"
+          tag_name: v2.17.2
+          name: "PetCare v2.17.2 - Bezpośrednie wywołanie systemowego okna Androida do włączenia GPS"
           body: |
-            ### 🐾 PetCare v2.17.1
+            ### 🐾 PetCare v2.17.2
             
-            - 🧭 **Wsparcie dla natywnego GPS na Androidzie:** Zintegrowano `@capacitor/geolocation` oraz uprawnienia `ACCESS_FINE_LOCATION` i `ACCESS_COARSE_LOCATION` w AndroidManifest.
-            - 📡 **Systemowe powiadomienie o wyłączonej lokalizacji:** Gdy GPS w telefonie jest wyłączony, aplikacja nie gaśnie bez słowa, lecz wyświetla dedykowane systemowe okno z instrukcją i natychmiastowym ponowieniem.
-            - 🏥 **Natychmiast widoczne kostki klinik 24/7:** Przeprojektowano widok, eliminując zasłaniające nagłówki.
-            - 📍 **Obsługa dowolnej wsi i miasta w Polsce:** Geokodowanie OpenStreetMap dla ponad 50 000 miejscowości.
+            - 🤖 **Bezpośrednie systemowe powiadomienie Androida:** Po kliknięciu GPS przy wyłączonej lokalizacji telefon sam bezpośrednio wywołuje natywny systemowy monit Androida (Google Play Services / ResolvableApiException: „Aby kontynuować, włącz lokalizację urządzenia...”).
+            - 🚫 **Brak sztucznych okien w aplikacji:** Całkowicie usunięto customowy modal wewnątrz aplikacji.
+            - 🧭 **Natywna obsługa `@capacitor/geolocation` & `ACCESS_FINE_LOCATION`:** Pełna synchronizacja uprawnień systemowych.
+            - 🏥 **Natychmiast widoczne kostki klinik 24/7:** Przeprojektowany widok i sortowanie według rzeczywistych współrzędnych.
             - 📱 **Gotowy plik APK do instalacji.**
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
