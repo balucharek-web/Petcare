@@ -62,14 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.23.0
-          name: "PetCare v2.23.0 - Drukuj i pobieranie PDF dla karty weterynarza"
+          tag_name: v2.24.0
+          name: "PetCare v2.24.0 - Natywne zapisywanie, otwieranie i udostępnianie PDF na Androidzie"
           body: |
-            ### 🐾 PetCare v2.23.0 - Pełna obsługa Drukowania i Generowania PDF
+            ### 🐾 PetCare v2.24.0 - Prawdziwy zapis i otwieranie plików PDF
             
-            - 📄 **Pobierz PDF:** Generowanie profesjonalnego, wektorowego dokumentu PDF karty zdrowia zwierzaka i zapis na telefonie.
-            - 🖨️ **Natywne Drukowanie Android (PrintManager):** Nowa wtyczka `NativePrint` pozwalająca na bezpośredni wydruk przez Wi-Fi/Bluetooth lub zapis jako systemowy PDF Androida.
-            - 📲 **Udostępnianie raportu:** Możliwość natychmiastowego przesłania karty zdrowia w formacie PDF do lekarza weterynarii przez WhatsApp, Gmail lub Dysk Google.
+            - 📥 **Prawdziwy zapis pliku PDF:** Wykorzystanie MediaStore i FileProvider w Androidzie – plik PDF jest fizycznie zapisywany w folderze „Pobrane” (Downloads/PetCare) telefonu.
+            - 📂 **Automatyczne otwieranie w przeglądarce PDF:** Po kliknięciu „Pobierz PDF” system Android od razu proponuje otwarcie gotowego dokumentu w aplikacji PDF (np. Dysk Google, Adobe, Notatki).
+            - 📲 **Natywne udostępnianie (Share Sheet):** Przycisk „Udostępnij” uruchamia natywny systemowy arkusz Androida z załączonym plikiem PDF (WhatsApp, Gmail, Messenger, Dysk itp.).
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

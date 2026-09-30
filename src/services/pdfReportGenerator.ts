@@ -4,6 +4,8 @@ import { Pet, Vaccination, Medication, MedicalExam, MedicalCondition, VetVisit }
 
 interface NativePrintPluginInterface {
   print(options?: { jobName?: string }): Promise<{ success: boolean }>;
+  saveAndOpenPdf(options: { base64: string; fileName: string }): Promise<{ success: boolean; message?: string }>;
+  sharePdf(options: { base64: string; fileName: string }): Promise<{ success: boolean }>;
 }
 
 const NativePrint = registerPlugin<NativePrintPluginInterface>('NativePrint');
@@ -358,14 +360,24 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
 }
 
 /**
- * Downloads the pet's medical report directly as a PDF file.
+ * Downloads the pet's medical report directly as a PDF file, or on Android saves to Downloads and opens in default PDF viewer.
  */
 export async function downloadPetMedicalReportPdf(data: ReportData): Promise<void> {
   const doc = buildPetMedicalReportPdf(data);
   const cleanName = (data.pet.name || 'pupil').replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Karta_Zdrowia_${cleanName}.pdf`;
 
-  // On Web / Android WebView
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const dataUri = doc.output('datauristring');
+      await NativePrint.saveAndOpenPdf({ base64: dataUri, fileName: filename });
+      return;
+    } catch (err) {
+      console.warn('[downloadPetMedicalReportPdf] Native save failed, trying browser fallback:', err);
+    }
+  }
+
+  // On Web browser
   doc.save(filename);
 }
 
@@ -373,15 +385,26 @@ export async function downloadPetMedicalReportPdf(data: ReportData): Promise<voi
  * Shares the generated PDF file via the native Android Share sheet (WhatsApp, Email, Drive).
  */
 export async function sharePetMedicalReportPdf(data: ReportData): Promise<boolean> {
-  try {
-    const doc = buildPetMedicalReportPdf(data);
-    const cleanName = (data.pet.name || 'pupil').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `Karta_Zdrowia_${cleanName}.pdf`;
+  const doc = buildPetMedicalReportPdf(data);
+  const cleanName = (data.pet.name || 'pupil').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `Karta_Zdrowia_${cleanName}.pdf`;
 
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const dataUri = doc.output('datauristring');
+      await NativePrint.sharePdf({ base64: dataUri, fileName: filename });
+      return true;
+    } catch (err) {
+      console.warn('[sharePetMedicalReportPdf] Native share error, falling back:', err);
+    }
+  }
+
+  // Web browser fallback
+  try {
     const blob = doc.output('blob');
     const file = new File([blob], filename, { type: 'application/pdf' });
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         files: [file],
         title: `Karta Zdrowia: ${data.pet.name}`,
