@@ -40,6 +40,7 @@ import {
   QRSyncResult
 } from '../services/qrSyncService';
 import { QRScannerModal } from './QRScannerModal';
+import { storage } from '../services/storage';
 import { 
   googleSignIn as googleDriveSignIn,
   googleSignOut as googleDriveSignOut,
@@ -353,6 +354,38 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleImportJsonFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (!parsed || !Array.isArray(parsed.pets)) {
+          throw new Error('Wybrany plik nie zawiera prawidłowej bazy zwierzaków PetCare.');
+        }
+        storage.importAllData(text);
+        try {
+          confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        } catch {}
+        setFeedback({
+          type: 'success',
+          message: `✅ Pomyślnie wczytano kopię! Przywrócono ${parsed.pets.length} zwierzaków.`,
+        });
+        if (onDataRestored) {
+          onDataRestored();
+        }
+      } catch (err: any) {
+        setFeedback({
+          type: 'error',
+          message: err.message || 'Błąd odczytu pliku kopii zapasowej.',
+        });
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleGeneratePin = async () => {
@@ -865,17 +898,30 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
           )}
 
           {/* Offline backup option (Always available) */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
               <Download className="w-3.5 h-3.5 text-slate-400" />
               Kopia do pliku w telefonie:
             </span>
-            <button
-              onClick={exportBackupFile}
-              className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline cursor-pointer"
-            >
-              Pobierz plik .JSON
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={exportBackupFile}
+                className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline cursor-pointer"
+              >
+                Pobierz .JSON
+              </button>
+              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <label className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline cursor-pointer">
+                Wczytaj .JSON
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={handleImportJsonFile}
+                />
+              </label>
+            </div>
           </div>
         </div>
 

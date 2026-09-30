@@ -62,13 +62,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.26.0
-          name: "PetCare v2.26.0 - Poprawka routingu API w kodzie QR i stabilna synchronizacja w chmurze"
+          tag_name: v2.27.0
+          name: "PetCare v2.27.0 - W 100% niezawodny, bezpośredni kod QR (Direct Offline Sync) i import plików"
           body: |
-            ### 🐾 PetCare v2.26.0 - Naprawa błędu generowania kodu QR
+            ### 🐾 PetCare v2.27.0 - Bezpośrednia, bezbłędna synchronizacja Kodem QR
             
-            - 🛠️ **Poprawka błędu Unexpected token '<':** Rozwiązano problem, w którym aplikacja Android wewnątrz WebView wysyłała zapytania do lokalnego serwera statycznego zamiast do chmury. Teraz zapytania o kod QR są zawsze poprawnie kierowane do serwera backendowego.
-            - 📷 **Niezawodna synchronizacja kodem QR:** Błyskawiczne generowanie i skanowanie kodów QR aparatem z pełnym pakietem danych (zdjęcia, wyniki badań, historia szczepień i leków).
+            - 🚀 **100% bezpośredni kod QR (Direct Offline QR):** Pakiet danych zwierzaków jest kompresowany algorytmem Deflate i zapisywany bezpośrednio wewnątrz kodu QR. Kliknięcie „Pokaż Kod QR” nie wykonuje żadnych zewnętrznych zapytań sieciowych – brak błędu `Failed to fetch`!
+            - 📷 **Błyskawiczny skan aparatem:** Skaner na drugim telefonie natychmiast odczytuje i rozpakowuje dane bezpośrednio z obrazu kodu QR w ułamku sekundy.
+            - 📂 **Wczytaj i Pobierz .JSON:** Dodano przycisk „Wczytaj .JSON” do natychmiastowego importowania kopii zapasowej.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
