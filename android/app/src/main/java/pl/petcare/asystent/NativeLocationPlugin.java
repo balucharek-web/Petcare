@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
 
@@ -35,24 +36,6 @@ public class NativeLocationPlugin extends Plugin {
         Activity activity = getActivity();
         if (activity == null) {
             call.reject("Activity is null");
-            return;
-        }
-
-        // Check if GPS or Network location is already enabled
-        LocationManager locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
-        boolean isGpsEnabled = false;
-        boolean isNetworkEnabled = false;
-        try {
-            if (locationManager != null) {
-                isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-            }
-        } catch (Exception ignored) {}
-
-        if (isGpsEnabled || isNetworkEnabled) {
-            JSObject ret = new JSObject();
-            ret.put("enabled", true);
-            call.resolve(ret);
             return;
         }
 
@@ -87,9 +70,18 @@ public class NativeLocationPlugin extends Plugin {
                 if (e instanceof ResolvableApiException) {
                     try {
                         ResolvableApiException resolvable = (ResolvableApiException) e;
-                        // DIRECT NATIVE ANDROID SYSTEM PROMPT TO TURN ON LOCATION
-                        resolvable.startResolutionForResult(activity, REQUEST_CHECK_SETTINGS);
-                    } catch (IntentSender.SendIntentException sendEx) {
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    // DIRECT NATIVE ANDROID SYSTEM PROMPT TO TURN ON LOCATION
+                                    resolvable.startResolutionForResult(activity, REQUEST_CHECK_SETTINGS);
+                                } catch (IntentSender.SendIntentException sendEx) {
+                                    openSettings();
+                                }
+                            }
+                        });
+                    } catch (Exception ex) {
                         openSettings();
                     }
                 } else {
@@ -99,10 +91,47 @@ public class NativeLocationPlugin extends Plugin {
         });
     }
 
+    @PluginMethod
+    public void openLocationSettings(PluginCall call) {
+        try {
+            Activity act = getActivity();
+            if (act != null) {
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                act.startActivity(intent);
+            }
+            JSObject ret = new JSObject();
+            ret.put("opened", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Nie można otworzyć ustawień lokalizacji: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        try {
+            Activity act = getActivity();
+            if (act != null) {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                Uri uri = Uri.fromParts("package", act.getPackageName(), null);
+                intent.setData(uri);
+                act.startActivity(intent);
+            }
+            JSObject ret = new JSObject();
+            ret.put("opened", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Nie można otworzyć ustawień aplikacji: " + e.getMessage());
+        }
+    }
+
     private void openSettings() {
         try {
-            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-            getActivity().startActivity(intent);
+            Activity act = getActivity();
+            if (act != null) {
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                act.startActivity(intent);
+            }
         } catch (Exception ignored) {}
         if (pendingCall != null) {
             JSObject ret = new JSObject();

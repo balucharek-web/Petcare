@@ -57,16 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.3
-          name: "PetCare v2.17.3 - Wyświetlanie miast ościennych (Tychy, Katowice, Gliwice) i obsługa GPS"
+          tag_name: v2.17.4
+          name: "PetCare v2.17.4 - Bezpośrednie wywoływanie natywnego okna Androida do włączenia lokalizacji (Google Play Services ResolvableApiException)"
           body: |
-            ### 🐾 PetCare v2.17.3
+            ### 🐾 PetCare v2.17.4
             
-            - 🏥 **Wyświetlanie miast ościennych wokół Mikołowa:** Po wybraniu lub zlokalizowaniu Mikołowa aplikacja nie ogranicza się do jednego miasta, lecz wyświetla wszystkie dyżury 24/7 z aglomeracji śląskiej (Mikołów, Tychy, Katowice Brynów, Chorzów, Gliwice, Zabrze, Sosnowiec, Bytom, Rybnik) posortowane ściśle według odległości od użytkownika.
-            - ⏱️ **Szacowany czas dojazdu samochodem:** Każda klinika pokazuje dokładny dystans w km oraz przewidywany czas dojazdu (np. `~8-12 min`, `~12-18 min`).
-            - 📍 **Oznaczenie miast ościennych:** Etykiety `🚗 Miasto ościenne (Katowice/Tychy)` oraz `📍 Na miejscu (Mikołów)` ułatwiające natychmiastową decyzję w nocy.
-            - 🧭 **Bezpośrednie systemowe zapytanie o lokalizację na telefonie:** W aplikacji APK system Android wywołuje natywny dialog uprawnień oraz automatyczne włączenie GPS przez Google Play Services.
-            - 📱 **Plik APK gotowy do instalacji na Androidzie.**
+            - 🧭 **Bezpośrednie wywołanie natywnego okna Androida do włączenia lokalizacji:** Naprawiono kolejność wywołań w aplikacji na telefonie. Wcześniej `@capacitor/geolocation` blokował wywołanie błędem przy wyłączonym GPS zanim wtyczka natywna zdążyła pokazać okno systemowe. Teraz `NativeLocation.promptEnableLocation()` jest wywoływany w pierwszej kolejności, bez zbędnych blokad, co natychmiastowo otwiera bezpośredni dialog systemowy Androida (Google Play Services `ResolvableApiException`) z prośbą o włączenie lokalizacji jednym kliknięciem ("Włącz lokalizację w urządzeniu" -> [OK]).
+            - 🛡️ **Odporne sprawdzanie i żądanie uprawnień Androida:** Zabezpieczono metody sprawdzania uprawnień `checkPermissions` i `requestPermissions`, dzięki czemu natywne okno zezwolenia na lokalizację dla PetCare ("Zezwalaj aplikacji PetCare na dostęp do informacji o lokalizacji tego urządzenia") pojawia się prawidłowo.
+            - ⚙️ **Bezpośrednie przyciski do Ustawień Androida:** Jeśli użytkownik trwale odrzuci uprawnienia lub wyłączy GPS, aplikacja wyświetla wygodne przyciski kierujące bezpośrednio do ustawień uprawnień aplikacji PetCare lub systemowych ustawień GPS w telefonie.
+            - 🏥 **Wyświetlanie klinik z miast ościennych:** Pełne sortowanie według odległości wokół Mikołowa (Mikołów, Tychy, Brynów, Gliwice, Chorzów itd.) z szacowanym czasem dojazdu samochodem.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

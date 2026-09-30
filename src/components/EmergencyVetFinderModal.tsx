@@ -23,7 +23,11 @@ import {
   normalizePolishText 
 } from '../data/polishCitiesData';
 import { COMPREHENSIVE_24H_CLINICS } from '../data/emergencyClinicsData';
-import { requestDeviceLocation } from '../services/geolocationService';
+import { 
+  requestDeviceLocation,
+  openNativeLocationSettings,
+  openNativeAppSettings 
+} from '../services/geolocationService';
 
 // Re-export for compatibility
 export type { EmergencyClinic } from '../data/emergencyClinicsData';
@@ -70,7 +74,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
   const cityInputRef = useRef<HTMLInputElement>(null);
 
   const [savedClinicId, setSavedClinicId] = useState<string | null>(null);
-  const [gpsNotice, setGpsNotice] = useState<{ type: string; message: string } | null>(null);
+  const [gpsNotice, setGpsNotice] = useState<{ type: string; message: string; isNative?: boolean } | null>(null);
 
   const voivodeshipSelectId = useId();
 
@@ -334,17 +338,20 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
       if (!result.error.isNative) {
         setGpsNotice({
           type: 'browser_iframe',
-          message: 'W podglądzie w przeglądarce dostęp do GPS jest blokowany przez ramkę strony (brak zgody w przeglądarce). W zainstalowanej aplikacji APK system Android wyświetli natywne pytanie o zgodę na lokalizację! Kliknij poniżej, aby wybrać Mikołów i zobaczyć dyżury w okolicy:'
+          isNative: false,
+          message: 'W podglądzie w przeglądarce dostęp do GPS jest blokowany przez zabezpieczenia ramki strony (brak zgody w przeglądarce). W zainstalowanej aplikacji APK system Android automatycznie wyświetli natywne okno systemowe ("Włącz lokalizację w urządzeniu"). Kliknij poniżej, aby wybrać Mikołów i zobaczyć dyżury w okolicy:'
         });
       } else if (result.error.code === 'PERMISSION_DENIED') {
         setGpsNotice({
           type: 'permission_denied',
-          message: 'Brak uprawnień do lokalizacji w systemie Android. Zezwól na lokalizację w Ustawieniach telefonu lub wybierz miasto poniżej:'
+          isNative: true,
+          message: 'Brak uprawnień do lokalizacji w systemie Android. Możesz nadać uprawnienia w Ustawieniach telefonu lub wybrać miasto poniżej:'
         });
       } else {
         setGpsNotice({
           type: 'disabled',
-          message: 'Lokalizacja w telefonie jest wyłączona. Włącz GPS w telefonie lub wybierz miasto poniżej:'
+          isNative: true,
+          message: 'Lokalizacja w systemie Android jest wyłączona. Możesz włączyć GPS w Ustawieniach telefonu lub wybrać miasto poniżej:'
         });
       }
       return;
@@ -627,6 +634,28 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
+              {gpsNotice.isNative && gpsNotice.type === 'permission_denied' && (
+                <div className="pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => openNativeAppSettings()}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition shadow-2xs"
+                  >
+                    <span>⚙️ Otwórz uprawnienia aplikacji w Androidzie</span>
+                  </button>
+                </div>
+              )}
+              {gpsNotice.isNative && gpsNotice.type === 'disabled' && (
+                <div className="pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => openNativeLocationSettings()}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition shadow-2xs"
+                  >
+                    <span>⚙️ Otwórz Ustawienia GPS w telefonie</span>
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                 <span className="text-[10px] font-bold text-amber-800">Wybierz szybko:</span>
                 {[
