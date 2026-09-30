@@ -70,8 +70,18 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
   const cityInputRef = useRef<HTMLInputElement>(null);
 
   const [savedClinicId, setSavedClinicId] = useState<string | null>(null);
+  const [gpsNotice, setGpsNotice] = useState<{ type: string; message: string } | null>(null);
 
   const voivodeshipSelectId = useId();
+
+  const estimateDriveTime = (km: number): string => {
+    if (km <= 3) return '~4-7 min';
+    if (km <= 8) return '~8-12 min';
+    if (km <= 15) return '~12-18 min';
+    if (km <= 25) return '~20-28 min';
+    if (km <= 40) return '~30-40 min';
+    return `~${Math.round(km * 1.1)} min`;
+  };
 
   // Load saved location on modal open OR automatically invoke native system GPS modal
   useEffect(() => {
@@ -237,6 +247,9 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
       setLocationSource('Wskazana miejscowość');
       setIsCitySuggestionsOpen(false);
       setCityInputQuery('');
+      setSearchQuery(''); // Clear search filter so neighboring cities and all area clinics are shown!
+      setSelectedVoivodeship('all'); // Clear voivodeship filter so neighboring agglomeration cities are visible
+      setGpsNotice(null);
 
       // Save to localStorage
       try {
@@ -318,6 +331,22 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
 
     if (!result.success) {
       setIsLocating(false);
+      if (!result.error.isNative) {
+        setGpsNotice({
+          type: 'browser_iframe',
+          message: 'W podglądzie w przeglądarce dostęp do GPS jest blokowany przez ramkę strony (brak zgody w przeglądarce). W zainstalowanej aplikacji APK system Android wyświetli natywne pytanie o zgodę na lokalizację! Kliknij poniżej, aby wybrać Mikołów i zobaczyć dyżury w okolicy:'
+        });
+      } else if (result.error.code === 'PERMISSION_DENIED') {
+        setGpsNotice({
+          type: 'permission_denied',
+          message: 'Brak uprawnień do lokalizacji w systemie Android. Zezwól na lokalizację w Ustawieniach telefonu lub wybierz miasto poniżej:'
+        });
+      } else {
+        setGpsNotice({
+          type: 'disabled',
+          message: 'Lokalizacja w telefonie jest wyłączona. Włącz GPS w telefonie lub wybierz miasto poniżej:'
+        });
+      }
       return;
     }
 
@@ -377,6 +406,10 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
     setUserCoords({ lat, lng });
     setCurrentCityName(fullLabel);
     setLocationSource(accuracy ? `GPS urządzenia (±${accuracy}m)` : 'GPS urządzenia');
+    setCityInputQuery('');
+    setSearchQuery(''); // Clears search query so all neighboring cities are shown!
+    setSelectedVoivodeship('all');
+    setGpsNotice(null);
     setIsLocating(false);
 
     try {
@@ -581,6 +614,43 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
             </button>
           </div>
 
+          {/* GPS notice & Quick selection pills */}
+          {gpsNotice && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-900 space-y-1.5 shadow-2xs">
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium leading-relaxed text-[11px]">{gpsNotice.message}</span>
+                <button
+                  type="button"
+                  onClick={() => setGpsNotice(null)}
+                  className="text-amber-500 hover:text-amber-700 p-0.5 shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                <span className="text-[10px] font-bold text-amber-800">Wybierz szybko:</span>
+                {[
+                  { name: 'Mikołów', label: '📍 Mikołów (Śląsk)' },
+                  { name: 'Katowice', label: 'Katowice' },
+                  { name: 'Tychy', label: 'Tychy' },
+                  { name: 'Gliwice', label: 'Gliwice' },
+                  { name: 'Chorzów', label: 'Chorzów' },
+                  { name: 'Kraków', label: 'Kraków' },
+                  { name: 'Warszawa', label: 'Warszawa' },
+                ].map(c => (
+                  <button
+                    key={c.name}
+                    type="button"
+                    onClick={() => handleSelectCity(c.name)}
+                    className="text-[11px] font-bold bg-white hover:bg-rose-50 text-slate-800 hover:text-rose-700 border border-amber-300 hover:border-rose-300 px-2 py-0.5 rounded-lg shadow-2xs transition"
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Row 2: Location badge, Voivodeship select, and radius filter */}
           <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs">
             <div className="flex items-center gap-1.5">
@@ -676,16 +746,20 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
           )}
 
           {/* Results Summary Header */}
-          <div className="flex items-center justify-between text-xs text-slate-500 pb-1">
-            <span>
-              Znalezione kliniki całodobowe: <strong className="text-slate-900 font-black">{filteredClinics.length}</strong>
-              {currentCityName ? ` • Względem: ${currentCityName}` : ''}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-600 pb-1 gap-1">
+            <span className="leading-relaxed">
+              Znalezione kliniki: <strong className="text-slate-900 font-black">{filteredClinics.length}</strong>
+              {currentCityName ? (
+                <span className="text-emerald-800 font-bold ml-1">
+                  • Względem: {currentCityName} (w tym miasta ościenne)
+                </span>
+              ) : ''}
               {selectedVoivodeship !== 'all' ? ` (woj. ${selectedVoivodeship})` : ''}
             </span>
             {userCoords && (
-              <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px]">
+              <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px] shrink-0">
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                Posortowano od najbliższej
+                Sortowanie od najbliższej (Mikołów i okolice)
               </span>
             )}
           </div>
@@ -747,7 +821,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-sm sm:text-base font-black text-slate-900 leading-snug">
                           {clinic.name}
                         </span>
@@ -764,15 +838,29 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                         )}
 
                         {clinic.distanceKm !== null && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
-                            {clinic.distanceKm} km od Ciebie
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 flex items-center gap-1">
+                            <Navigation className="w-2.5 h-2.5 text-teal-600" />
+                            <span>{clinic.distanceKm} km stąd ({estimateDriveTime(clinic.distanceKm)})</span>
+                          </span>
+                        )}
+
+                        {clinic.distanceKm !== null && clinic.distanceKm > 2 && clinic.distanceKm <= 35 && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
+                            🚗 Miasto ościenne ({clinic.city})
+                          </span>
+                        )}
+
+                        {clinic.distanceKm !== null && clinic.distanceKm <= 2 && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                            📍 Na miejscu ({clinic.city})
                           </span>
                         )}
                       </div>
 
-                      <p className="text-xs text-slate-600 flex items-center gap-1.5">
+                      <p className="text-xs text-slate-600 flex items-center gap-1.5 flex-wrap">
                         <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                        <span>{clinic.address} • {clinic.city} (woj. {clinic.voivodeship})</span>
+                        <span className="font-extrabold text-slate-800">{clinic.city}:</span>
+                        <span>{clinic.address} (woj. {clinic.voivodeship})</span>
                       </p>
 
                       {clinic.notes && (

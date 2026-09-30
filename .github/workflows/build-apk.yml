@@ -57,16 +57,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.17.2
-          name: "PetCare v2.17.2 - Bezpośrednie wywołanie systemowego okna Androida do włączenia GPS"
+          tag_name: v2.17.3
+          name: "PetCare v2.17.3 - Wyświetlanie miast ościennych (Tychy, Katowice, Gliwice) i obsługa GPS"
           body: |
-            ### 🐾 PetCare v2.17.2
+            ### 🐾 PetCare v2.17.3
             
-            - 🤖 **Bezpośrednie systemowe powiadomienie Androida:** Po kliknięciu GPS przy wyłączonej lokalizacji telefon sam bezpośrednio wywołuje natywny systemowy monit Androida (Google Play Services / ResolvableApiException: „Aby kontynuować, włącz lokalizację urządzenia...”).
-            - 🚫 **Brak sztucznych okien w aplikacji:** Całkowicie usunięto customowy modal wewnątrz aplikacji.
-            - 🧭 **Natywna obsługa `@capacitor/geolocation` & `ACCESS_FINE_LOCATION`:** Pełna synchronizacja uprawnień systemowych.
-            - 🏥 **Natychmiast widoczne kostki klinik 24/7:** Przeprojektowany widok i sortowanie według rzeczywistych współrzędnych.
-            - 📱 **Gotowy plik APK do instalacji.**
+            - 🏥 **Wyświetlanie miast ościennych wokół Mikołowa:** Po wybraniu lub zlokalizowaniu Mikołowa aplikacja nie ogranicza się do jednego miasta, lecz wyświetla wszystkie dyżury 24/7 z aglomeracji śląskiej (Mikołów, Tychy, Katowice Brynów, Chorzów, Gliwice, Zabrze, Sosnowiec, Bytom, Rybnik) posortowane ściśle według odległości od użytkownika.
+            - ⏱️ **Szacowany czas dojazdu samochodem:** Każda klinika pokazuje dokładny dystans w km oraz przewidywany czas dojazdu (np. `~8-12 min`, `~12-18 min`).
+            - 📍 **Oznaczenie miast ościennych:** Etykiety `🚗 Miasto ościenne (Katowice/Tychy)` oraz `📍 Na miejscu (Mikołów)` ułatwiające natychmiastową decyzję w nocy.
+            - 🧭 **Bezpośrednie systemowe zapytanie o lokalizację na telefonie:** W aplikacji APK system Android wywołuje natywny dialog uprawnień oraz automatyczne włączenie GPS przez Google Play Services.
+            - 📱 **Plik APK gotowy do instalacji na Androidzie.**
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
