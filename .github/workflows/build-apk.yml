@@ -57,16 +57,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.18.0
-          name: "PetCare v2.18.0 - Bezpieczne logowanie, pełna izolacja danych użytkowników i ekran logowania"
+          tag_name: v2.18.1
+          name: "PetCare v2.18.1 - Natywne okno wyboru konta z Androida i ochrona biometryczna"
           body: |
-            ### 🐾 PetCare v2.18.0 - Prywatna Chmura i Bezpieczne Logowanie
+            ### 🐾 PetCare v2.18.1 - Natywny wybór konta Google Android
             
-            - 🔒 **Dedykowany Ekran Logowania:** Po wylogowaniu aplikacja nie przechowuje lokalnie żadnych danych zwierząt i wyświetla elegancki ekran logowania/rejestracji.
-            - 🛡️ **Pełna izolacja danych użytkowników:** Każdy użytkownik ma dostęp wyłącznie do swoich własnych pupili, leków i badań. Żadne konto nie ma dostępu do danych innego użytkownika.
-            - 🔑 **Logowanie Google oraz E-mail + Hasło:** Bezpieczna autoryzacja z kryptograficznym haszowaniem haseł i bezpiecznymi tokenami sesji.
-            - ☁️ **Automatyczna synchronizacja:** Wszelkie zmiany (dodanie pupila, szczepienia, badania) natychmiast zapisują się w chmurze przypisanej do konta.
-            - 🧹 **Usunięcie zahardkodowanych kont:** Całkowite oczyszczenie kodu z prywatnych adresów e-mail.
+            - 📱 **Natywny arkusz wyboru konta Android:** Kliknięcie „Wybierz konto Google z telefonu” otwiera natywny arkusz wyboru konta w stylu Material Androida z awatarami i zapamiętanymi kontami.
+            - 👆 **Weryfikacja biometryczna / blokadą ekranu:** Logowanie do konta zabezpieczone jest natywną weryfikacją tożsamości Androida (odcisk palca, rozpoznawanie twarzy lub kod blokady ekranu telefonu).
+            - 🛡️ **Pełna izolacja danych:** Nikt obcy nie może uzyskać dostępu do Twojej książeczki zdrowia zwierząt.
+            - 🔒 **Zakładka E-mail i hasło:** Pełna ochrona hasłem dla każdego adresu e-mail.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk

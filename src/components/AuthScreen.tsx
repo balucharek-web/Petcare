@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Lock, 
   Mail, 
@@ -10,14 +10,16 @@ import {
   Smartphone, 
   AlertCircle,
   Download,
-  Trash2,
-  CheckCircle2
+  Fingerprint,
+  UserCheck
 } from 'lucide-react';
 import { 
   loginWithEmail, 
   registerWithEmail, 
   signInWithGoogle 
 } from '../services/cloudSyncService';
+import { AndroidAccountPickerModal } from './AndroidAccountPickerModal';
+import { isNativeBiometricAvailable } from '../services/nativeAuthService';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -35,19 +37,8 @@ const GoogleGIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [authMethod, setAuthMethod] = useState<'google' | 'email'>('google');
   const [emailMode, setEmailMode] = useState<'login' | 'register'>('login');
-
-  // Google inputs
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [savedGoogleAccounts, setSavedGoogleAccounts] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem('petcare_saved_google_emails');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {}
-    return [];
-  });
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [hasBiometrics, setHasBiometrics] = useState(false);
 
   // Email / Password inputs
   const [email, setEmail] = useState('');
@@ -59,38 +50,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const saveRememberedGoogleAccount = (cleanEmail: string) => {
-    try {
-      const updated = [cleanEmail, ...savedGoogleAccounts.filter(a => a.toLowerCase() !== cleanEmail.toLowerCase())].slice(0, 5);
-      setSavedGoogleAccounts(updated);
-      localStorage.setItem('petcare_saved_google_emails', JSON.stringify(updated));
-    } catch {}
-  };
+  useEffect(() => {
+    isNativeBiometricAvailable().then(setHasBiometrics);
+  }, []);
 
-  const removeRememberedGoogleAccount = (emailToRemove: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      const updated = savedGoogleAccounts.filter(a => a.toLowerCase() !== emailToRemove.toLowerCase());
-      setSavedGoogleAccounts(updated);
-      localStorage.setItem('petcare_saved_google_emails', JSON.stringify(updated));
-    } catch {}
-  };
-
-  const handleGoogleSubmit = async (targetEmail: string) => {
+  const handleSelectGoogleAccount = async (targetEmail: string, targetName?: string, avatar?: string) => {
     setErrorMsg(null);
-    const clean = targetEmail.trim().toLowerCase();
-    if (!clean || !clean.includes('@')) {
-      setErrorMsg('Wprowadź poprawny adres e-mail konta Google (np. twoj.adres@gmail.com).');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      await signInWithGoogle(clean);
-      saveRememberedGoogleAccount(clean);
+      await signInWithGoogle(targetEmail, targetName, avatar);
       onLoginSuccess();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Wystąpił błąd podczas łączenia z kontem Google.');
+      setErrorMsg(err.message || 'Wystąpił błąd podczas logowania z kontem Google.');
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +112,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
             PetCare
             <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-              Chmura v2.18
+              Android v2.18
             </span>
           </h1>
           <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
@@ -190,101 +161,44 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           </button>
         </div>
 
-        {/* --- METHOD 1: GOOGLE SIGN-IN --- */}
+        {/* --- METHOD 1: NATIVE ANDROID GOOGLE ACCOUNT PICKER --- */}
         {authMethod === 'google' && (
-          <div className="space-y-4">
-            {/* Remembered Accounts on this device */}
-            {savedGoogleAccounts.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Zapamiętane konta na tym telefonie:
-                </span>
-                <div className="space-y-1.5">
-                  {savedGoogleAccounts.map((savedEmail) => (
-                    <div
-                      key={savedEmail}
-                      onClick={() => handleGoogleSubmit(savedEmail)}
-                      className="w-full flex items-center justify-between p-2.5 bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-teal-500/50 rounded-2xl cursor-pointer transition active:scale-98"
-                    >
-                      <div className="flex items-center gap-2.5 overflow-hidden">
-                        <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
-                          <GoogleGIcon className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-xs font-bold text-white truncate">
-                          {savedEmail}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-teal-400 font-semibold px-2 py-0.5 rounded-full bg-teal-950/60 border border-teal-800/60">
-                          Zaloguj ➔
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => removeRememberedGoogleAccount(savedEmail, e)}
-                          title="Usuń z listy"
-                          className="p-1 text-slate-500 hover:text-rose-400 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          <div className="space-y-4 animate-fadeIn">
+            <div className="p-4 bg-slate-800/70 border border-slate-700/80 rounded-2xl text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-white mx-auto flex items-center justify-center shadow-md">
+                <GoogleGIcon className="w-7 h-7" />
               </div>
-            )}
-
-            {/* Direct Google Email Input */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleGoogleSubmit(googleEmail);
-              }}
-              className="space-y-3"
-            >
               <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                  Wpisz swój adres e-mail Google (Gmail):
-                </label>
-                <div className="relative flex items-center">
-                  <div className="absolute left-3.5 pointer-events-none">
-                    <GoogleGIcon className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={googleEmail}
-                    onChange={(e) => setGoogleEmail(e.target.value)}
-                    placeholder="twoj.adres@gmail.com"
-                    className="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
-                  />
-                </div>
+                <h3 className="text-sm font-bold text-white">Natywne konto Google z Androida</h3>
+                <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+                  Wybierz konto Google powiązane z tym telefonem. Dostęp zostanie zabezpieczony systemową blokadą Androida.
+                </p>
               </div>
+
+              {hasBiometrics && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-950/60 border border-teal-800/60 rounded-full text-[10px] text-teal-300 font-semibold">
+                  <Fingerprint className="w-3.5 h-3.5 text-teal-400" />
+                  <span>Obsługa odcisku palca / kodu blokady Androida</span>
+                </div>
+              )}
 
               <button
-                type="submit"
+                type="button"
+                onClick={() => setIsPickerOpen(true)}
                 disabled={isLoading}
-                className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-bold rounded-2xl text-xs shadow-lg shadow-teal-500/20 transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                className="w-full py-3 px-4 bg-white hover:bg-slate-100 active:scale-98 text-slate-900 font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
               >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Łączenie z kontem Google...
-                  </span>
-                ) : (
-                  <>
-                    <GoogleGIcon className="w-4 h-4" />
-                    <span>Zaloguj przez Google</span>
-                    <ArrowRight className="w-4 h-4 ml-1" />
-                  </>
-                )}
+                <GoogleGIcon className="w-5 h-5" />
+                <span>Wybierz konto Google z telefonu</span>
+                <ArrowRight className="w-4 h-4 ml-auto text-slate-500" />
               </button>
-            </form>
+            </div>
           </div>
         )}
 
         {/* --- METHOD 2: EMAIL + PASSWORD --- */}
         {authMethod === 'email' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fadeIn">
             {/* Sub-mode Tabs: Login vs Register */}
             <div className="grid grid-cols-2 p-1 bg-slate-800/60 rounded-xl border border-slate-700/40">
               <button
@@ -409,6 +323,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           </span>
         </div>
       </div>
+
+      {/* Android Native Account Selection Bottom Sheet */}
+      <AndroidAccountPickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onSelectAccount={handleSelectGoogleAccount}
+      />
     </div>
   );
 };
