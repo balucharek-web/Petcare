@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Lock, 
   Mail, 
@@ -9,17 +9,14 @@ import {
   ShieldCheck, 
   Smartphone, 
   AlertCircle,
-  Download,
-  Fingerprint,
-  UserCheck
+  Download
 } from 'lucide-react';
 import { 
   loginWithEmail, 
   registerWithEmail, 
   signInWithGoogle 
 } from '../services/cloudSyncService';
-import { AndroidAccountPickerModal } from './AndroidAccountPickerModal';
-import { isNativeBiometricAvailable } from '../services/nativeAuthService';
+import { promptAndroidNativeGoogleSignIn } from '../services/nativeGoogleAuth';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -35,10 +32,9 @@ const GoogleGIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }
 );
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
-  const [authMethod, setAuthMethod] = useState<'google' | 'email'>('google');
   const [emailMode, setEmailMode] = useState<'login' | 'register'>('login');
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [hasBiometrics, setHasBiometrics] = useState(false);
+  const [showWebGoogleInput, setShowWebGoogleInput] = useState(false);
+  const [webGoogleEmail, setWebGoogleEmail] = useState('');
 
   // Email / Password inputs
   const [email, setEmail] = useState('');
@@ -50,18 +46,46 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    isNativeBiometricAvailable().then(setHasBiometrics);
-  }, []);
-
-  const handleSelectGoogleAccount = async (targetEmail: string, targetName?: string, avatar?: string) => {
+  // Native Android Google Sign-In Trigger
+  const handleNativeGoogleLogin = async () => {
     setErrorMsg(null);
     setIsLoading(true);
+
     try {
-      await signInWithGoogle(targetEmail, targetName, avatar);
+      // Calls native Android system dialog (AccountPicker / GoogleSignIn)
+      const account = await promptAndroidNativeGoogleSignIn();
+      if (account && account.email) {
+        await signInWithGoogle(account.email, account.name, account.photoUrl);
+        onLoginSuccess();
+        return;
+      }
+    } catch (err: any) {
+      if (err.message === 'WEB_PREVIEW') {
+        // If testing on desktop web browser where Android OS doesn't exist
+        setShowWebGoogleInput(true);
+      } else {
+        setErrorMsg(err.message || 'Wybór konta Google został przerwany.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWebGoogleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    const clean = webGoogleEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@')) {
+      setErrorMsg('Wprowadź prawidłowy adres e-mail konta Google.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await signInWithGoogle(clean);
       onLoginSuccess();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Wystąpił błąd podczas logowania z kontem Google.');
+      setErrorMsg(err.message || 'Błąd logowania kontem Google.');
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +136,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
             PetCare
             <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-              Android v2.18
+              Android v2.19
             </span>
           </h1>
           <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
@@ -133,179 +157,166 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {/* Main Method Switcher: Google vs Email */}
-        <div className="grid grid-cols-2 p-1 bg-slate-800/80 rounded-2xl mb-5 border border-slate-700/60">
+        {/* 1. NATIVE ANDROID GOOGLE LOGIN BUTTON */}
+        <div className="mb-5">
           <button
             type="button"
-            onClick={() => { setAuthMethod('google'); setErrorMsg(null); }}
-            className={`py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
-              authMethod === 'google'
-                ? 'bg-teal-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
+            onClick={handleNativeGoogleLogin}
+            disabled={isLoading}
+            className="w-full py-3.5 px-4 bg-white hover:bg-slate-100 active:scale-98 text-slate-900 font-extrabold rounded-2xl text-sm shadow-xl transition flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
           >
-            <GoogleGIcon className="w-3.5 h-3.5" />
-            <span>Konto Google</span>
+            {isLoading ? (
+              <span className="flex items-center gap-2 text-xs text-slate-700">
+                <span className="w-4 h-4 border-2 border-slate-400 border-t-teal-600 rounded-full animate-spin" />
+                Otwieranie systemowego wyboru konta...
+              </span>
+            ) : (
+              <>
+                <GoogleGIcon className="w-5 h-5 shrink-0" />
+                <span>Zaloguj się przez Google</span>
+              </>
+            )}
           </button>
-          <button
-            type="button"
-            onClick={() => { setAuthMethod('email'); setErrorMsg(null); }}
-            className={`py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
-              authMethod === 'email'
-                ? 'bg-teal-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Mail className="w-3.5 h-3.5" />
-            <span>E-mail i hasło</span>
-          </button>
+
+          {/* Web Preview input only shown in desktop browser */}
+          {showWebGoogleInput && (
+            <form onSubmit={handleWebGoogleSubmit} className="mt-3 p-3 bg-slate-800/80 border border-slate-700 rounded-2xl space-y-2 animate-fadeIn">
+              <p className="text-[11px] text-slate-300 font-semibold">
+                Podgląd przeglądarki Web (poza Androidem):
+              </p>
+              <input
+                type="email"
+                required
+                value={webGoogleEmail}
+                onChange={(e) => setWebGoogleEmail(e.target.value)}
+                placeholder="twoj.adres@gmail.com"
+                className="w-full bg-slate-900 border border-slate-700 focus:border-teal-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
+              />
+              <button
+                type="submit"
+                className="w-full py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition"
+              >
+                Zaloguj w podglądzie
+              </button>
+            </form>
+          )}
         </div>
 
-        {/* --- METHOD 1: NATIVE ANDROID GOOGLE ACCOUNT PICKER --- */}
-        {authMethod === 'google' && (
-          <div className="space-y-4 animate-fadeIn">
-            <div className="p-4 bg-slate-800/70 border border-slate-700/80 rounded-2xl text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-white mx-auto flex items-center justify-center shadow-md">
-                <GoogleGIcon className="w-7 h-7" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Natywne konto Google z Androida</h3>
-                <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
-                  Wybierz konto Google powiązane z tym telefonem. Dostęp zostanie zabezpieczony systemową blokadą Androida.
-                </p>
-              </div>
+        {/* Separator */}
+        <div className="flex items-center gap-3 my-2 text-slate-500 mb-5">
+          <div className="flex-1 h-px bg-slate-800" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">lub e-mail i hasło</span>
+          <div className="flex-1 h-px bg-slate-800" />
+        </div>
 
-              {hasBiometrics && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-950/60 border border-teal-800/60 rounded-full text-[10px] text-teal-300 font-semibold">
-                  <Fingerprint className="w-3.5 h-3.5 text-teal-400" />
-                  <span>Obsługa odcisku palca / kodu blokady Androida</span>
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setIsPickerOpen(true)}
-                disabled={isLoading}
-                className="w-full py-3 px-4 bg-white hover:bg-slate-100 active:scale-98 text-slate-900 font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
-              >
-                <GoogleGIcon className="w-5 h-5" />
-                <span>Wybierz konto Google z telefonu</span>
-                <ArrowRight className="w-4 h-4 ml-auto text-slate-500" />
-              </button>
-            </div>
+        {/* 2. EMAIL + PASSWORD SECTION */}
+        <div className="space-y-4">
+          {/* Sub-mode Tabs: Login vs Register */}
+          <div className="grid grid-cols-2 p-1 bg-slate-800/60 rounded-xl border border-slate-700/40">
+            <button
+              type="button"
+              onClick={() => { setEmailMode('login'); setErrorMsg(null); }}
+              className={`py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
+                emailMode === 'login'
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Mam już konto
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEmailMode('register'); setErrorMsg(null); }}
+              className={`py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
+                emailMode === 'register'
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Nowe konto
+            </button>
           </div>
-        )}
 
-        {/* --- METHOD 2: EMAIL + PASSWORD --- */}
-        {authMethod === 'email' && (
-          <div className="space-y-4 animate-fadeIn">
-            {/* Sub-mode Tabs: Login vs Register */}
-            <div className="grid grid-cols-2 p-1 bg-slate-800/60 rounded-xl border border-slate-700/40">
-              <button
-                type="button"
-                onClick={() => { setEmailMode('login'); setErrorMsg(null); }}
-                className={`py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
-                  emailMode === 'login'
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Mam już konto
-              </button>
-              <button
-                type="button"
-                onClick={() => { setEmailMode('register'); setErrorMsg(null); }}
-                className={`py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
-                  emailMode === 'register'
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Nowe konto
-              </button>
-            </div>
-
-            <form onSubmit={handleEmailAuth} className="space-y-3">
-              {emailMode === 'register' && (
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Twoje imię lub nazwa
-                  </label>
-                  <div className="relative flex items-center">
-                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 pointer-events-none" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="np. Anna"
-                      className="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
-                    />
-                  </div>
-                </div>
-              )}
-
+          <form onSubmit={handleEmailAuth} className="space-y-3">
+            {emailMode === 'register' && (
               <div>
                 <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                  Adres e-mail
+                  Twoje imię lub nazwa
                 </label>
                 <div className="relative flex items-center">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 pointer-events-none" />
+                  <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 pointer-events-none" />
                   <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="twoj.email@przyklad.pl"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="np. Anna"
                     className="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
                   />
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                  Hasło {emailMode === 'register' && <span className="text-slate-500 text-[10px]">(min. 6 znaków)</span>}
-                </label>
-                <div className="relative flex items-center">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 pointer-events-none" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 text-slate-400 hover:text-white transition cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Adres e-mail
+              </label>
+              <div className="relative flex items-center">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 pointer-events-none" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="twoj.email@przyklad.pl"
+                  className="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
+                />
               </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-bold rounded-2xl text-xs shadow-lg shadow-teal-500/20 transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 mt-1"
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    {emailMode === 'login' ? 'Logowanie...' : 'Tworzenie konta...'}
-                  </span>
-                ) : (
-                  <>
-                    <span>{emailMode === 'login' ? 'Zaloguj się do PetCare' : 'Zarejestruj i utwórz konto'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        )}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Hasło {emailMode === 'register' && <span className="text-slate-500 text-[10px]">(min. 6 znaków)</span>}
+              </label>
+              <div className="relative flex items-center">
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 pointer-events-none" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-800/80 border border-slate-700 focus:border-teal-500 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 text-slate-400 hover:text-white transition cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-bold rounded-2xl text-xs shadow-lg shadow-teal-500/20 transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 mt-1"
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  {emailMode === 'login' ? 'Logowanie...' : 'Tworzenie konta...'}
+                </span>
+              ) : (
+                <>
+                  <span>{emailMode === 'login' ? 'Zaloguj się do PetCare' : 'Zarejestruj i utwórz konto'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
 
         {/* Footer download APK */}
         <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-col items-center gap-2 text-center">
@@ -323,13 +334,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
           </span>
         </div>
       </div>
-
-      {/* Android Native Account Selection Bottom Sheet */}
-      <AndroidAccountPickerModal
-        isOpen={isPickerOpen}
-        onClose={() => setIsPickerOpen(false)}
-        onSelectAccount={handleSelectGoogleAccount}
-      />
     </div>
   );
 };

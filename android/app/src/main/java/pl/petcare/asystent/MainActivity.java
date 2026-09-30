@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NativeLocationPlugin.class);
+        registerPlugin(NativeGoogleAuthPlugin.class);
         super.onCreate(savedInstanceState);
         Window window = getWindow();
         WindowInsetsControllerCompat insetsController =
@@ -26,5 +27,6 @@ public class MainActivity extends BridgeActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         NativeLocationPlugin.onResolutionResult(requestCode, resultCode);
+        NativeGoogleAuthPlugin.onActivityResult(requestCode, resultCode, data);
     }
 }

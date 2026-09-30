@@ -57,15 +57,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.18.1
-          name: "PetCare v2.18.1 - Natywne okno wyboru konta z Androida i ochrona biometryczna"
+          tag_name: v2.19.0
+          name: "PetCare v2.19.0 - 100% Natywne systemowe okno wyboru konta Google Android"
           body: |
-            ### 🐾 PetCare v2.18.1 - Natywny wybór konta Google Android
+            ### 🐾 PetCare v2.19.0 - Prawdziwe natywne logowanie Google Android
             
-            - 📱 **Natywny arkusz wyboru konta Android:** Kliknięcie „Wybierz konto Google z telefonu” otwiera natywny arkusz wyboru konta w stylu Material Androida z awatarami i zapamiętanymi kontami.
-            - 👆 **Weryfikacja biometryczna / blokadą ekranu:** Logowanie do konta zabezpieczone jest natywną weryfikacją tożsamości Androida (odcisk palca, rozpoznawanie twarzy lub kod blokady ekranu telefonu).
-            - 🛡️ **Pełna izolacja danych:** Nikt obcy nie może uzyskać dostępu do Twojej książeczki zdrowia zwierząt.
-            - 🔒 **Zakładka E-mail i hasło:** Pełna ochrona hasłem dla każdego adresu e-mail.
+            - 🤖 **Prawdziwe systemowe okno Androida:** Kliknięcie „Zaloguj się przez Google” natychmiast wywołuje systemowy dialog Androida (Google Play Services / AccountManager) z listą kont dodanych w telefonie.
+            - 👆 **Logowanie jak w każdej współczesnej aplikacji:** Wybierasz swoje konto z systemowej listy Androida i aplikacja od razu Cię loguje.
+            - 🛡️ **Pełna izolacja danych:** Każdy profil ma ściśle odizolowany magazyn danych.
           files: |
             android/app/build/outputs/apk/debug/PetCare.apk
             android/app/build/outputs/apk/debug/*.apk
