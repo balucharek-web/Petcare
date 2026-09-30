@@ -32,9 +32,10 @@ import { usePWAInstall } from './hooks/usePWAInstall';
 
 // Cloud Sync
 import { GoogleSyncModal } from './components/GoogleSyncModal';
-import { checkDailyAutoSync, getStoredSession, subscribeToCloudSync } from './services/cloudSyncService';
+import { checkDailyAutoSync, getStoredSession, subscribeToCloudSync, uploadToCloud, CloudSession } from './services/cloudSyncService';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { syncAllScheduledNotifications } from './services/notificationService';
+import { AuthScreen } from './components/AuthScreen';
 
 // New Feature Modals
 import { MedicalReportModal } from './components/MedicalReportModal';
@@ -50,6 +51,7 @@ import { EmergencyVetFinderModal } from './components/EmergencyVetFinderModal';
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
+  const [session, setSession] = useState<CloudSession>(() => getStoredSession());
   const [pets, setPets] = useState<Pet[]>(() => {
     return storage.getPets();
   });
@@ -176,17 +178,28 @@ export default function App() {
 
   // Subscribe to Cloud Sync session changes (instant logout / login reaction)
   useEffect(() => {
-    const unsubscribe = subscribeToCloudSync(() => {
-      const currentPets = storage.getPets();
-      setPets(currentPets);
-      const targetPetId = activePetId || currentPets[0]?.id || '';
-      setActivePetId(targetPetId);
-      if (targetPetId) {
-        setVaccinations(storage.getVaccinations(targetPetId));
-        setMedications(storage.getMedications(targetPetId));
-        setExams(storage.getExams(targetPetId));
-        setConditions(storage.getConditions(targetPetId));
-        setVisits(storage.getVisits(targetPetId));
+    const unsubscribe = subscribeToCloudSync((newSession) => {
+      setSession(newSession);
+      if (newSession.user) {
+        const currentPets = storage.getPets();
+        setPets(currentPets);
+        const targetPetId = activePetId || currentPets[0]?.id || '';
+        setActivePetId(targetPetId);
+        if (targetPetId) {
+          setVaccinations(storage.getVaccinations(targetPetId));
+          setMedications(storage.getMedications(targetPetId));
+          setExams(storage.getExams(targetPetId));
+          setConditions(storage.getConditions(targetPetId));
+          setVisits(storage.getVisits(targetPetId));
+        }
+      } else {
+        setPets([]);
+        setActivePetId('');
+        setVaccinations([]);
+        setMedications([]);
+        setExams([]);
+        setConditions([]);
+        setVisits([]);
       }
     });
     return () => unsubscribe();
@@ -203,7 +216,7 @@ export default function App() {
     }
   }, [activePetId]);
 
-  // Mutations
+  // Mutations with automatic cloud synchronization for authenticated user
   const handleSelectPet = (petId: string) => {
     setActivePetId(petId);
   };
@@ -212,6 +225,7 @@ export default function App() {
     const newPets = pets.map(p => p.id === updated.id ? updated : p);
     setPets(newPets);
     storage.savePets(newPets);
+    uploadToCloud().catch(() => {});
   };
 
   const handleAddPet = (newPet: Pet) => {
@@ -219,6 +233,7 @@ export default function App() {
     setPets(newPets);
     storage.savePets(newPets);
     setActivePetId(newPet.id);
+    uploadToCloud().catch(() => {});
   };
 
   const handleUpdateVaccinations = (items: Vaccination[]) => {
@@ -227,6 +242,7 @@ export default function App() {
     const combined = [...other, ...items];
     storage.saveVaccinations(combined);
     setVaccinations(items);
+    uploadToCloud().catch(() => {});
   };
 
   const handleUpdateMedications = (items: Medication[]) => {
@@ -235,6 +251,7 @@ export default function App() {
     const combined = [...other, ...items];
     storage.saveMedications(combined);
     setMedications(items);
+    uploadToCloud().catch(() => {});
   };
 
   const handleUpdateExams = (items: MedicalExam[]) => {
@@ -243,6 +260,7 @@ export default function App() {
     const combined = [...other, ...items];
     storage.saveExams(combined);
     setExams(items);
+    uploadToCloud().catch(() => {});
   };
 
   const handleUpdateConditions = (items: MedicalCondition[]) => {
@@ -251,6 +269,7 @@ export default function App() {
     const combined = [...other, ...items];
     storage.saveConditions(combined);
     setConditions(items);
+    uploadToCloud().catch(() => {});
   };
 
   const handleUpdateVisits = (items: VetVisit[]) => {
@@ -259,11 +278,13 @@ export default function App() {
     const combined = [...other, ...items];
     storage.saveVisits(combined);
     setVisits(items);
+    uploadToCloud().catch(() => {});
   };
 
   const handleSaveDashboardConfig = (newCfg: DashboardConfig) => {
     setDashboardConfig(newCfg);
     storage.saveDashboardConfig(newCfg);
+    uploadToCloud().catch(() => {});
   };
 
   // Badges & Alerts
@@ -289,10 +310,39 @@ export default function App() {
     setAlertsDismissVersion(v => v + 1);
   };
 
+  // If user is not logged in: display the login/register screen only
+  if (!session.user) {
+    return (
+      <AuthScreen
+        onLoginSuccess={() => {
+          reloadData();
+        }}
+      />
+    );
+  }
+
+  // If user is logged in, but has not added any pet yet
   if (!activePet) {
     return (
-      <div className="min-h-screen bg-slate-100 sm:bg-slate-900 text-slate-800 flex flex-col items-center justify-start sm:p-4 selection:bg-teal-500 selection:text-white">
-        <div className="w-full max-w-md bg-slate-100 min-h-screen sm:min-h-[860px] sm:max-h-[920px] sm:rounded-[44px] sm:border-[8px] sm:border-slate-800 sm:shadow-2xl overflow-y-auto flex flex-col relative">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 sm:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col items-center justify-start sm:p-4 selection:bg-teal-500 selection:text-white transition-colors duration-200">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 min-h-screen sm:min-h-[860px] sm:max-h-[920px] sm:rounded-[44px] sm:border-[8px] sm:border-slate-800 sm:shadow-2xl overflow-y-auto flex flex-col relative">
+          <HeaderNav
+            pets={[]}
+            activePet={null}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onSelectPet={handleSelectPet}
+            onOpenNewPetModal={() => setIsNewPetOpen(true)}
+            onOpenSOSModal={() => setIsSOSOpen(true)}
+            onOpenPassportModal={() => setIsPassportOpen(true)}
+            onOpenMedicalReport={() => setIsMedicalReportOpen(true)}
+            onOpenToxicityChecker={() => setIsToxicityOpen(true)}
+            onOpenAIScanner={() => setIsAIScannerOpen(true)}
+            onOpenToolsHub={() => setIsToolsHubOpen(true)}
+            onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
+            onOpenNotifications={() => setIsNotificationsOpen(true)}
+            onDataChanged={reloadData}
+          />
           {!isInstalled && <PWAInstallBanner />}
 
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6">
@@ -301,21 +351,21 @@ export default function App() {
             </div>
 
             <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 bg-teal-100/70 px-3 py-1 rounded-full border border-teal-200">
-                Aplikacja PetCare
+              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-950 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-800">
+                Witaj w PetCare
               </span>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 Dodaj swojego zwierzaka
               </h2>
-              <p className="text-xs text-slate-600 max-w-xs leading-relaxed">
-                Dodaj dane swojego pupila (imię, rasę, wagę, mikroczip), aby stworzyć jego osobistą książeczkę zdrowia, plan leków i monitor żywienia.
+              <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs leading-relaxed">
+                Zalogowano jako <strong className="text-teal-600 dark:text-teal-400">{session.user.email}</strong>. Twoje konto jest czyste i chronione. Dodaj pierwszego pupila, aby stworzyć jego osobistą książeczkę zdrowia.
               </p>
             </div>
 
             <div className="w-full max-w-xs space-y-3 pt-2">
               <button
                 onClick={() => setIsNewPetOpen(true)}
-                className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-extrabold text-sm shadow-lg shadow-teal-700/25 active:scale-95 transition flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-extrabold text-sm shadow-lg shadow-teal-700/25 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-5 h-5 stroke-[2.5]" />
                 <span>Dodaj zwierzaka</span>
@@ -323,10 +373,10 @@ export default function App() {
 
               <button
                 onClick={() => setIsGoogleSyncOpen(true)}
-                className="w-full py-3 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-2xl font-bold text-xs shadow-xs active:scale-95 transition flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-2xl font-bold text-xs shadow-xs active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Cloud className="w-4 h-4 text-emerald-600" />
-                <span>Pobierz zwierzaki z chmury</span>
+                <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Synchronizacja w chmurze</span>
               </button>
             </div>
           </div>

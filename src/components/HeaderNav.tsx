@@ -19,12 +19,13 @@ import {
   RefreshCw,
   Sun,
   Moon,
-  Bell
+  Bell,
+  LogOut
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { getStoredSession, subscribeToCloudSync, manualSyncNow, CloudSession } from '../services/cloudSyncService';
+import { getStoredSession, subscribeToCloudSync, manualSyncNow, signOut, CloudSession } from '../services/cloudSyncService';
 
 interface HeaderNavProps {
   pets: Pet[];
@@ -158,6 +159,12 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
     storage.clearAllData();
     onDataChanged();
     setShowSettingsModal(false);
+  };
+
+  const handleLogout = () => {
+    signOut();
+    setShowSettingsModal(false);
+    onDataChanged();
   };
 
   return (
@@ -473,6 +480,16 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                   className="hidden"
                 />
               </label>
+
+              {session.user && (
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-2xl text-xs font-bold transition active:scale-98 cursor-pointer shadow-xs"
+                >
+                  <LogOut className="w-4 h-4 text-rose-600" />
+                  <span>Wyloguj się ({session.user.email})</span>
+                </button>
+              )}
 
               <button
                 onClick={handleResetData}

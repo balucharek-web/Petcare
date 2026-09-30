@@ -80,12 +80,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return [
-      { email: 'baluch.arek@gmail.com', name: 'Arek Bałuch' },
-      { email: 'mariannamacion@gmail.com', name: 'Marianna Macion' },
-      { email: 'mariannagawedziarz@gmail.com', name: 'Marianna Gawędziarz' },
-      { email: 'arekbrodowski35@gmail.com', name: 'Arek Brodowski' }
-    ];
+    return [];
   });
 
   const [driveMeta, setDriveMeta] = useState<SyncMetadata>(getStoredSyncMetadata());

@@ -91,41 +91,14 @@ const DEFAULT_INITIAL_VACCINATIONS: Vaccination[] = [
   }
 ];
 
-// Automatic migration of old data from previous v1 versions if present
+// Initialization check without auto-seeding mock data
 function ensureCleanInitialization() {
   if (typeof window === 'undefined') return;
   try {
-    const v2Pets = safeGetItem(STORAGE_KEYS.PETS);
-    if (!v2Pets || v2Pets === '[]') {
-      const v1Pets = safeGetItem('petcare_pets_v1');
-      if (v1Pets) {
-        const parsed = JSON.parse(v1Pets);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          safeSetItem(STORAGE_KEYS.PETS, v1Pets);
-        } else {
-          safeSetItem(STORAGE_KEYS.PETS, JSON.stringify(DEFAULT_INITIAL_PETS));
-        }
-      } else {
-        safeSetItem(STORAGE_KEYS.PETS, JSON.stringify(DEFAULT_INITIAL_PETS));
-      }
-    }
-
-    const v2Vaccines = safeGetItem(STORAGE_KEYS.VACCINATIONS);
-    if (!v2Vaccines || v2Vaccines === '[]') {
-      const v1Vac = safeGetItem('petcare_vaccinations_v1');
-      if (v1Vac) {
-        safeSetItem(STORAGE_KEYS.VACCINATIONS, v1Vac);
-      } else {
-        safeSetItem(STORAGE_KEYS.VACCINATIONS, JSON.stringify(DEFAULT_INITIAL_VACCINATIONS));
-      }
-    }
-
-    const v2Active = safeGetItem(STORAGE_KEYS.ACTIVE_PET_ID);
-    if (!v2Active) {
-      safeSetItem(STORAGE_KEYS.ACTIVE_PET_ID, 'pet-1');
-    }
+    // Only verify storage availability, do not seed mock pets
+    safeSetItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
   } catch (e) {
-    console.warn('Migration note:', e);
+    console.warn('Storage initialization note:', e);
   }
 }
 
@@ -135,15 +108,15 @@ export const storage = {
   // Pets
   getPets(): Pet[] {
     const raw = safeGetItem(STORAGE_KEYS.PETS);
-    if (!raw) return DEFAULT_INITIAL_PETS;
+    if (!raw) return [];
     try {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
-      return DEFAULT_INITIAL_PETS;
+      return [];
     } catch {
-      return DEFAULT_INITIAL_PETS;
+      return [];
     }
   },
 
@@ -169,7 +142,7 @@ export const storage = {
     const active = safeGetItem(STORAGE_KEYS.ACTIVE_PET_ID);
     if (active) return active;
     const pets = this.getPets();
-    const defaultId = pets[0]?.id || 'pet-1';
+    const defaultId = pets[0]?.id || '';
     if (defaultId) {
       this.setActivePetId(defaultId);
     }

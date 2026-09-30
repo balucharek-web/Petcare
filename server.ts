@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
@@ -34,8 +35,10 @@ async function startServer() {
   interface UserSyncRecord {
     email: string;
     passwordHash?: string;
+    salt?: string;
     name: string;
     avatar?: string;
+    provider?: 'google' | 'email';
     lastSyncTime: string | null;
     petCount: number;
     payload?: any;
@@ -74,70 +77,162 @@ async function startServer() {
     }
   }
 
-  // API Route: Cloud Sync Auth (Login or Register)
+  // Password helper
+  function hashPassword(password: string, salt: string): string {
+    return crypto.createHmac('sha256', salt).update(password).digest('hex');
+  }
+
+  // API Route: Cloud Sync Auth (Login, Register, Google)
   app.post('/api/cloud-sync/auth', (req, res) => {
     try {
-      const { email, password, name, avatar } = req.body;
+      const { email, password, name, avatar, provider, action } = req.body;
       if (!email || typeof email !== 'string') {
-        return res.status(400).json({ success: false, error: 'Wymagany jest adres e-mail konta Google lub PetCare.' });
+        return res.status(400).json({ success: false, error: 'Wymagany jest poprawny adres e-mail.' });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail.includes('@') || normalizedEmail.length < 5) {
+        return res.status(400).json({ success: false, error: 'Podany adres e-mail jest nieprawidłowy.' });
+      }
+
       const db = readSyncDB();
       let user = db.users[normalizedEmail];
-      const generatedToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const generatedToken = 'tok_' + crypto.randomBytes(24).toString('hex');
 
-      if (!user) {
-        // Register new cloud account
-        user = {
-          email: normalizedEmail,
-          passwordHash: password || 'default_pass',
-          name: name || normalizedEmail.split('@')[0],
-          avatar: avatar || '',
-          lastSyncTime: null,
-          petCount: 0,
-          token: generatedToken,
-        };
-
-        // If another account on disk has pets from earlier versions, adopt them so user does not lose data!
-        for (const otherEmail in db.users) {
-          const other = db.users[otherEmail];
-          if (other.payload && Array.isArray(other.payload.pets) && other.payload.pets.length > 0) {
-            user.payload = JSON.parse(JSON.stringify(other.payload));
-            user.petCount = other.petCount || user.payload.pets.length;
-            user.lastSyncTime = other.lastSyncTime || new Date().toISOString();
-            break;
-          }
+      // 1. Google Provider Sign-in
+      if (provider === 'google' || action === 'google') {
+        if (!user) {
+          user = {
+            email: normalizedEmail,
+            name: name || normalizedEmail.split('@')[0],
+            avatar: avatar || '',
+            provider: 'google',
+            token: generatedToken,
+            lastSyncTime: null,
+            petCount: 0,
+            payload: {
+              version: '2.5.0',
+              pets: [],
+              vaccinations: [],
+              medications: [],
+              exams: [],
+              conditions: [],
+              visits: []
+            }
+          };
+          db.users[normalizedEmail] = user;
+        } else {
+          user.token = generatedToken;
+          if (name) user.name = name;
+          if (avatar) user.avatar = avatar;
+          user.provider = 'google';
         }
-
-        db.users[normalizedEmail] = user;
         writeSyncDB(db);
-      } else {
-        // Refresh token on login
-        user.token = generatedToken;
-        if (password && user.passwordHash && user.passwordHash !== password) {
-          return res.status(401).json({ 
+
+        return res.json({
+          success: true,
+          token: user.token,
+          user: {
+            email: user.email,
+            name: user.name,
+            avatar: user.avatar,
+            provider: user.provider || 'google'
+          },
+          petCount: user.petCount || user.payload?.pets?.length || 0,
+          lastSyncTime: user.lastSyncTime,
+          payload: user.payload || { pets: [] }
+        });
+      }
+
+      // 2. Email + Password: Registration
+      if (action === 'register') {
+        if (user && user.passwordHash) {
+          return res.status(400).json({ 
             success: false, 
-            error: 'Nieprawidłowe hasło/PIN dla tego konta.' 
+            error: 'Konto o tym adresie e-mail już istnieje. Przejdź do zakładki logowania.' 
           });
         }
-        if (name && !user.name) user.name = name;
-        if (avatar && !user.avatar) user.avatar = avatar;
-
-        // If current user record has no pets, check if any disk record has pets from earlier versions
-        if (!user.payload || !Array.isArray(user.payload.pets) || user.payload.pets.length === 0) {
-          for (const otherEmail in db.users) {
-            const other = db.users[otherEmail];
-            if (otherEmail !== normalizedEmail && other.payload && Array.isArray(other.payload.pets) && other.payload.pets.length > 0) {
-              user.payload = JSON.parse(JSON.stringify(other.payload));
-              user.petCount = other.petCount || user.payload.pets.length;
-              user.lastSyncTime = other.lastSyncTime || new Date().toISOString();
-              break;
-            }
-          }
+        if (!password || typeof password !== 'string' || password.length < 6) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Hasło musi mieć co najmniej 6 znaków.' 
+          });
         }
+
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = hashPassword(password, salt);
+
+        user = {
+          email: normalizedEmail,
+          passwordHash,
+          salt,
+          name: name || normalizedEmail.split('@')[0],
+          avatar: avatar || '',
+          provider: 'email',
+          token: generatedToken,
+          lastSyncTime: null,
+          petCount: 0,
+          payload: {
+            version: '2.5.0',
+            pets: [],
+            vaccinations: [],
+            medications: [],
+            exams: [],
+            conditions: [],
+            visits: []
+          }
+        };
+        db.users[normalizedEmail] = user;
         writeSyncDB(db);
+
+        return res.json({
+          success: true,
+          token: user.token,
+          user: {
+            email: user.email,
+            name: user.name,
+            avatar: user.avatar,
+            provider: 'email'
+          },
+          petCount: 0,
+          lastSyncTime: null,
+          payload: user.payload
+        });
       }
+
+      // 3. Email + Password: Login
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Nie znaleziono konta z tym adresem. Utwórz nowe konto.' 
+        });
+      }
+
+      if (!password) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Podaj hasło do swojego konta.' 
+        });
+      }
+
+      // Verify password
+      let isValidPassword = false;
+      if (user.salt && user.passwordHash) {
+        const testHash = hashPassword(password, user.salt);
+        isValidPassword = (testHash === user.passwordHash);
+      } else if (user.passwordHash) {
+        isValidPassword = (user.passwordHash === password || user.passwordHash === 'default_pass');
+      }
+
+      if (!isValidPassword) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Nieprawidłowe hasło dla tego konta.' 
+        });
+      }
+
+      user.token = generatedToken;
+      writeSyncDB(db);
 
       return res.json({
         success: true,
@@ -146,18 +241,19 @@ async function startServer() {
           email: user.email,
           name: user.name,
           avatar: user.avatar,
+          provider: user.provider || 'email'
         },
-        petCount: user.petCount,
+        petCount: user.petCount || user.payload?.pets?.length || 0,
         lastSyncTime: user.lastSyncTime,
-        hasData: !!(user.payload && Array.isArray(user.payload.pets) && user.payload.pets.length > 0),
+        payload: user.payload || { pets: [] }
       });
     } catch (err: any) {
       console.error('Cloud Sync Auth error:', err);
-      return res.status(500).json({ success: false, error: 'Błąd serwera logowania.' });
+      return res.status(500).json({ success: false, error: 'Wystąpił błąd podczas autoryzacji konta.' });
     }
   });
 
-  // API Route: Upload PetCare data to Cloud
+  // API Route: Upload PetCare data to Cloud (Authorized only for own data)
   app.post('/api/cloud-sync/upload', (req, res) => {
     try {
       const { email, token, payload, petCount } = req.body;
@@ -167,19 +263,13 @@ async function startServer() {
 
       const normalizedEmail = email.trim().toLowerCase();
       const db = readSyncDB();
-      let user = db.users[normalizedEmail];
+      const user = db.users[normalizedEmail];
 
-      if (!user) {
-        user = {
-          email: normalizedEmail,
-          name: normalizedEmail.split('@')[0],
-          token: token || 'tok_' + Math.random().toString(36).substring(2),
-          lastSyncTime: null,
-          petCount: 0,
-        };
-        db.users[normalizedEmail] = user;
-      } else if (token) {
-        user.token = token;
+      if (!user || !user.token || user.token !== token) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Brak autoryzacji sesji. Zaloguj się ponownie.' 
+        });
       }
 
       const now = new Date().toISOString();
@@ -199,50 +289,34 @@ async function startServer() {
     }
   });
 
-  // API Route: Download PetCare data from Cloud
+  // API Route: Download PetCare data from Cloud (Authorized only for own data)
   app.post('/api/cloud-sync/download', (req, res) => {
     try {
-      const { email } = req.body;
+      const { email, token } = req.body;
       if (!email) {
         return res.status(400).json({ success: false, error: 'Brak adresu e-mail.' });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
       const db = readSyncDB();
-      let user = db.users[normalizedEmail];
+      const user = db.users[normalizedEmail];
 
-      let payloadToReturn = user?.payload;
-      let lastSyncTime = user?.lastSyncTime;
-      let petCount = user?.petCount;
-
-      // If this user has no pets, search other records on disk (from earlier versions)
-      if (!payloadToReturn || !Array.isArray(payloadToReturn.pets) || payloadToReturn.pets.length === 0) {
-        for (const otherEmail in db.users) {
-          const other = db.users[otherEmail];
-          if (other.payload && Array.isArray(other.payload.pets) && other.payload.pets.length > 0) {
-            payloadToReturn = JSON.parse(JSON.stringify(other.payload));
-            lastSyncTime = other.lastSyncTime;
-            petCount = other.petCount || payloadToReturn.pets.length;
-            if (user) {
-              user.payload = payloadToReturn;
-              user.petCount = petCount;
-              user.lastSyncTime = lastSyncTime;
-              writeSyncDB(db);
-            }
-            break;
-          }
-        }
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'Nie znaleziono konta w chmurze.' });
       }
 
-      if (!payloadToReturn) {
-        return res.status(404).json({ success: false, error: 'Nie znaleziono zapisanych zwierzaków w chmurze.' });
+      if (user.token && token && user.token !== token) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Brak autoryzacji sesji. Zaloguj się ponownie.' 
+        });
       }
 
       return res.json({
         success: true,
-        payload: payloadToReturn,
-        lastSyncTime: lastSyncTime || new Date().toISOString(),
-        petCount: petCount || payloadToReturn.pets?.length || 0,
+        payload: user.payload || { pets: [] },
+        lastSyncTime: user.lastSyncTime || new Date().toISOString(),
+        petCount: user.petCount || user.payload?.pets?.length || 0,
       });
     } catch (err: any) {
       console.error('Cloud Sync Download error:', err);
