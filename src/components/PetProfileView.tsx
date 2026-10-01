@@ -33,7 +33,9 @@ import {
   ChevronDown,
   ArrowUpDown,
   RotateCcw,
-  LayoutDashboard
+  LayoutDashboard,
+  Printer,
+  BatteryCharging
 } from 'lucide-react';
 import { 
   Pet, 
@@ -43,10 +45,13 @@ import {
   DEFAULT_WIDGET_ORDER, 
   DEFAULT_DASHBOARD_CONFIG 
 } from '../types/pet';
+import { compressImage } from '../utils/imageCompressor';
 import { storage } from '../services/storage';
 import { ScanViewerModal } from './ScanViewerModal';
 import { calculatePetHumanAge } from './AgeCalculatorModal';
 import { TodayQuickActionsWidget } from './TodayQuickActionsWidget';
+import { HealthBookletModal } from './HealthBookletModal';
+import { BatteryOptimizationModal } from './BatteryOptimizationModal';
 
 interface PetProfileViewProps {
   pet: Pet;
@@ -103,6 +108,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   const [newWeight, setNewWeight] = useState('');
   const [newWeightNotes, setNewWeightNotes] = useState('');
   const [previewBookletScan, setPreviewBookletScan] = useState<{ url: string; title: string; date?: string } | null>(null);
+  const [isHealthBookletOpen, setIsHealthBookletOpen] = useState(false);
+  const [isBatteryOptimizationOpen, setIsBatteryOptimizationOpen] = useState(false);
 
   // Drag and drop / tile reordering state
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -340,17 +347,16 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
     setIsAddingWeight(false);
   };
 
-  const handleBookletScanUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBookletScanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const base64 = uploadEvent.target?.result as string;
+    try {
+      const res = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
       const newScan = {
         id: crypto.randomUUID(),
         title: `Strona ${(pet.bookletScans?.length || 0) + 1}`,
-        url: base64,
+        url: res.dataUrl,
         date: new Date().toISOString().split('T')[0],
       };
 
@@ -359,8 +365,24 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
         ...pet,
         bookletScans: updatedScans,
       });
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn('Błąd kompresji skanu książeczki:', err);
+    }
+    e.target.value = '';
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.82 });
+      onUpdatePet({
+        ...pet,
+        photoUrl: res.dataUrl,
+      });
+    } catch (err) {
+      console.warn('Błąd zmiany zdjęcia profilowego pupila:', err);
+    }
     e.target.value = '';
   };
 
@@ -1202,7 +1224,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
       {/* Top Pet Hero Card (Always Visible) */}
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 group">
             <img
               src={pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
               alt={pet.name}
@@ -1211,6 +1233,18 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs shadow">
               {pet.species === 'dog' ? '🐶' : pet.species === 'cat' ? '🐱' : '🐰'}
             </span>
+            <label 
+              title="Zmień zdjęcie pupila (automatyczna kompresja)"
+              className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-2xs"
+            >
+              <Camera className="w-5 h-5 text-white drop-shadow" />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+            </label>
           </div>
 
           <div className="flex-1 text-center sm:text-left">
@@ -1224,7 +1258,27 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center justify-center sm:justify-end gap-2">
+              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsHealthBookletOpen(true)}
+                  title="Otwórz oficjalną książeczkę zdrowia pupila gotową do druku lub eksportu do PDF"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition border border-teal-200 shadow-xs cursor-pointer active:scale-95"
+                >
+                  <Printer className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Książeczka PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsBatteryOptimizationOpen(true)}
+                  title="Zabezpiecz powiadomienia przed usypianiem przez system Android"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition border border-amber-200 shadow-xs cursor-pointer active:scale-95"
+                >
+                  <BatteryCharging className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Bateria & Alarmy</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -1241,10 +1295,10 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   type="button"
                   onClick={onOpenDashboardCustomizer}
                   title="Dostosuj widok strony głównej"
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition border border-teal-200 shadow-xs cursor-pointer"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200 shadow-xs cursor-pointer"
                 >
-                  <Sliders className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Dostosuj pulpit</span>
+                  <Sliders className="w-3.5 h-3.5 text-slate-600" />
+                  <span className="hidden lg:inline">Dostosuj</span>
                 </button>
               </div>
             </div>
@@ -1507,6 +1561,21 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           title={previewBookletScan.title}
           date={previewBookletScan.date}
           onClose={() => setPreviewBookletScan(null)}
+        />
+      )}
+
+      {isHealthBookletOpen && (
+        <HealthBookletModal
+          isOpen={isHealthBookletOpen}
+          onClose={() => setIsHealthBookletOpen(false)}
+          pet={pet}
+        />
+      )}
+
+      {isBatteryOptimizationOpen && (
+        <BatteryOptimizationModal
+          isOpen={isBatteryOptimizationOpen}
+          onClose={() => setIsBatteryOptimizationOpen(false)}
         />
       )}
     </div>

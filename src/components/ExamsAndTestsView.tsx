@@ -18,6 +18,7 @@ import {
   Camera
 } from 'lucide-react';
 import { Pet, MedicalExam, ExamResultStatus } from '../types/pet';
+import { compressImage } from '../utils/imageCompressor';
 import { 
   createGoogleCalendarUrl, 
   downloadICalendarFile, 
@@ -86,25 +87,39 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
     setIsAdding(true);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string;
-      if (url) {
-        setFormScans(prev => [
-          ...prev,
-          {
-            id: `scan-${Date.now()}`,
-            url,
-            title: file.name || 'Skan badania',
-            date: formDate,
-          }
-        ]);
-      }
-    };
-    reader.readAsDataURL(file);
+
+    try {
+      const res = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
+      setFormScans(prev => [
+        ...prev,
+        {
+          id: `scan-${Date.now()}`,
+          url: res.dataUrl,
+          title: file.name || 'Skan badania',
+          date: formDate,
+        }
+      ]);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const url = ev.target?.result as string;
+        if (url) {
+          setFormScans(prev => [
+            ...prev,
+            {
+              id: `scan-${Date.now()}`,
+              url,
+              title: file.name || 'Skan badania',
+              date: formDate,
+            }
+          ]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAddParam = () => {

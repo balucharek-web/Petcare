@@ -16,6 +16,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { Pet, Vaccination, VaccineStatus } from '../types/pet';
+import { compressImage } from '../utils/imageCompressor';
 import { 
   createGoogleCalendarUrl, 
   downloadICalendarFile, 
@@ -147,17 +148,23 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
     onUpdateVaccinations(vaccinations.filter(v => v.id !== id));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string;
-      if (url) {
-        setFormAttachments(prev => [...prev, url]);
-      }
-    };
-    reader.readAsDataURL(file);
+
+    try {
+      const res = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
+      setFormAttachments(prev => [...prev, res.dataUrl]);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const url = ev.target?.result as string;
+        if (url) {
+          setFormAttachments(prev => [...prev, url]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Calendar sync for vaccination

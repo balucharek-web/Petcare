@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Camera, Plus, X, Heart } from 'lucide-react';
 import { Pet, Species, Gender } from '../types/pet';
+import { compressImage } from '../utils/imageCompressor';
 
 interface NewPetModalProps {
   isOpen: boolean;
@@ -32,15 +33,25 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string;
-      if (url) setPhotoUrl(url);
-    };
-    reader.readAsDataURL(file);
+    try {
+      setIsCompressing(true);
+      const res = await compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.82 });
+      setPhotoUrl(res.dataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const url = ev.target?.result as string;
+        if (url) setPhotoUrl(url);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

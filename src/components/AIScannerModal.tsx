@@ -21,6 +21,7 @@ import { Pet, Medication, MedicalExam } from '../types/pet';
 import { storage } from '../services/storage';
 import { getApiUrl } from '../services/cloudSyncService';
 import { extractTextFromImage, analyzeExtractedMedicalText, ExtractedMedicalData } from '../services/ocrMedicalService';
+import { compressImage } from '../utils/imageCompressor';
 
 interface AIScannerModalProps {
   isOpen: boolean;
@@ -118,7 +119,8 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         source: CameraSource.Camera, // Forces native camera
       });
       if (photo?.dataUrl) {
-        setImagePreview(photo.dataUrl);
+        const compressed = await compressImage(photo.dataUrl, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+        setImagePreview(compressed.dataUrl);
         return;
       }
     } catch (err: any) {
@@ -141,7 +143,8 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         source: CameraSource.Photos, // Gallery
       });
       if (photo?.dataUrl) {
-        setImagePreview(photo.dataUrl);
+        const compressed = await compressImage(photo.dataUrl, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+        setImagePreview(compressed.dataUrl);
         return;
       }
     } catch (err: any) {
@@ -150,7 +153,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     }
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -158,12 +161,17 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     setSuccessMsg(null);
     setExtractedData(null);
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target?.result as string;
-      setImagePreview(base64);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+      setImagePreview(compressed.dataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = ev.target?.result as string;
+        setImagePreview(base64);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const [deepDecipherMode, setDeepDecipherMode] = useState(true);
