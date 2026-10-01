@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Camera, Plus, X, Heart } from 'lucide-react';
+import { Camera, Plus, X, Heart, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { Pet, Species, Gender } from '../types/pet';
 import { compressImage } from '../utils/imageCompressor';
+import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
+import { getDefaultPhotoForSpecies } from '../data/samplePetPhotos';
 
 interface NewPetModalProps {
   isOpen: boolean;
@@ -29,7 +31,9 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
   const [vetDoctorName, setVetDoctorName] = useState('');
   const [vetPhone, setVetPhone] = useState('');
   const [emergencyClinicPhone, setEmergencyClinicPhone] = useState('');
-  const [photoUrl, setPhotoUrl] = useState('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80');
+  const [photoUrl, setPhotoUrl] = useState(() => getDefaultPhotoForSpecies('dog'));
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
+  const [hasCustomPhoto, setHasCustomPhoto] = useState(false);
 
   if (!isOpen) return null;
 
@@ -42,16 +46,32 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
       setIsCompressing(true);
       const res = await compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.82 });
       setPhotoUrl(res.dataUrl);
+      setHasCustomPhoto(true);
     } catch {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const url = ev.target?.result as string;
-        if (url) setPhotoUrl(url);
+        if (url) {
+          setPhotoUrl(url);
+          setHasCustomPhoto(true);
+        }
       };
       reader.readAsDataURL(file);
     } finally {
       setIsCompressing(false);
     }
+  };
+
+  const handleSpeciesChange = (newSpecies: Species) => {
+    setSpecies(newSpecies);
+    if (!hasCustomPhoto) {
+      setPhotoUrl(getDefaultPhotoForSpecies(newSpecies));
+    }
+  };
+
+  const handleSelectSamplePhoto = (url: string) => {
+    setPhotoUrl(url);
+    setHasCustomPhoto(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -93,71 +113,96 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-            <Heart className="w-5 h-5 text-teal-600" />
-            Dodaj nowego zwierzaka
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {/* Photo & Name */}
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <img
-                src={photoUrl}
-                alt="Podgląd"
-                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-teal-500 shadow-sm"
-              />
-              <label className="absolute -bottom-1 -right-1 p-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow cursor-pointer">
-                <Camera className="w-3.5 h-3.5" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            <div className="flex-1 space-y-1">
-              <label className="font-semibold text-slate-700 block">Imię pupila *</label>
-              <input
-                type="text"
-                required
-                placeholder="np. Borys, Bella, Puszek"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900 focus:outline-teal-600"
-              />
-            </div>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+        <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-teal-600" />
+              Dodaj nowego zwierzaka
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+            >
+              ✕
+            </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">Gatunek</label>
-              <select
-                value={species}
-                onChange={(e) => setSpecies(e.target.value as Species)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
-              >
-                <option value="dog">Pies</option>
-                <option value="cat">Kot</option>
-                <option value="rabbit">Królik</option>
-                <option value="ferret">Fretka</option>
-                <option value="bird">Ptak</option>
-                <option value="other">Inny</option>
-              </select>
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            {/* Photo & Name */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-4">
+                <div className="relative group">
+                  <img
+                    src={photoUrl}
+                    alt="Podgląd"
+                    className="w-16 h-16 rounded-2xl object-cover ring-2 ring-teal-500 shadow-sm"
+                  />
+                  <label className="absolute -bottom-1 -right-1 p-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow cursor-pointer">
+                    <Camera className="w-3.5 h-3.5" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="font-semibold text-slate-700 block">Imię pupila *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="np. Borys, Bella, Puszek"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900 focus:outline-teal-600"
+                  />
+                </div>
+              </div>
+
+              {/* Sample Photo & Upload Actions */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoPickerOpen(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-semibold rounded-xl text-[11px] transition-colors border border-teal-200"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Wybierz przykładowe zdjęcie</span>
+                </button>
+                <label className="flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-[11px] transition-colors cursor-pointer border border-slate-200">
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Z aparatu / pliku</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">Płeć</label>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Gatunek</label>
+                <select
+                  value={species}
+                  onChange={(e) => handleSpeciesChange(e.target.value as Species)}
+                  className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium"
+                >
+                  <option value="dog">Pies</option>
+                  <option value="cat">Kot</option>
+                  <option value="rabbit">Królik</option>
+                  <option value="ferret">Fretka</option>
+                  <option value="bird">Ptak</option>
+                  <option value="other">Inny</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Płeć</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value as Gender)}
@@ -278,5 +323,15 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
         </form>
       </div>
     </div>
+
+    <SamplePhotoPickerModal
+      isOpen={isPhotoPickerOpen}
+      onClose={() => setIsPhotoPickerOpen(false)}
+      onSelectPhoto={handleSelectSamplePhoto}
+      initialSpecies={species}
+      currentPhotoUrl={photoUrl}
+    />
+  </>
   );
 };
+

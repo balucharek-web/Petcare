@@ -122,7 +122,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     try {
       const account = await performSecureGoogleSignIn();
       if (account && account.email) {
-        await signInWithGoogle(
+        const signResult = await signInWithGoogle(
           account.email, 
           account.idToken, 
           account.name, 
@@ -130,10 +130,31 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
           account.androidProof,
           account.accessToken
         );
-        setFeedback({
-          type: 'success',
-          message: `Zalogowano jako ${account.email}! Twoje zwierzaki są bezpiecznie zsynchronizowane.`
-        });
+
+        let restoredCount = signResult.petCount;
+        if (restoredCount === 0) {
+          try {
+            const driveRes = await downloadPetDataFromDrive(account.accessToken);
+            if (driveRes && driveRes.petCount > 0) {
+              restoredCount = driveRes.petCount;
+            }
+          } catch (e) {
+            console.warn('Direct secondary drive check note:', e);
+          }
+        }
+
+        if (restoredCount > 0) {
+          setFeedback({
+            type: 'success',
+            message: `Zalogowano jako ${account.email}! Pomyślnie pobrano Twojego zwierzaka (${restoredCount}) z Dysku Google.`
+          });
+        } else {
+          setFeedback({
+            type: 'success',
+            message: `Zalogowano jako ${account.email}! Połączenie aktywne.`
+          });
+        }
+
         if (onDataRestored) {
           onDataRestored();
         }

@@ -114,14 +114,17 @@ export default function App() {
     syncWidgetWithLatestData();
   }, [pets, activePetId]);
 
-  // Auto-download and restore from Google Drive if user has 0 pets on device (e.g. after reinstalling or clean phone)
+  // Auto-download and restore from Google Drive if user has 0 pets or only default demo pet on device
   useEffect(() => {
     let isMounted = true;
-    if (session.user?.email && pets.length === 0) {
+    const isOnlyDemoOrEmpty = pets.length === 0 || 
+      (pets.length === 1 && (pets[0].id === 'pet-1' || pets[0].id === 'pet-bono-sample'));
+
+    if (session.user?.email && isOnlyDemoOrEmpty) {
       downloadFromCloud().then((res) => {
         if (isMounted && res.petCount > 0) {
           reloadData();
-          setRestoreToast(`Automatycznie pobrano ${res.petCount} zwierzaków z Twojego Dysku Google!`);
+          setRestoreToast(`Pobrano Twojego pupila (${res.petCount}) z Dysku Google!`);
           setTimeout(() => setRestoreToast(null), 5000);
         }
       }).catch((err) => {

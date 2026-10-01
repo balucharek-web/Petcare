@@ -52,6 +52,7 @@ import { calculatePetHumanAge } from './AgeCalculatorModal';
 import { TodayQuickActionsWidget } from './TodayQuickActionsWidget';
 import { HealthBookletModal } from './HealthBookletModal';
 import { BatteryOptimizationModal } from './BatteryOptimizationModal';
+import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
 
 interface PetProfileViewProps {
   pet: Pet;
@@ -110,6 +111,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   const [previewBookletScan, setPreviewBookletScan] = useState<{ url: string; title: string; date?: string } | null>(null);
   const [isHealthBookletOpen, setIsHealthBookletOpen] = useState(false);
   const [isBatteryOptimizationOpen, setIsBatteryOptimizationOpen] = useState(false);
+  const [isSamplePhotoPickerOpen, setIsSamplePhotoPickerOpen] = useState(false);
 
   // Drag and drop / tile reordering state
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -1224,27 +1226,38 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
       {/* Top Pet Hero Card (Always Visible) */}
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-          <div className="relative shrink-0 group">
-            <img
-              src={pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
-              alt={pet.name}
-              className="w-20 h-20 rounded-2xl object-cover ring-2 ring-teal-500 shadow-md"
-            />
-            <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs shadow">
-              {pet.species === 'dog' ? '🐶' : pet.species === 'cat' ? '🐱' : '🐰'}
-            </span>
-            <label 
-              title="Zmień zdjęcie pupila (automatyczna kompresja)"
-              className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-2xs"
-            >
-              <Camera className="w-5 h-5 text-white drop-shadow" />
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
+          <div className="flex flex-col items-center shrink-0">
+            <div className="relative group">
+              <img
+                src={pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
+                alt={pet.name}
+                className="w-20 h-20 rounded-2xl object-cover ring-2 ring-teal-500 shadow-md"
               />
-            </label>
+              <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs shadow">
+                {pet.species === 'dog' ? '🐶' : pet.species === 'cat' ? '🐱' : pet.species === 'rabbit' ? '🐰' : '🐾'}
+              </span>
+              <label 
+                title="Wgraj nowe zdjęcie pupila"
+                className="absolute inset-0 bg-black/45 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-2xs"
+              >
+                <Camera className="w-5 h-5 text-white drop-shadow" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSamplePhotoPickerOpen(true)}
+              className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2 py-0.5 rounded-lg border border-teal-200 transition-colors"
+              title="Wybierz z biblioteki gotowych zdjęć"
+            >
+              <Sparkles className="w-3 h-3 text-teal-600" />
+              <span>Galeria zdjęć</span>
+            </button>
           </div>
 
           <div className="flex-1 text-center sm:text-left">
@@ -1578,6 +1591,19 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           onClose={() => setIsBatteryOptimizationOpen(false)}
         />
       )}
+
+      <SamplePhotoPickerModal
+        isOpen={isSamplePhotoPickerOpen}
+        onClose={() => setIsSamplePhotoPickerOpen(false)}
+        initialSpecies={pet.species}
+        currentPhotoUrl={pet.photoUrl}
+        onSelectPhoto={(url) => {
+          onUpdatePet({
+            ...pet,
+            photoUrl: url,
+          });
+        }}
+      />
     </div>
   );
 };

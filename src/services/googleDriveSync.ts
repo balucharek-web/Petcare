@@ -164,34 +164,68 @@ export const getAccessToken = async (userEmail?: string): Promise<string | null>
   return cachedAccessToken;
 };
 
-// Search for the PetCare backup file on Google Drive
-export async function findDriveBackupFile(token?: string): Promise<{ id: string; modifiedTime: string; size?: string } | null> {
+export interface DriveBackupFile {
+  id: string;
+  name: string;
+  modifiedTime: string;
+  size?: string;
+}
+
+// Find all candidate PetCare backup files on Google Drive (drive & appDataFolder)
+export async function findAllDriveBackupFiles(token?: string): Promise<DriveBackupFile[]> {
   const authToken = token || await getAccessToken();
-  if (!authToken) return null;
+  if (!authToken) return [];
 
-  try {
-    const query = encodeURIComponent("(name = 'petcare_app_data.json' or name = 'petcare_sync_data.json' or name contains 'petcare') and trashed = false");
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
+  const foundFiles: DriveBackupFile[] = [];
+  const seenIds = new Set<string>();
 
-    if (!res.ok) {
-      return null;
+  const queries = [
+    // 1. Direct name patterns
+    "(name = 'petcare_app_data.json' or name = 'petcare_sync_data.json' or name contains 'petcare' or name contains 'PetCare' or name contains 'pet_care' or name contains 'kopia' or name contains 'pupil' or name contains 'zwierzak' or name contains 'backup') and trashed = false",
+    // 2. Generic json files
+    "mimeType = 'application/json' and trashed = false"
+  ];
+
+  for (const q of queries) {
+    try {
+      const url = `https://www.googleapis.com/drive/v3/files?spaces=drive,appDataFolder&q=${encodeURIComponent(q)}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc&pageSize=15`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.files && Array.isArray(data.files)) {
+          for (const f of data.files) {
+            if (!seenIds.has(f.id)) {
+              seenIds.add(f.id);
+              foundFiles.push({
+                id: f.id,
+                name: f.name || 'petcare_backup.json',
+                modifiedTime: f.modifiedTime || new Date().toISOString(),
+                size: f.size,
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Google Drive search attempt note:', e);
     }
 
-    const data = await res.json();
-    if (data.files && data.files.length > 0) {
-      return {
-        id: data.files[0].id,
-        modifiedTime: data.files[0].modifiedTime,
-        size: data.files[0].size,
-      };
+    // If query 1 found candidate files, no need to crawl all JSONs
+    if (foundFiles.length > 0 && q === queries[0]) {
+      break;
     }
-    return null;
-  } catch (e) {
-    console.warn('Błąd sprawdzania pliku na Dysku Google:', e);
-    return null;
   }
+
+  return foundFiles;
+}
+
+// Search for the single most relevant PetCare backup file on Google Drive
+export async function findDriveBackupFile(token?: string): Promise<DriveBackupFile | null> {
+  const all = await findAllDriveBackupFiles(token);
+  return all.length > 0 ? all[0] : null;
 }
 
 // Upload current local database to Google Drive (ONLY Google Drive, no server DB)
@@ -320,55 +354,72 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
 
   updateSyncMetadata({ lastSyncStatus: 'syncing' });
 
-  const existingFile = await findDriveBackupFile(token);
-  if (!existingFile) {
+  const candidateFiles = await findAllDriveBackupFiles(token);
+  if (candidateFiles.length === 0) {
     updateSyncMetadata({ lastSyncStatus: 'idle' });
-    throw new Error('Na Twoim Dysku Google nie znaleziono jeszcze zapisanych danych aplikacji PetCare.');
+    throw new Error('Na Twoim Dysku Google nie znaleziono jeszcze zapisanego pliku kopii PetCare.');
   }
 
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${existingFile.id}?alt=media`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  let restored = false;
+  let restoredFileId = '';
+  let restoredPetCount = 0;
 
-  if (!res.ok) {
+  for (const file of candidateFiles) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) continue;
+
+      const rawJson = await res.text();
+      const success = storage.importAllData(rawJson);
+      const currentPets = storage.getPets();
+
+      if (success && currentPets.length > 0) {
+        restored = true;
+        restoredFileId = file.id;
+        restoredPetCount = currentPets.length;
+        break;
+      }
+    } catch (e) {
+      console.warn('Candidate file test error:', file.name, e);
+    }
+  }
+
+  if (!restored) {
     updateSyncMetadata({ lastSyncStatus: 'error' });
-    throw new Error(`Błąd pobierania danych z Dysku Google (${res.status})`);
+    throw new Error('Plik na Dysku Google nie zawierał danych zwierzaka lub ma nieobsługiwany format.');
   }
 
-  const rawJson = await res.text();
-  const success = storage.importAllData(rawJson);
-
-  if (!success) {
-    updateSyncMetadata({ lastSyncStatus: 'error' });
-    throw new Error('Plik na Dysku Google ma nieprawidłowy format danych.');
-  }
-
-  const pets = storage.getPets();
   const now = new Date().toISOString();
   updateSyncMetadata({
-    fileId: existingFile.id,
+    fileId: restoredFileId,
     lastSyncTime: now,
     lastSyncStatus: 'success',
-    petCount: pets.length,
+    petCount: restoredPetCount,
   });
 
   return {
     success: true,
-    petCount: pets.length,
+    petCount: restoredPetCount,
     timestamp: now,
   };
 };
 
 /**
- * Automatyczne sprawdzenie i pobranie danych z Dysku Google po reinstalacji aplikacji:
- * Jeśli użytkownik jest zalogowany i na urządzeniu nie ma jeszcze zwierzaków (np. świeża instalacja),
- * a na jego Dysku Google istnieje plik petcare_app_data.json – pobiera go automatycznie!
+ * Automatyczne sprawdzenie i pobranie danych z Dysku Google:
+ * Jeśli użytkownik nie ma jeszcze własnych zwierzaków (np. 0 zwierzaków lub tylko domyślny demo zwierzak),
+ * pobiera kopię z Dysku Google.
  */
 export async function autoRestoreFromDriveIfEmpty(token?: string): Promise<{ restored: boolean; petCount: number; timestamp?: string }> {
   try {
     const localPets = storage.getPets();
-    if (localPets.length > 0) {
-      // User already has data locally, no automatic overwriting
+    const isOnlyDemoOrEmpty = localPets.length === 0 || 
+      (localPets.length === 1 && (localPets[0].id === 'pet-1' || localPets[0].id === 'pet-bono-sample'));
+
+    if (!isOnlyDemoOrEmpty) {
+      // User already has real custom data locally, no automatic overwriting
       return { restored: false, petCount: localPets.length };
     }
 
@@ -377,12 +428,6 @@ export async function autoRestoreFromDriveIfEmpty(token?: string): Promise<{ res
       return { restored: false, petCount: 0 };
     }
 
-    const driveFile = await findDriveBackupFile(authToken);
-    if (!driveFile) {
-      return { restored: false, petCount: 0 };
-    }
-
-    // Found backup file on Drive and 0 pets locally -> automatically download!
     const restoreResult = await downloadPetDataFromDrive(authToken);
     return {
       restored: true,

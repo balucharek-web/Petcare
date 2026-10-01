@@ -89,20 +89,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.36.0' }}
-          name: "PetCare v2.36.0 - Książeczka Zdrowia PDF, Kompresja Zdjęć, Asystent Baterii & Trwały Klucz APK/AAB"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.37.0' }}
+          name: "PetCare v2.37.0 - Galeria Zdjęć Pupilów, Naprawa Pobierania z Dysku Google & Poprawka Widżetu"
           body: |
-            ### 🐾 PetCare v2.36.0 - Wielkie Wydanie z 4 Nowymi Funkcjami!
+            ### 🐾 PetCare v2.37.0 - Nowe Wydanie!
 
-            1. 📄 **Eksport Książeczki Zdrowia do PDF / Druku A4:**
-               - Oficjalna karta medyczna pupila z danymi identyfikacyjnymi, mikroczipem, numerem paszportu, historią szczepień z pieczęciami, aktualnymi lekami, badaniami diagnostycznymi i podpisem lekarza. Gotowa do druku przed wizytą lub wyjazdem.
-            2. ⚡ **Kompresja i optymalizacja zdjęć w locie:**
-               - Zdjęcia z aparatów 50-108 MP są automatycznie kompresowane do formatu WebP/JPEG na urządzeniu przed zapisem, oszczędzając do 95% pamięci i przyspieszając synchronizację z chmurą.
-               - Dodano możliwość szybkiej zmiany zdjęcia profilowego pupila bezpośrednio z karty głównej.
-            3. 🔋 **Asystent Niezawodnych Powiadomień i Baterii Androida:**
-               - Dedykowany asystent zapobiegający uśmiercaniu powiadomień o lekach przez nakładki Xiaomi (MIUI/HyperOS Autostart), Samsung (OneUI) i Huawei.
-            4. 🔑 **Podpisanie oficjalnym kluczem produkcyjnym (Release Keystore) & Pakiet Google Play (.AAB):**
-               - Wydanie zawiera oficjalnie podpisany plik produkcyjny `PetCare.apk`, wersję `PetCare-debug.apk` oraz paczkę `PetCare.aab` gotową do wgrania do sklepu Google Play Console.
+            1. 📸 **Biblioteka Przykładowych Zdjęć Pupilów:**
+               - Nowa galeria gotowych zdjęć dla psów, kotów, królików, fretek, ptaków i gryzoni.
+               - Dostępna przy dodawaniu nowego zwierzaka oraz w profilu pupila.
+            2. ☁️ **Poprawka Pobierania Kopii z Dysku Google:**
+               - Naprawiono autoryzację tokenów Google Drive OAuth na webie i Androidzie.
+               - Bezpieczne pobieranie kopii zapasowej zwierzaka natychmiast po zalogowaniu.
+            3. 📱 **Poprawka Widżetu Ekranu Startowego Androida:**
+               - Zastąpiono niekompatybilne widoki i formaty ikon w RemoteViews bezpiecznym drawablerem wektorowym.
+            4. 🛡️ **Silnik Danych IndexedDB & Trwały Klucz Podpisu APK:**
+               - Pojemność bazy danych na setki megabajtów (zdjęcia, badania, skany książeczki).
+               - Spójne podpisywanie stałym kluczem produkcyjnym `release.keystore`.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

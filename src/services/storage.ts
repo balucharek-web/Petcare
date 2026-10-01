@@ -535,22 +535,72 @@ export const storage = {
   importAllData(jsonStr: string): boolean {
     try {
       let parsed = JSON.parse(jsonStr);
-      if (parsed && typeof parsed === 'object') {
-        if (parsed.payload && typeof parsed.payload === 'object') {
-          parsed = { ...parsed, ...parsed.payload };
-        } else if (parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
-          parsed = { ...parsed, ...parsed.data };
+      if (!parsed || typeof parsed !== 'object') return false;
+
+      // Unpack nested payloads
+      if (parsed.payload && typeof parsed.payload === 'object') {
+        parsed = { ...parsed, ...parsed.payload };
+      }
+      if (parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
+        parsed = { ...parsed, ...parsed.data };
+      }
+      if (parsed.petCare && typeof parsed.petCare === 'object') {
+        parsed = { ...parsed, ...parsed.petCare };
+      }
+
+      let importedPets: Pet[] = [];
+
+      // 1. Root array of pets: [ {...}, {...} ]
+      if (Array.isArray(parsed)) {
+        importedPets = (parsed as any[]).filter(p => p && typeof p === 'object' && (p.name || p.species));
+      } 
+      // 2. Standard { pets: [...] }
+      else if (Array.isArray(parsed.pets)) {
+        importedPets = (parsed.pets as any[]).filter(p => p && typeof p === 'object' && (p.name || p.species));
+      }
+      // 3. Single pet copy: { pet: { name: '...', ... } }
+      else if (parsed.pet && typeof parsed.pet === 'object' && parsed.pet.name) {
+        importedPets = [parsed.pet as Pet];
+      }
+      // 4. Single pet root object: { id: '...', name: '...', species: '...' }
+      else if (parsed.name && (parsed.species || parsed.birthDate || parsed.id || parsed.breed)) {
+        const petObj: Pet = {
+          id: parsed.id || `pet-${Date.now()}`,
+          name: parsed.name,
+          species: parsed.species || 'dog',
+          breed: parsed.breed || 'Mieszaniec',
+          gender: parsed.gender || 'male',
+          birthDate: parsed.birthDate || '2023-01-01',
+          weightKg: typeof parsed.weightKg === 'number' ? parsed.weightKg : 10,
+          chipNumber: parsed.chipNumber || '',
+          color: parsed.color || '',
+          photoUrl: parsed.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+          ...parsed,
+        };
+        importedPets = [petObj];
+      }
+      // 5. Dictionary / record of pets: { "pet-1": { name: '...' } }
+      else {
+        const candidateValues = Object.values(parsed).filter(
+          (v: any) => v && typeof v === 'object' && v.name && (v.species || v.breed || v.weightKg)
+        );
+        if (candidateValues.length > 0) {
+          importedPets = candidateValues as Pet[];
         }
       }
 
-      // If root is directly an array of pets
-      if (Array.isArray(parsed)) {
-        this.savePets(parsed);
-        if (parsed.length > 0) this.setActivePetId(parsed[0].id);
-        return true;
+      if (importedPets.length > 0) {
+        // Ensure all pets have required IDs and names
+        importedPets = importedPets.map((p, idx) => ({
+          ...p,
+          id: p.id || `pet-${Date.now()}-${idx}`,
+          species: p.species || 'dog',
+          name: p.name || 'Pupil',
+        }));
+        this.savePets(importedPets);
+        this.setActivePetId(importedPets[0].id);
       }
 
-      if (Array.isArray(parsed.pets)) this.savePets(parsed.pets);
       if (Array.isArray(parsed.vaccinations)) this.saveVaccinations(parsed.vaccinations);
       if (Array.isArray(parsed.exams)) this.saveExams(parsed.exams);
       if (Array.isArray(parsed.conditions)) this.saveConditions(parsed.conditions);
@@ -562,11 +612,10 @@ export const storage = {
       }
       if (parsed.dashboardConfig) this.saveDashboardConfig(parsed.dashboardConfig);
       if (Array.isArray(parsed.doseLogs)) safeSetItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(parsed.doseLogs));
-      if (parsed.pets?.length > 0) {
-        this.setActivePetId(parsed.pets[0].id);
-      }
-      return true;
-    } catch {
+
+      return importedPets.length > 0 || (Array.isArray(parsed.vaccinations) && parsed.vaccinations.length > 0);
+    } catch (err) {
+      console.error('Błąd importu danych w importAllData:', err);
       return false;
     }
   },

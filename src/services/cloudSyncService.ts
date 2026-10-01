@@ -425,9 +425,6 @@ export async function signInWithGoogle(
     setCachedAccessToken(accessToken);
   }
 
-  // Clear previous local data first to prevent data mixing
-  storage.clearAllData();
-
   const name = displayName || cleanEmail.split('@')[0].replace(/[._]/g, ' ');
   const user: CloudUser = {
     email: cleanEmail,
@@ -453,12 +450,18 @@ export async function signInWithGoogle(
   // AUTOMATIC RESTORE:
   // 1. Try Google Drive first (with accessToken passed directly)
   try {
-    const driveRestore = await autoRestoreFromDriveIfEmpty(accessToken);
-    if (driveRestore.restored && driveRestore.petCount > 0) {
+    const driveRestore = await downloadPetDataFromDrive(accessToken);
+    if (driveRestore && driveRestore.petCount > 0) {
       petCount = driveRestore.petCount;
     }
   } catch (driveErr) {
-    console.warn('Auto restore check from Drive:', driveErr);
+    console.warn('Direct Google Drive download notice on sign-in:', driveErr);
+    try {
+      const autoRes = await autoRestoreFromDriveIfEmpty(accessToken);
+      if (autoRes.restored && autoRes.petCount > 0) {
+        petCount = autoRes.petCount;
+      }
+    } catch {}
   }
 
   // 2. Fallback to Cloud Sync database if Drive was empty

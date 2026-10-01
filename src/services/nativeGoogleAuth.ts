@@ -50,12 +50,22 @@ export async function performSecureGoogleSignIn(): Promise<AuthenticatedGoogleUs
       const res = await NativeGoogleAuth.signIn();
       if (res && res.email) {
         const cleanEmail = res.email.trim().toLowerCase();
+        let accessToken = res.accessToken;
+        if (!accessToken) {
+          try {
+            const driveToken = await fetchNativeDriveToken(cleanEmail);
+            if (driveToken) accessToken = driveToken;
+          } catch (e) {
+            console.warn('Native drive token request note:', e);
+          }
+        }
+
         return {
           email: cleanEmail,
           name: res.name || cleanEmail.split('@')[0],
           photoUrl: res.photoUrl || '',
           idToken: res.idToken || '',
-          accessToken: res.accessToken || undefined,
+          accessToken: accessToken || undefined,
           androidProof: res.signature && res.deviceId && res.timestamp ? {
             deviceId: res.deviceId,
             timestamp: res.timestamp,
@@ -80,6 +90,7 @@ export async function performSecureGoogleSignIn(): Promise<AuthenticatedGoogleUs
     name: webUser.name,
     photoUrl: webUser.photoUrl,
     idToken: webUser.idToken,
+    accessToken: webUser.accessToken,
   };
 }
 
