@@ -1,5 +1,5 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
-import { storage } from './storage';
+import { storage, subscribeToStorageChanges } from './storage';
 import { Pet, Medication } from '../types/pet';
 
 export interface NativeWidgetPluginInterface {
@@ -107,3 +107,13 @@ export async function pinPetCareWidgetToHomeScreen(): Promise<{ requested: boole
   }
   return { requested: false, fallbackGuideRequired: true };
 }
+
+// Automatically sync the native Android widget whenever medications, pets or doses change
+if (typeof window !== 'undefined') {
+  subscribeToStorageChanges((key) => {
+    if (key.includes('medications') || key.includes('pets') || key.includes('dose_logs') || key.includes('vaccinations')) {
+      syncWidgetWithLatestData();
+    }
+  });
+}
+

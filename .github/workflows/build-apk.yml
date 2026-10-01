@@ -40,18 +40,28 @@ jobs:
       - name: Nadanie uprawnień wykonywalności dla Gradle
         run: chmod +x android/gradlew
 
-      - name: Generowanie oficjalnego klucza produkcyjnego (Release Keystore)
+      - name: Konfiguracja stałego klucza produkcyjnego (Persistent Release Keystore)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           cd android/app
-          keytool -genkeypair -v \
-            -keystore release.keystore \
-            -alias petcare \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass petcare123 \
-            -keypass petcare123 \
-            -dname "CN=PetCare Mobile, OU=Health, O=PetCare Systems, L=Warszawa, ST=Mazowieckie, C=PL"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Używanie oficjalnego klucza z GitHub Secrets (ANDROID_KEYSTORE_BASE64)..."
+            echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+          elif [ -f release.keystore ]; then
+            echo "Używanie stałego, trwałego klucza release.keystore z repozytorium..."
+          else
+            echo "Generowanie stałego klucza produkcyjnego (fallback)..."
+            keytool -genkeypair -v \
+              -keystore release.keystore \
+              -alias petcare \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass petcare123 \
+              -keypass petcare123 \
+              -dname "CN=PetCare Mobile, OU=Health, O=PetCare Systems, L=Warszawa, ST=Mazowieckie, C=PL"
+          fi
 
       - name: Kompilacja pakietów APK (Release & Debug) oraz AAB (Google Play Bundle)
         run: |
@@ -79,8 +89,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: v2.36.0
-          name: "PetCare v2.36.0 - Książeczka Zdrowia PDF, Kompresja Zdjęć, Asystent Baterii & Podpis Produkcyjny APK/AAB"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.36.0' }}
+          name: "PetCare v2.36.0 - Książeczka Zdrowia PDF, Kompresja Zdjęć, Asystent Baterii & Trwały Klucz APK/AAB"
           body: |
             ### 🐾 PetCare v2.36.0 - Wielkie Wydanie z 4 Nowymi Funkcjami!
 

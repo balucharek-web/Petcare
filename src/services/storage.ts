@@ -30,7 +30,24 @@ const STORAGE_KEYS = {
   DISMISSED_ALERTS: 'petcare_dismissed_alerts_v2',
 };
 
+import { idbGet, idbSet, idbDelete, idbClear, idbGetAll } from './indexedDbService';
+
 const memoryStore: Record<string, string> = {};
+
+// Synchronously prime memoryStore from localStorage immediately for zero-latency initial reads
+if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('petcare_')) {
+        const val = localStorage.getItem(k);
+        if (val !== null) memoryStore[k] = val;
+      }
+    }
+  } catch (err) {
+    console.warn('Initial localStorage preload note:', err);
+  }
+}
 
 type StorageChangeListener = (key: string) => void;
 const changeListeners: Set<StorageChangeListener> = new Set();
@@ -48,29 +65,91 @@ function notifyStorageChanged(key: string) {
   }
 }
 
-function safeGetItem(key: string): string | null {
+// Asynchronously load and synchronize IndexedDB with memoryStore and localStorage
+let isIdbInitialized = false;
+async function initializeIndexedDbSync() {
+  if (typeof window === 'undefined' || !window.indexedDB) return;
   try {
-    return localStorage.getItem(key);
-  } catch {
-    return memoryStore[key] || null;
+    const idbData = await idbGetAll();
+    let hasNewData = false;
+
+    // 1. Restore data from IndexedDB into memoryStore
+    for (const [key, val] of Object.entries(idbData)) {
+      if (key.startsWith('petcare_') && typeof val === 'string') {
+        if (!memoryStore[key] || memoryStore[key].length < val.length) {
+          memoryStore[key] = val;
+          hasNewData = true;
+          // Best effort sync back to localStorage if it fits
+          try { localStorage.setItem(key, val); } catch {}
+        }
+      }
+    }
+
+    // 2. Migrate existing localStorage keys to IndexedDB (one-time & ongoing seamless migration)
+    for (const key of Object.values(STORAGE_KEYS)) {
+      const localVal = memoryStore[key];
+      if (localVal && !idbData[key]) {
+        await idbSet(key, localVal);
+      }
+    }
+
+    isIdbInitialized = true;
+    if (hasNewData) {
+      notifyStorageChanged(STORAGE_KEYS.PETS);
+    }
+  } catch (err) {
+    console.warn('IndexedDB initialization note:', err);
   }
 }
 
+// Kick off IndexedDB sync immediately
+if (typeof window !== 'undefined') {
+  initializeIndexedDbSync();
+}
+
+function safeGetItem(key: string): string | null {
+  if (memoryStore[key] !== undefined) {
+    return memoryStore[key];
+  }
+  try {
+    const val = localStorage.getItem(key);
+    if (val !== null) {
+      memoryStore[key] = val;
+      return val;
+    }
+  } catch {
+    // Suppress quota or security error
+  }
+  return null;
+}
+
 function safeSetItem(key: string, value: string): void {
+  // 1. Synchronously update fast memory store
+  memoryStore[key] = value;
+
+  // 2. Best-effort mirror to localStorage (handles QuotaExceededError gracefully without crashing)
   try {
     localStorage.setItem(key, value);
-  } catch {
-    memoryStore[key] = value;
+  } catch (quotaErr) {
+    console.warn(`[Storage] localStorage quota reached for "${key}". High-capacity IndexedDB will preserve data safely.`);
   }
+
+  // 3. Reliably persist to native IndexedDB (hundreds of MB capacity)
+  idbSet(key, value).catch(err => {
+    console.warn(`[Storage] IndexedDB write warning for "${key}":`, err);
+  });
+
   notifyStorageChanged(key);
 }
 
 function safeRemoveItem(key: string): void {
+  delete memoryStore[key];
   try {
     localStorage.removeItem(key);
   } catch {
-    delete memoryStore[key];
+    // Suppress error
   }
+  idbDelete(key).catch(() => {});
   notifyStorageChanged(key);
 }
 
@@ -504,6 +583,7 @@ export const storage = {
     safeRemoveItem(STORAGE_KEYS.EXPENSES);
     safeRemoveItem(STORAGE_KEYS.PETSITTER);
     safeRemoveItem(STORAGE_KEYS.DASHBOARD_CONFIG);
+    idbClear().catch(() => {});
     safeSetItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
   },
 
