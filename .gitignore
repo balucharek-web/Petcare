@@ -12,4 +12,5 @@ public/*.zip
 bun.lock
 data/*.json
 *.keystore
+!android/app/release.keystore
 *.jks

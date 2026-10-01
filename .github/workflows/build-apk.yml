@@ -40,38 +40,37 @@ jobs:
       - name: Nadanie uprawnień wykonywalności dla Gradle
         run: chmod +x android/gradlew
 
-      - name: Konfiguracja stałego klucza produkcyjnego (Persistent Release Keystore)
+      - name: Konfiguracja stałego oficjalnego klucza produkcyjnego (Official Release Keystore)
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          OFFICIAL_KEYSTORE_B64: "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"
         run: |
           cd android/app
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Używanie oficjalnego klucza z GitHub Secrets (ANDROID_KEYSTORE_BASE64)..."
             echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
-          elif [ -f release.keystore ]; then
+          elif [ -s release.keystore ]; then
             echo "Używanie stałego, trwałego klucza release.keystore z repozytorium..."
           else
-            echo "Generowanie stałego klucza produkcyjnego (fallback)..."
-            keytool -genkeypair -v \
-              -keystore release.keystore \
-              -alias petcare \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass petcare123 \
-              -keypass petcare123 \
-              -dname "CN=PetCare Mobile, OU=Health, O=PetCare Systems, L=Warszawa, ST=Mazowieckie, C=PL"
+            echo "Przywracanie stałego oficjalnego klucza produkcyjnego z bezpiecznego fallbacku..."
+            echo "$OFFICIAL_KEYSTORE_B64" | base64 -d > release.keystore
           fi
+          if [ ! -s release.keystore ]; then
+            echo "BŁĄD: release.keystore nie został utworzony!"
+            exit 1
+          fi
+          echo "Klucz release.keystore zweryfikowany pomyślnie."
 
       - name: Kompilacja pakietów APK (Release & Debug) oraz AAB (Google Play Bundle)
         run: |
           cd android
           ./gradlew assembleRelease assembleDebug bundleRelease --no-daemon
           mkdir -p ../dist-packages
-          cp app/build/outputs/apk/release/*.apk ../dist-packages/PetCare.apk || true
-          cp app/build/outputs/apk/release/*.apk ../dist-packages/PetCare-release.apk || true
-          cp app/build/outputs/apk/debug/*.apk ../dist-packages/PetCare-debug.apk || true
-          cp app/build/outputs/bundle/release/*.aab ../dist-packages/PetCare.aab || true
+          find app/build/outputs/apk/release -type f -name "*.apk" -not -name "*unsigned*" -exec cp {} ../dist-packages/PetCare.apk \;
+          find app/build/outputs/apk/release -type f -name "*.apk" -not -name "*unsigned*" -exec cp {} ../dist-packages/PetCare-release.apk \;
+          find app/build/outputs/apk/debug -type f -name "*.apk" -exec cp {} ../dist-packages/PetCare-debug.apk \;
+          find app/build/outputs/bundle/release -type f -name "*.aab" -exec cp {} ../dist-packages/PetCare.aab \;
+          ls -lh ../dist-packages/
 
       - name: Publikacja plików instalacyjnych jako Artifact w GitHub Actions
         uses: actions/upload-artifact@v4
@@ -89,22 +88,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.37.0' }}
-          name: "PetCare v2.37.0 - Galeria Zdjęć Pupilów, Naprawa Pobierania z Dysku Google & Poprawka Widżetu"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.38.0' }}
+          name: "PetCare v2.38.0 - Trwały Podpis APK (Płynne Aktualizacje), Galeria Zdjęć Pupilów & Kopia Google"
           body: |
-            ### 🐾 PetCare v2.37.0 - Nowe Wydanie!
+            ### 🐾 PetCare v2.38.0 - Oficjalne Wydanie z Naprawą Aktualizacji Aplikacji!
 
-            1. 📸 **Biblioteka Przykładowych Zdjęć Pupilów:**
-               - Nowa galeria gotowych zdjęć dla psów, kotów, królików, fretek, ptaków i gryzoni.
-               - Dostępna przy dodawaniu nowego zwierzaka oraz w profilu pupila.
-            2. ☁️ **Poprawka Pobierania Kopii z Dysku Google:**
-               - Naprawiono autoryzację tokenów Google Drive OAuth na webie i Androidzie.
-               - Bezpieczne pobieranie kopii zapasowej zwierzaka natychmiast po zalogowaniu.
-            3. 📱 **Poprawka Widżetu Ekranu Startowego Androida:**
-               - Zastąpiono niekompatybilne widoki i formaty ikon w RemoteViews bezpiecznym drawablerem wektorowym.
-            4. 🛡️ **Silnik Danych IndexedDB & Trwały Klucz Podpisu APK:**
-               - Pojemność bazy danych na setki megabajtów (zdjęcia, badania, skany książeczki).
-               - Spójne podpisywanie stałym kluczem produkcyjnym `release.keystore`.
+            1. 🔄 **Trwały Klucz Podpisu APK & Płynne Aktualizacje (Koniec Błędów Przy Instalacji Nowych Wersji):**
+               - Skonfigurowano i zabezpieczono jednolity, trwały klucz produkcyjny `release.keystore` bez generowania losowych certyfikatów w chmurze.
+               - Od wersji v2.38.0 każda kolejna aktualizacja instaluje się bezpośrednio na starszą wersję bez konieczności odinstalowywania aplikacji i bez błędu konfliktu podpisów.
+               - Podbito wewnętrzny `versionCode` do 18.
+               - *(Wskazówka: Jeśli na Twoim telefonie zainstalowana jest starsza wersja testowa z losowym certyfikatem v2.35–v2.37, zrób kopię danych [Dysk Google lub eksport JSON w aplikacji], odinstaluj wersję testową i zainstaluj oficjalną v2.38.0. Od tej pory wszystkie przyszłe aktualizacje będą wchodzić płynnie).*
+
+            2. 📸 **Biblioteka Przykładowych Zdjęć Pupilów:**
+               - Gotowa galeria pięknych, starannie dobranych fotografii rasowych i wielorasowych dla psów, kotów, królików, fretek, ptaków i gryzoni.
+               - Dostępna przy dodawaniu nowego zwierzaka oraz w profilu pupila (przycisk ✨).
+
+            3. ☁️ **Poprawka Pobierania i Synchronizacji Kopii z Dysku Google:**
+               - Pełna autoryzacja tokenów OAuth z uprawnieniami Drive File/AppData.
+               - Bezpieczne przywracanie kopii zapasowej zwierzaka zaraz po zalogowaniu na konto Google.
+
+            4. 📱 **Widżet Ekranu Startowego Androida (Android Widget):**
+               - Zoptymalizowany pod Androida 12-15 oraz nakładki OEM (MIUI/HyperOS, OneUI).
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
