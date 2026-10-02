@@ -1648,12 +1648,12 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             <div
               key={widgetKey}
               data-widget-key={widgetKey}
-              draggable
-              onDragStart={(e) => handleDragStart(e, widgetKey)}
-              onDragOver={(e) => handleDragOver(e, widgetKey)}
-              onDrop={(e) => handleDrop(e, widgetKey)}
-              onDragEnd={handleDragEnd}
-              className={`group relative rounded-3xl transition-all duration-200 ${
+              draggable={isReorderMode}
+              onDragStart={isReorderMode ? (e) => handleDragStart(e, widgetKey) : undefined}
+              onDragOver={isReorderMode ? (e) => handleDragOver(e, widgetKey) : undefined}
+              onDrop={isReorderMode ? (e) => handleDrop(e, widgetKey) : undefined}
+              onDragEnd={isReorderMode ? handleDragEnd : undefined}
+              className={`group relative rounded-3xl transition-all duration-200 touch-pan-y ${
                 isBeingDragged
                   ? 'opacity-35 scale-[0.98] ring-2 ring-teal-500 ring-dashed'
                   : isTarget
@@ -1661,35 +1661,25 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   : ''
               }`}
             >
-              {/* Reordering Controls Header / Grip Bar */}
-              <div className={`transition-all flex items-center justify-between ${
-                isReorderMode
-                  ? 'px-3.5 py-2 bg-slate-900 text-white rounded-2xl mb-1.5 shadow-sm'
-                  : 'opacity-0 group-hover:opacity-100 hover:opacity-100 focus-within:opacity-100 absolute top-3 right-3 z-20 bg-white/95 backdrop-blur-xs border border-slate-200/90 shadow-sm rounded-xl px-2 py-1'
-              }`}>
-                <div
-                  className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing select-none"
-                  title="Chwyć i przeciągnij, aby zmienić kolejność"
-                  onTouchStart={(e) => handleTouchStart(e, widgetKey)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                >
-                  <GripVertical className={`w-4 h-4 ${isReorderMode ? 'text-teal-400' : 'text-slate-500'}`} />
-                  {isReorderMode ? (
+              {/* Reordering Controls Header / Grip Bar - only active during reorder mode */}
+              {isReorderMode && (
+                <div className="px-3.5 py-2 bg-slate-900 text-white rounded-2xl mb-2 shadow-sm flex items-center justify-between">
+                  <div
+                    className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing select-none touch-none"
+                    title="Chwyć i przeciągnij, aby zmienić kolejność"
+                    onTouchStart={(e) => handleTouchStart(e, widgetKey)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                  >
+                    <GripVertical className="w-4 h-4 text-teal-400" />
                     <span className="text-xs font-bold text-white flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full bg-teal-500/30 text-teal-300 text-[10px] flex items-center justify-center font-mono">
                         {visibleIndex + 1}
                       </span>
                       {itemMeta.label}
                     </span>
-                  ) : (
-                    <span className="text-[10px] font-semibold text-slate-600 hidden sm:inline">
-                      Przeciągnij kafelek
-                    </span>
-                  )}
-                </div>
+                  </div>
 
-                {isReorderMode && (
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -1710,8 +1700,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                       <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Widget Content Body */}
               {renderWidgetContent(widgetKey)}

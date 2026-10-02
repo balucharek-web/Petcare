@@ -571,7 +571,7 @@ export default function App() {
         />
 
         {/* Main Body */}
-        <main className="flex-1 px-3 sm:px-4 py-3 sm:py-4 overflow-y-auto pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+        <main className="flex-1 w-full px-3 sm:px-4 py-3 sm:py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
           {!activePet || pets.length === 0 ? (
             <NoPetsView
               onOpenNewPetModal={() => setIsNewPetOpen(true)}
