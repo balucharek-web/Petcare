@@ -25,17 +25,20 @@ import {
   CalendarEventPayload 
 } from '../services/calendar';
 import { ScanViewerModal } from './ScanViewerModal';
+import { haptics } from '../services/hapticsService';
 
 interface ExamsAndTestsViewProps {
   pet: Pet;
   exams: MedicalExam[];
   onUpdateExams: (items: MedicalExam[]) => void;
+  onOpenLabTrends?: () => void;
 }
 
 export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
   pet,
   exams,
   onUpdateExams,
+  onOpenLabTrends,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingExam, setEditingExam] = useState<MedicalExam | null>(null);
@@ -382,13 +385,34 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center gap-1.5 px-3.5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl text-xs font-bold shadow active:scale-95 transition shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Dodaj badanie
-        </button>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          {onOpenLabTrends && (
+            <button
+              type="button"
+              onClick={() => {
+                haptics.tap();
+                onOpenLabTrends();
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-2xl text-xs font-bold border border-teal-200/90 shadow-2xs active:scale-95 transition cursor-pointer"
+              title="Zobacz wykresy zmian parametrów krwi na osi czasu"
+            >
+              <Activity className="w-4 h-4 text-teal-600" />
+              <span className="hidden min-[400px]:inline">Wykresy trendów</span>
+              <span className="min-[400px]:hidden">Trendy</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              haptics.tap();
+              handleOpenAdd();
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl text-xs font-bold shadow-xs active:scale-95 transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Dodaj badanie</span>
+          </button>
+        </div>
       </div>
 
       {/* List */}

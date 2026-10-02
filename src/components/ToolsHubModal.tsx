@@ -18,9 +18,13 @@ import {
   History,
   Users,
   Lock,
-  LayoutGrid
+  LayoutGrid,
+  Activity,
+  Scan,
+  Stethoscope
 } from 'lucide-react';
 import { Pet } from '../types/pet';
+import { haptics } from '../services/hapticsService';
 
 interface ToolsHubModalProps {
   isOpen: boolean;
@@ -44,6 +48,10 @@ interface ToolsHubModalProps {
   onOpenPrivacyPolicy?: () => void;
   onOpenHomeScreenWidget?: () => void;
   onOpenParasiteProtection?: () => void;
+  onOpenLabTrends?: () => void;
+  onOpenFoodLens?: () => void;
+  onOpenSymptomChecker?: () => void;
+  onOpenMicrochipVerify?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -69,11 +77,51 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenPrivacyPolicy,
   onOpenHomeScreenWidget,
   onOpenParasiteProtection,
+  onOpenLabTrends,
+  onOpenFoodLens,
+  onOpenSymptomChecker,
+  onOpenMicrochipVerify,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
 
   const tools = [
+    {
+      id: 'lab-trends',
+      label: 'Wykresy Trendów Laboratoryjnych',
+      desc: 'Interaktywne wykresy enzymów wątrobowych (ALT, AST), nerek (mocznik, kreatynina) i glukozy z korytarzem normy',
+      icon: Activity,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      badge: 'Biomarkery AI',
+      action: onOpenLabTrends,
+    },
+    {
+      id: 'food-lens',
+      label: 'Skaner Karmy & Wykrywacz Alergenów',
+      desc: 'Wykrywanie alergenów pod kątem profilu pupila, ocena transparentności mięsa i wypełniaczy',
+      icon: Scan,
+      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      badge: 'Food Lens',
+      action: onOpenFoodLens,
+    },
+    {
+      id: 'symptom-checker',
+      label: 'Asystent Wczesnych Objawów (Triage)',
+      desc: 'Drzewo decyzyjne i pierwsza pomoc: ocena czy jechać natychmiast na ostry dyżur 24h czy obserwować',
+      icon: Stethoscope,
+      color: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+      badge: 'Triage 24h',
+      action: onOpenSymptomChecker,
+    },
+    {
+      id: 'microchip-verify',
+      label: 'Weryfikacja Mikroczipa (SAFE-ANIMAL)',
+      desc: 'Walidacja 15-cyfrowego kodu ISO oraz bezpośrednie sprawdzenie rejestracji w bazach polskich i europejskich',
+      icon: ShieldCheck,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      badge: 'SAFE-ANIMAL',
+      action: onOpenMicrochipVerify,
+    },
     {
       id: 'vet-card',
       label: 'Karta Pacjenta (Tryb Lekarza)',

@@ -53,6 +53,7 @@ import { TodayQuickActionsWidget } from './TodayQuickActionsWidget';
 import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
 import { InlinePhotoCropper } from './InlinePhotoCropper';
 import { DeletePetConfirmModal } from './DeletePetConfirmModal';
+import { haptics } from '../services/hapticsService';
 
 interface PetProfileViewProps {
   pet: Pet;
@@ -78,6 +79,10 @@ interface PetProfileViewProps {
   onOpenFamilySharing?: () => void;
   onOpenHomeScreenWidgetModal?: () => void;
   onOpenParasiteProtection?: () => void;
+  onOpenLabTrends?: () => void;
+  onOpenFoodLens?: () => void;
+  onOpenMicrochipVerify?: () => void;
+  onOpenSymptomChecker?: () => void;
 }
 
 export const PetProfileView: React.FC<PetProfileViewProps> = ({
@@ -104,6 +109,10 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   onOpenFamilySharing,
   onOpenHomeScreenWidgetModal,
   onOpenParasiteProtection,
+  onOpenLabTrends,
+  onOpenFoodLens,
+  onOpenMicrochipVerify,
+  onOpenSymptomChecker,
 }) => {
   const [copiedChip, setCopiedChip] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -1025,18 +1034,38 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 </div>
               </div>
 
-              {pet.chipNumber && (
-                <button
-                  type="button"
-                  onClick={copyChip}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                    copiedChip ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  {copiedChip ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedChip ? 'Skopiowano' : 'Kopiuj'}
-                </button>
-              )}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {onOpenMicrochipVerify && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      haptics.tap();
+                      onOpenMicrochipVerify();
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold border border-teal-200/90 shadow-2xs transition active:scale-95 cursor-pointer"
+                    title="Sprawdź numer czipa w bazie SAFE-ANIMAL i CBDZOE"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+                    <span>Weryfikuj w SAFE-ANIMAL</span>
+                  </button>
+                )}
+
+                {pet.chipNumber && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      haptics.tap();
+                      copyChip();
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                      copiedChip ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {copiedChip ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedChip ? 'Skopiowano' : 'Kopiuj'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="bg-slate-900 text-white rounded-2xl p-4 font-mono">
@@ -1520,29 +1549,35 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </div>
             </div>
 
-            {/* Quick Health Shortcuts: Age & 24h Emergency Clinics */}
+            {/* Quick Health Shortcuts: Triage & Symptoms, 24h Emergency Clinics, Lab Trends, Food Lens */}
             <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-2 mt-2.5">
-              {onOpenAgeCalculator && (
+              {onOpenSymptomChecker && (
                 <button
                   type="button"
-                  onClick={onOpenAgeCalculator}
-                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 border border-teal-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
-                  title="Kliknij, aby otworzyć szczegóły urodzin i kalkulator wieku pupila"
+                  onClick={() => {
+                    haptics.tap();
+                    onOpenSymptomChecker();
+                  }}
+                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-amber-50/70 hover:bg-amber-100/70 text-amber-900 border border-amber-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                  title="Kliknij, aby otworzyć asystenta objawów i pierwszej pomocy"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block truncate">Urodziny pupila</span>
-                    <span className="text-xs font-bold text-teal-950 truncate block">
-                      {pet.birthDate ? formatBirthday(pet.birthDate) : 'Ustaw datę'}
+                    <span className="text-[9px] uppercase font-extrabold text-amber-700 block truncate">Objawy & Triage</span>
+                    <span className="text-xs font-bold text-amber-950 truncate block">
+                      Pierwsza pomoc
                     </span>
                   </div>
-                  <span className="text-sm shrink-0">🎂</span>
+                  <span className="text-sm shrink-0">🩺</span>
                 </button>
               )}
 
               {onOpenEmergencyVetFinder && (
                 <button
                   type="button"
-                  onClick={onOpenEmergencyVetFinder}
+                  onClick={() => {
+                    haptics.tap();
+                    onOpenEmergencyVetFinder();
+                  }}
                   className="p-2 min-[360px]:p-2.5 rounded-2xl bg-rose-50/70 hover:bg-rose-100/70 text-rose-900 border border-rose-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
                 >
                   <div className="min-w-0">
@@ -1552,6 +1587,44 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                     </span>
                   </div>
                   <span className="text-sm shrink-0">🚨</span>
+                </button>
+              )}
+
+              {onOpenLabTrends && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptics.tap();
+                    onOpenLabTrends();
+                  }}
+                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 border border-teal-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                >
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block truncate">Biomarkery krwi</span>
+                    <span className="text-xs font-bold text-teal-950 truncate block">
+                      Wykresy trendów
+                    </span>
+                  </div>
+                  <span className="text-sm shrink-0">📈</span>
+                </button>
+              )}
+
+              {onOpenFoodLens && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptics.tap();
+                    onOpenFoodLens();
+                  }}
+                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-900 border border-emerald-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                >
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-extrabold text-emerald-700 block truncate">Skaner karmy</span>
+                    <span className="text-xs font-bold text-emerald-950 truncate block">
+                      Alergeny i skład
+                    </span>
+                  </div>
+                  <span className="text-sm shrink-0">🍲</span>
                 </button>
               )}
             </div>

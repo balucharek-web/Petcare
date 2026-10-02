@@ -121,17 +121,25 @@ const DEFAULT_INITIAL_PETS: Pet[] = [
     id: 'pet-1',
     name: 'Baster',
     species: 'dog',
-    breed: 'Mieszaniec',
+    breed: 'Golden Retriever / Mieszaniec',
     birthDate: '2021-05-10',
     gender: 'male',
     weightKg: 14.5,
     chipNumber: '616093900012345',
-    color: 'Czarno-podpalany',
-    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
+    color: 'Złoto-podpalany',
+    photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
     isNeutered: true,
+    allergies: 'Kurczak / drób, Pszenica (zboża glutenowe)',
+    specialNotes: 'Pies wrażliwy na karmę drobiową. Regularna kontrola enzymów wątrobowych i profilaktyka kleszczy.',
+    vetClinicName: 'Klinika Weterynaryjna Cztery Łapy',
+    vetDoctorName: 'lek. wet. Anna Nowak',
+    vetPhone: '+48 601 234 567',
+    emergencyClinicName: 'Klinika Całodobowa Wet-Dyżur 24h',
+    emergencyClinicPhone: '+48 22 845 22 33',
     weightHistory: [
-      { id: 'w-1', date: '2025-01-10', weightKg: 14.2 },
-      { id: 'w-2', date: '2025-06-15', weightKg: 14.5 }
+      { id: 'w-1', date: '2025-03-10', weightKg: 13.9 },
+      { id: 'w-2', date: '2025-08-15', weightKg: 14.2 },
+      { id: 'w-3', date: '2026-01-20', weightKg: 14.5 }
     ],
     createdAt: '2025-01-01',
   }
@@ -147,16 +155,113 @@ const DEFAULT_INITIAL_VACCINATIONS: Vaccination[] = [
     validUntil: '2027-06-15',
     batchNumber: 'RB-2026-99A',
     vetClinic: 'Lecznica Weterynaryjna Cztery Łapy',
-    vetDoctor: 'dr Anna Nowak',
+    vetDoctor: 'lek. wet. Anna Nowak',
+  },
+  {
+    id: 'vac-2',
+    petId: 'pet-1',
+    name: 'Nobivac DHPPi (Nosówka, Parwowiroza, Adenowirus)',
+    category: 'core',
+    dateAdministered: '2026-04-10',
+    validUntil: '2027-04-10',
+    batchNumber: 'NB-4421X',
+    vetClinic: 'Lecznica Weterynaryjna Cztery Łapy',
+    vetDoctor: 'lek. wet. Anna Nowak',
   }
 ];
 
-// Initialization check without auto-seeding mock data
+const DEFAULT_INITIAL_EXAMS: MedicalExam[] = [
+  {
+    id: 'exam-1',
+    petId: 'pet-1',
+    title: 'Morfologia i Biochemia Krwi (Profil Wstępny)',
+    category: 'blood',
+    date: '2025-05-12',
+    clinic: 'Lecznica Weterynaryjna Cztery Łapy',
+    doctor: 'lek. wet. Anna Nowak',
+    status: 'normal',
+    summary: 'Wszystkie parametry w granicach normy fizjologicznej.',
+    keyParameters: [
+      { name: 'ALT (GPT)', value: '55', unit: 'U/L', refRange: '10 - 100', isFlagged: false },
+      { name: 'AST (GOT)', value: '32', unit: 'U/L', refRange: '0 - 50', isFlagged: false },
+      { name: 'Mocznik (BUN)', value: '38', unit: 'mg/dl', refRange: '20 - 45', isFlagged: false },
+      { name: 'Kreatynina', value: '1.1', unit: 'mg/dl', refRange: '0.5 - 1.7', isFlagged: false },
+      { name: 'Glukoza', value: '88', unit: 'mg/dl', refRange: '70 - 120', isFlagged: false },
+    ],
+    scans: []
+  },
+  {
+    id: 'exam-2',
+    petId: 'pet-1',
+    title: 'Profil Wątrobowo-Nerkowy Rozszerzony',
+    category: 'blood',
+    date: '2025-10-18',
+    clinic: 'Lecznica Weterynaryjna Cztery Łapy',
+    doctor: 'lek. wet. Anna Nowak',
+    status: 'attention',
+    summary: 'Lekki przejściowy wzrost enzymów wątrobowych (ALT). Wdrożono suplementację.',
+    keyParameters: [
+      { name: 'ALT (GPT)', value: '78', unit: 'U/L', refRange: '10 - 100', isFlagged: false },
+      { name: 'AST (GOT)', value: '44', unit: 'U/L', refRange: '0 - 50', isFlagged: false },
+      { name: 'Mocznik (BUN)', value: '42', unit: 'mg/dl', refRange: '20 - 45', isFlagged: false },
+      { name: 'Kreatynina', value: '1.3', unit: 'mg/dl', refRange: '0.5 - 1.7', isFlagged: false },
+      { name: 'Glukoza', value: '92', unit: 'mg/dl', refRange: '70 - 120', isFlagged: false },
+    ],
+    scans: []
+  },
+  {
+    id: 'exam-3',
+    petId: 'pet-1',
+    title: 'Kontrolne Badanie Krwi (Poprawa Parametrów)',
+    category: 'blood',
+    date: '2026-03-24',
+    clinic: 'Lecznica Weterynaryjna Cztery Łapy',
+    doctor: 'lek. wet. Anna Nowak',
+    status: 'normal',
+    summary: 'Spadek parametrów wątrobowych do optymalnego poziomu. Doskonała reakcja na suplement.',
+    keyParameters: [
+      { name: 'ALT (GPT)', value: '62', unit: 'U/L', refRange: '10 - 100', isFlagged: false },
+      { name: 'AST (GOT)', value: '35', unit: 'U/L', refRange: '0 - 50', isFlagged: false },
+      { name: 'Mocznik (BUN)', value: '34', unit: 'mg/dl', refRange: '20 - 45', isFlagged: false },
+      { name: 'Kreatynina', value: '1.0', unit: 'mg/dl', refRange: '0.5 - 1.7', isFlagged: false },
+      { name: 'Glukoza', value: '85', unit: 'mg/dl', refRange: '70 - 120', isFlagged: false },
+    ],
+    scans: []
+  }
+];
+
+const DEFAULT_INITIAL_MEDS: Medication[] = [
+  {
+    id: 'med-1',
+    petId: 'pet-1',
+    name: 'Hepatiale Forte (Wsparcie wątroby)',
+    form: 'tablet',
+    dosage: '1 tabletka rano',
+    instructions: 'Podawać z posiłkiem lub przysmakiem',
+    timesOfDay: [
+      { id: 't-1', label: 'Rano', time: '08:00', amount: '1 tabletka' }
+    ],
+    packageSize: 30,
+    currentStock: 22,
+    startDate: '2026-03-25',
+    isChronic: true,
+    isActive: true,
+    notes: 'Zalecenie po badaniu enzymów wątrobowych.'
+  }
+];
+
+// Initialization check ensuring initial test pet is seeded for preview
 function ensureCleanInitialization() {
   if (typeof window === 'undefined') return;
   try {
-    // Only verify storage availability, do not seed mock pets
-    safeSetItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
+    const existing = safeGetItem(STORAGE_KEYS.PETS);
+    if (!existing || existing === '[]') {
+      safeSetItem(STORAGE_KEYS.PETS, JSON.stringify(DEFAULT_INITIAL_PETS));
+      safeSetItem(STORAGE_KEYS.ACTIVE_PET_ID, DEFAULT_INITIAL_PETS[0].id);
+      safeSetItem(STORAGE_KEYS.VACCINATIONS, JSON.stringify(DEFAULT_INITIAL_VACCINATIONS));
+      safeSetItem(STORAGE_KEYS.EXAMS, JSON.stringify(DEFAULT_INITIAL_EXAMS));
+      safeSetItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(DEFAULT_INITIAL_MEDS));
+    }
   } catch (e) {
     console.warn('Storage initialization note:', e);
   }
@@ -646,6 +751,8 @@ export const storage = {
   seedSampleData(): void {
     this.savePets(DEFAULT_INITIAL_PETS);
     this.saveVaccinations(DEFAULT_INITIAL_VACCINATIONS);
+    this.saveExams(DEFAULT_INITIAL_EXAMS);
+    this.saveMedications(DEFAULT_INITIAL_MEDS);
     if (DEFAULT_INITIAL_PETS[0]) {
       this.setActivePetId(DEFAULT_INITIAL_PETS[0].id);
     }

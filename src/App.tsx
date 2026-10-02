@@ -66,6 +66,11 @@ import { HomeScreenWidgetModal } from './components/HomeScreenWidgetModal';
 import { ParasiteProtectionModal } from './components/ParasiteProtectionModal';
 import { syncWidgetWithLatestData } from './services/nativeWidget';
 import { NoPetsView } from './components/NoPetsView';
+import { MicrochipVerifyModal } from './components/MicrochipVerifyModal';
+import { LabTrendsModal } from './components/LabTrendsModal';
+import { FoodLensModal } from './components/FoodLensModal';
+import { SymptomCheckerModal } from './components/SymptomCheckerModal';
+import { haptics } from './services/hapticsService';
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
@@ -106,6 +111,10 @@ export default function App() {
   const [isHomeScreenWidgetModalOpen, setIsHomeScreenWidgetModalOpen] = useState(false);
   const [isParasiteProtectionOpen, setIsParasiteProtectionOpen] = useState(false);
   const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
+  const [isMicrochipVerifyOpen, setIsMicrochipVerifyOpen] = useState(false);
+  const [isLabTrendsOpen, setIsLabTrendsOpen] = useState(false);
+  const [isFoodLensOpen, setIsFoodLensOpen] = useState(false);
+  const [isSymptomCheckerOpen, setIsSymptomCheckerOpen] = useState(false);
   const [qrInitialMode, setQrInitialMode] = useState<'send' | 'receive'>('send');
   const [restoreToast, setRestoreToast] = useState<string | null>(null);
 
@@ -612,6 +621,10 @@ export default function App() {
                   onOpenFamilySharing={() => setIsFamilySharingOpen(true)}
                   onOpenHomeScreenWidgetModal={() => setIsHomeScreenWidgetModalOpen(true)}
                   onOpenParasiteProtection={() => setIsParasiteProtectionOpen(true)}
+                  onOpenLabTrends={() => setIsLabTrendsOpen(true)}
+                  onOpenFoodLens={() => setIsFoodLensOpen(true)}
+                  onOpenMicrochipVerify={() => setIsMicrochipVerifyOpen(true)}
+                  onOpenSymptomChecker={() => setIsSymptomCheckerOpen(true)}
                 />
               )}
 
@@ -636,6 +649,7 @@ export default function App() {
                   pet={activePet}
                   exams={exams}
                   onUpdateExams={handleUpdateExams}
+                  onOpenLabTrends={() => setIsLabTrendsOpen(true)}
                 />
               )}
 
@@ -826,6 +840,22 @@ export default function App() {
             setIsToolsHubOpen(false);
             setIsParasiteProtectionOpen(true);
           }}
+          onOpenLabTrends={() => {
+            setIsToolsHubOpen(false);
+            setIsLabTrendsOpen(true);
+          }}
+          onOpenFoodLens={() => {
+            setIsToolsHubOpen(false);
+            setIsFoodLensOpen(true);
+          }}
+          onOpenSymptomChecker={() => {
+            setIsToolsHubOpen(false);
+            setIsSymptomCheckerOpen(true);
+          }}
+          onOpenMicrochipVerify={() => {
+            setIsToolsHubOpen(false);
+            setIsMicrochipVerifyOpen(true);
+          }}
           onOpenSettings={() => {
             setIsToolsHubOpen(false);
           }}
@@ -937,6 +967,39 @@ export default function App() {
           onClose={() => setIsParasiteProtectionOpen(false)}
           pet={activePet}
           onProtectionUpdated={reloadData}
+        />
+      )}
+
+      {isMicrochipVerifyOpen && activePet && (
+        <MicrochipVerifyModal
+          pet={activePet}
+          onClose={() => setIsMicrochipVerifyOpen(false)}
+        />
+      )}
+
+      {isLabTrendsOpen && activePet && (
+        <LabTrendsModal
+          pet={activePet}
+          exams={exams}
+          onClose={() => setIsLabTrendsOpen(false)}
+        />
+      )}
+
+      {isFoodLensOpen && activePet && (
+        <FoodLensModal
+          pet={activePet}
+          onClose={() => setIsFoodLensOpen(false)}
+        />
+      )}
+
+      {isSymptomCheckerOpen && activePet && (
+        <SymptomCheckerModal
+          pet={activePet}
+          onClose={() => setIsSymptomCheckerOpen(false)}
+          onOpenEmergencyClinics={() => {
+            setIsSymptomCheckerOpen(false);
+            setIsEmergencyVetFinderOpen(true);
+          }}
         />
       )}
     </div>
