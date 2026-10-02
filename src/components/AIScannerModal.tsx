@@ -22,6 +22,7 @@ import { storage } from '../services/storage';
 import { getApiUrl } from '../services/cloudSyncService';
 import { extractTextFromImage, analyzeExtractedMedicalText, ExtractedMedicalData } from '../services/ocrMedicalService';
 import { compressImage } from '../utils/imageCompressor';
+import { syncAllScheduledNotifications } from '../services/notificationService';
 
 interface AIScannerModalProps {
   isOpen: boolean;
@@ -369,6 +370,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     });
 
     storage.saveMedications([...storage.getMedications().filter(m => m.petId !== pet.id), ...currentMeds, ...newItems]);
+    syncAllScheduledNotifications().catch(() => {});
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     setSuccessMsg(`Dodano ${newItems.length} lek(ów) do apteczki i planu ${pet.name}!`);
     onDataAdded();

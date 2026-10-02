@@ -1,24 +1,21 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Printer, 
   Download, 
   X, 
   FileText, 
-  ShieldCheck, 
   Syringe, 
   Pill, 
   Activity, 
-  Calendar, 
-  User, 
-  Phone, 
-  MapPin, 
-  Scale, 
-  HeartHandshake,
+  AlertTriangle,
+  Share2,
   CheckCircle2,
-  AlertTriangle
+  Sparkles,
+  ArrowRightLeft
 } from 'lucide-react';
-import { Pet, Vaccination, Medication, MedicalExam, MedicalCondition, VetVisit } from '../types/pet';
+import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
+import { downloadPetMedicalReportPdf, sharePetMedicalReportPdf, triggerPrint } from '../services/pdfReportGenerator';
 
 interface HealthBookletModalProps {
   isOpen: boolean;
@@ -32,6 +29,8 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
   pet,
 }) => {
   const bookletRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
 
   if (!isOpen) return null;
 
@@ -55,85 +54,97 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
     return months > 0 ? `${years} lat, ${months} mies.` : `${years} lat`;
   };
 
-  const handlePrint = () => {
-    window.print();
+  const reportPayload = {
+    pet,
+    vaccinations,
+    medications,
+    exams,
+    conditions,
+    visits,
   };
 
-  const handleDownloadHtml = () => {
-    if (!bookletRef.current) return;
-    const content = `<!DOCTYPE html>
-<html lang="pl">
-<head>
-  <meta charset="UTF-8">
-  <title>Ksiazeczka_Zdrowia_${pet.name}_${new Date().toISOString().slice(0, 10)}</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; color: #1e293b; }
-    h1, h2, h3 { color: #0f172a; margin-bottom: 6px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 12px; }
-    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
-    th { background-color: #f1f5f9; font-weight: bold; }
-    .header-box { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0d9488; padding-bottom: 15px; margin-bottom: 20px; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: bold; background: #e0f2fe; color: #0369a1; }
-    .stamp-box { border: 1px dashed #94a3b8; height: 50px; text-align: center; color: #94a3b8; font-size: 10px; padding-top: 15px; }
-    @media print {
-      @page { size: A4 portrait; margin: 10mm; }
-      body { margin: 0; }
+  const handleDownloadPdf = async () => {
+    try {
+      setIsExporting(true);
+      await downloadPetMedicalReportPdf(reportPayload);
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 3000);
+    } catch (err) {
+      console.error('Błąd pobierania PDF:', err);
+    } finally {
+      setIsExporting(false);
     }
-  </style>
-</head>
-<body>
-  ${bookletRef.current.innerHTML}
-</body>
-</html>`;
+  };
 
-    const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Ksiazeczka_Zdrowia_${pet.name}_${new Date().toISOString().slice(0, 10)}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleShareOrPrint = async () => {
+    try {
+      setIsExporting(true);
+      const shared = await sharePetMedicalReportPdf(reportPayload);
+      if (!shared) {
+        await triggerPrint(`Ksiazeczka_${pet.name}`);
+      }
+    } catch (err) {
+      console.warn('Fallback print:', err);
+      window.print();
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-xs animate-fadeIn print:p-0 print:bg-white print:static">
-      <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] print:max-h-none print:shadow-none print:w-full print:rounded-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-4 bg-black/80 backdrop-blur-xs animate-fadeIn print:p-0 print:bg-white print:static">
+      <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] print:max-h-none print:shadow-none print:w-full print:rounded-none">
         
-        {/* Modal Controls Bar (Hidden in Print) */}
-        <div className="bg-slate-900 text-white p-4 flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-teal-400" />
-            <div>
-              <h2 className="text-sm sm:text-base font-black">
-                Książeczka Zdrowia Pupila – Format A4
+        {/* Modal Controls Bar (Responsive & Mobile-optimized) */}
+        <div className="bg-slate-900 text-white p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 print:hidden border-b border-slate-800">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-teal-400" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-sm font-black truncate">
+                Książeczka Zdrowia: {pet.name}
               </h2>
-              <p className="text-2xs sm:text-xs text-slate-400">
-                Gotowa do druku lub zapisu jako plik PDF (np. przed wizytą, podróżą lub hotelem)
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate">
+                Format A4 &bull; Pełny raport medyczny do druku lub PDF
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+            {/* Primary Download PDF Action */}
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+              onClick={handleDownloadPdf}
+              disabled={isExporting}
+              title="Pobierz oficjalny plik PDF na telefon lub komputer"
+              className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 active:scale-95 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer disabled:opacity-50"
             >
-              <Printer className="w-4 h-4" />
-              <span>Drukuj / Zapisz PDF</span>
+              {exportSuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                  <span>Pobrano!</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Pobierz PDF</span>
+                </>
+              )}
             </button>
 
+            {/* Share or Print */}
             <button
               type="button"
-              onClick={handleDownloadHtml}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
+              onClick={handleShareOrPrint}
+              title="Udostępnij lub wydrukuj"
+              className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Pobierz HTML</span>
+              <Printer className="w-4 h-4 text-teal-400" />
+              <span className="hidden sm:inline">Drukuj</span>
             </button>
 
+            {/* Close */}
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer ml-1"
@@ -143,97 +154,97 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
           </div>
         </div>
 
-        {/* Printable Document Container */}
-        <div className="p-6 sm:p-10 overflow-y-auto bg-slate-100/60 print:bg-white print:p-0 print:overflow-visible">
+        {/* Printable Document Container - perfectly fitted without horizontal overflow */}
+        <div className="p-2 sm:p-6 overflow-y-auto overflow-x-hidden bg-slate-100/70 print:bg-white print:p-0 print:overflow-visible">
           <div 
             ref={bookletRef}
-            className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 print:border-none print:shadow-none print:p-0 max-w-[210mm] mx-auto text-slate-800"
+            className="bg-white p-3.5 sm:p-8 rounded-2xl shadow-sm border border-slate-200/90 print:border-none print:shadow-none print:p-0 w-full max-w-[210mm] mx-auto text-slate-800"
           >
             {/* Header / Passport Title */}
-            <div className="flex items-start justify-between border-b-2 border-teal-600 pb-4 mb-6">
-              <div>
-                <div className="text-2xs font-extrabold uppercase tracking-widest text-teal-700 mb-1">
-                  Oficjalna Karta Zdrowia Zwierzęcia Domowego &bull; PetCare Medical Record
+            <div className="flex flex-col-reverse sm:flex-row items-start justify-between border-b-2 border-teal-600 pb-4 mb-4 sm:mb-6 gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] sm:text-2xs font-extrabold uppercase tracking-widest text-teal-700 mb-0.5">
+                  Oficjalna Karta Zdrowia Zwierzęcia Domowego &bull; PetCare
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight break-words">
                   Książeczka Zdrowia: {pet.name}
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Wygenerowano z systemu PetCare &bull; Data wydruku: {new Date().toLocaleDateString('pl-PL')}
+                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                  Wygenerowano z systemu PetCare &bull; Data: {new Date().toLocaleDateString('pl-PL')}
                 </p>
               </div>
 
               {/* Photo & Species */}
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
                 {pet.photoUrl && (
                   <img 
                     src={pet.photoUrl} 
                     alt={pet.name} 
-                    className="w-20 h-20 rounded-xl object-cover border-2 border-teal-600 shadow-sm"
+                    className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl object-cover border-2 border-teal-600 shadow-sm"
                   />
                 )}
-                <div className="text-right">
-                  <span className="inline-block px-3 py-1 bg-teal-50 text-teal-800 text-xs font-black rounded-lg border border-teal-200">
-                    {pet.species === 'dog' ? 'PIES / CANINE' : pet.species === 'cat' ? 'KOT / FELINE' : 'ZWIERZĘ DOMOWE'}
+                <div>
+                  <span className="inline-block px-2.5 py-1 bg-teal-50 text-teal-800 text-[11px] sm:text-xs font-black rounded-lg border border-teal-200 uppercase">
+                    {pet.species === 'dog' ? 'PIES / CANINE' : pet.species === 'cat' ? 'KOT / FELINE' : pet.species || 'ZWIERZĘ DOMOWE'}
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Grid 1: Basic Info & Owner */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-5 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 text-xs">
               <div>
-                <span className="text-slate-500 font-semibold block">Gatunek / Rasa:</span>
-                <span className="font-bold text-slate-900">{pet.breed || 'Mieszaniec'}</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Gatunek / Rasa:</span>
+                <span className="font-bold text-slate-900 break-words">{pet.breed || 'Mieszaniec'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Płeć:</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Płeć:</span>
                 <span className="font-bold text-slate-900">{pet.gender === 'female' ? 'Samica' : 'Samiec'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Data urodzenia / Wiek:</span>
-                <span className="font-bold text-slate-900">{pet.birthDate || 'Nieznana'} ({calculateAge(pet.birthDate)})</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Wiek:</span>
+                <span className="font-bold text-slate-900">{calculateAge(pet.birthDate)}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Waga aktualna:</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Waga aktualna:</span>
                 <span className="font-bold text-teal-700">{pet.weightKg ? `${pet.weightKg} kg` : 'Brak danych'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Numer Mikroczipa:</span>
-                <span className="font-mono font-bold text-slate-900">{pet.chipNumber || 'Brak mikroczipa'}</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Numer Mikroczipa:</span>
+                <span className="font-mono font-bold text-slate-900 break-all">{pet.chipNumber || 'Brak'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Paszport UE:</span>
-                <span className="font-mono font-bold text-slate-900">{pet.passportNumber || 'Brak paszportu'}</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Paszport UE:</span>
+                <span className="font-mono font-bold text-slate-900">{pet.passportNumber || 'Brak'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Umaszczenie:</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Umaszczenie:</span>
                 <span className="font-bold text-slate-900">{pet.color || 'Standardowe'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Kastracja / Sterylizacja:</span>
-                <span className="font-bold text-slate-900">{pet.isNeutered ? 'TAK (Wykastrowany/a)' : 'NIE'}</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Kastracja / Sterylizacja:</span>
+                <span className="font-bold text-slate-900">{pet.isNeutered ? 'TAK' : 'NIE'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold block">Lecznica prowadząca:</span>
-                <span className="font-bold text-slate-900">{pet.vetClinicName || 'Nie przypisano'}</span>
+                <span className="text-slate-500 font-semibold text-[11px] block">Lecznica prowadząca:</span>
+                <span className="font-bold text-slate-900 truncate">{pet.vetClinicName || 'Nie przypisano'}</span>
               </div>
             </div>
 
             {/* Critical Medical Warning Box if allergies or conditions exist */}
             {(pet.allergies || conditions.length > 0) && (
-              <div className="mb-6 p-3 bg-rose-50 border-2 border-rose-300 rounded-xl text-rose-950 text-xs">
-                <div className="font-black flex items-center gap-1.5 uppercase text-rose-800 mb-1">
-                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+              <div className="mb-5 p-3 bg-rose-50 border-2 border-rose-300 rounded-xl text-rose-950 text-xs">
+                <div className="font-black flex items-center gap-1.5 uppercase text-rose-800 mb-1 text-[11px]">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>Ważne Informacje Medyczne &bull; Alergie &bull; Choroby Przewlekłe</span>
                 </div>
                 {pet.allergies && (
-                  <p className="mt-1">
+                  <p className="mt-0.5">
                     <strong>Alergie:</strong> {pet.allergies}
                   </p>
                 )}
                 {conditions.length > 0 && (
-                  <p className="mt-1">
+                  <p className="mt-0.5">
                     <strong>Zdiagnozowane schorzenia:</strong> {conditions.map(c => c.name).join(', ')}
                   </p>
                 )}
@@ -241,125 +252,163 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
             )}
 
             {/* Section 1: Szczepienia */}
-            <div className="mb-6">
-              <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-2 flex items-center gap-2">
-                <Syringe className="w-4 h-4 text-teal-600" />
-                <span>1. Rejestr Szczepień Ochronnych (Vaccinations)</span>
-              </h2>
+            <div className="mb-5">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
+                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <Syringe className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span>1. Rejestr Szczepień Ochronnych</span>
+                </h2>
+                {vaccinations.length > 0 && (
+                  <span className="text-[10px] text-slate-400 sm:hidden flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3" /> Przesuń tabelę
+                  </span>
+                )}
+              </div>
+
               {vaccinations.length === 0 ? (
                 <p className="text-xs text-slate-500 italic">Brak zarejestrowanych szczepień w systemie.</p>
               ) : (
-                <table className="w-full text-left border-collapse text-xs border border-slate-200">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                      <th className="p-2 border-r border-slate-200">Data podania</th>
-                      <th className="p-2 border-r border-slate-200">Nazwa szczepionki</th>
-                      <th className="p-2 border-r border-slate-200">Ważne do</th>
-                      <th className="p-2 border-r border-slate-200">Lecznica / Lekarz</th>
-                      <th className="p-2 w-32 text-center">Podpis i pieczątka</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vaccinations.map(v => (
-                      <tr key={v.id} className="border-b border-slate-200">
-                        <td className="p-2 font-mono border-r border-slate-200">{v.dateAdministered}</td>
-                        <td className="p-2 font-bold border-r border-slate-200">{v.name}</td>
-                        <td className="p-2 font-mono font-bold text-teal-800 border-r border-slate-200">{v.validUntil}</td>
-                        <td className="p-2 border-r border-slate-200">{v.vetClinic || 'Lecznica'}</td>
-                        <td className="p-2 text-center text-3xs text-slate-400 italic">Pieczęć</td>
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                  <table className="w-full min-w-[500px] text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <th className="p-2 border-r border-slate-200">Data</th>
+                        <th className="p-2 border-r border-slate-200">Nazwa szczepionki</th>
+                        <th className="p-2 border-r border-slate-200">Ważne do</th>
+                        <th className="p-2 border-r border-slate-200">Lecznica / Lekarz</th>
+                        <th className="p-2 w-28 text-center">Podpis / Pieczęć</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {vaccinations.map(v => (
+                        <tr key={v.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50/50">
+                          <td className="p-2 font-mono border-r border-slate-200 text-slate-800">{v.dateAdministered}</td>
+                          <td className="p-2 font-bold border-r border-slate-200 text-slate-900">{v.name}</td>
+                          <td className="p-2 font-mono font-bold text-teal-800 border-r border-slate-200">{v.validUntil}</td>
+                          <td className="p-2 border-r border-slate-200 text-slate-700">{v.vetClinic || 'Lecznica'}</td>
+                          <td className="p-2 text-center text-[10px] text-slate-400 italic">Podpisano</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
             {/* Section 2: Aktualne Leki */}
-            <div className="mb-6">
-              <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-2 flex items-center gap-2">
-                <Pill className="w-4 h-4 text-amber-600" />
-                <span>2. Przyjmowane Leki i Suplementacja</span>
-              </h2>
+            <div className="mb-5">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
+                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <Pill className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>2. Przyjmowane Leki i Suplementacja</span>
+                </h2>
+                {medications.length > 0 && (
+                  <span className="text-[10px] text-slate-400 sm:hidden flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3" /> Przesuń tabelę
+                  </span>
+                )}
+              </div>
+
               {medications.length === 0 ? (
                 <p className="text-xs text-slate-500 italic">Brak stałych leków.</p>
               ) : (
-                <table className="w-full text-left border-collapse text-xs border border-slate-200">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                      <th className="p-2 border-r border-slate-200">Nazwa leku</th>
-                      <th className="p-2 border-r border-slate-200">Dawka</th>
-                      <th className="p-2 border-r border-slate-200">Pory / Godziny</th>
-                      <th className="p-2 border-r border-slate-200">Okres leczenia</th>
-                      <th className="p-2">Wskazówki</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {medications.map(m => (
-                      <tr key={m.id} className="border-b border-slate-200">
-                        <td className="p-2 font-bold border-r border-slate-200">{m.name}</td>
-                        <td className="p-2 border-r border-slate-200">{m.dosage}</td>
-                        <td className="p-2 border-r border-slate-200">
-                          {m.timesOfDay && m.timesOfDay.length > 0 
-                            ? m.timesOfDay.map(t => `${t.label} (${t.time})`).join(', ') 
-                            : 'Zgodnie z zaleceniem'}
-                        </td>
-                        <td className="p-2 border-r border-slate-200">{m.startDate} {m.endDate ? `➔ ${m.endDate}` : '(Stałe)'}</td>
-                        <td className="p-2 text-slate-600">{m.instructions || '-'}</td>
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                  <table className="w-full min-w-[500px] text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <th className="p-2 border-r border-slate-200">Nazwa leku</th>
+                        <th className="p-2 border-r border-slate-200">Dawka</th>
+                        <th className="p-2 border-r border-slate-200">Pory / Godziny</th>
+                        <th className="p-2 border-r border-slate-200">Okres leczenia</th>
+                        <th className="p-2">Wskazówki</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {medications.map(m => (
+                        <tr key={m.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50/50">
+                          <td className="p-2 font-bold border-r border-slate-200 text-slate-900">{m.name}</td>
+                          <td className="p-2 border-r border-slate-200 font-semibold text-slate-800">{m.dosage}</td>
+                          <td className="p-2 border-r border-slate-200 text-slate-800">
+                            {m.timesOfDay && m.timesOfDay.length > 0 
+                              ? m.timesOfDay.map(t => `${t.label} (${t.time})`).join(', ') 
+                              : 'Zgodnie z zaleceniem'}
+                          </td>
+                          <td className="p-2 border-r border-slate-200 text-slate-700">{m.startDate} {m.endDate ? `➔ ${m.endDate}` : '(Stałe)'}</td>
+                          <td className="p-2 text-slate-600">{m.instructions || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
             {/* Section 3: Badania i Diagnostyka */}
-            <div className="mb-6">
-              <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 mb-2 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-indigo-600" />
-                <span>3. Historia Badań Diagnostycznych i Zabiegów</span>
-              </h2>
-              {exams.length === 0 ? (
+            <div className="mb-5">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
+                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <Activity className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>3. Historia Badań Diagnostycznych i Wizyt</span>
+                </h2>
+                {(exams.length > 0 || visits.length > 0) && (
+                  <span className="text-[10px] text-slate-400 sm:hidden flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3" /> Przesuń tabelę
+                  </span>
+                )}
+              </div>
+
+              {exams.length === 0 && visits.length === 0 ? (
                 <p className="text-xs text-slate-500 italic">Brak wpisów o badaniach diagnostycznych.</p>
               ) : (
-                <table className="w-full text-left border-collapse text-xs border border-slate-200">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                      <th className="p-2 border-r border-slate-200">Data</th>
-                      <th className="p-2 border-r border-slate-200">Rodzaj badania</th>
-                      <th className="p-2 border-r border-slate-200">Wynik / Diagnoza</th>
-                      <th className="p-2">Lekarz / Klinika</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {exams.map(e => (
-                      <tr key={e.id} className="border-b border-slate-200">
-                        <td className="p-2 font-mono border-r border-slate-200">{e.date}</td>
-                        <td className="p-2 font-bold border-r border-slate-200">{e.title} ({e.category})</td>
-                        <td className="p-2 border-r border-slate-200">{e.summary || 'Prawidłowy'}</td>
-                        <td className="p-2">{e.clinic || 'Lecznica'}</td>
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                  <table className="w-full min-w-[500px] text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <th className="p-2 border-r border-slate-200">Data</th>
+                        <th className="p-2 border-r border-slate-200">Rodzaj / Cel</th>
+                        <th className="p-2 border-r border-slate-200">Wynik / Zalecenia</th>
+                        <th className="p-2">Lekarz / Klinika</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {exams.map(e => (
+                        <tr key={e.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50/50">
+                          <td className="p-2 font-mono border-r border-slate-200 text-slate-800">{e.date}</td>
+                          <td className="p-2 font-bold border-r border-slate-200 text-slate-900">{e.title}</td>
+                          <td className="p-2 border-r border-slate-200 text-slate-800">{e.summary || 'Prawidłowy'}</td>
+                          <td className="p-2 text-slate-700">{e.clinic || 'Lecznica'}</td>
+                        </tr>
+                      ))}
+                      {visits.map(v => (
+                        <tr key={v.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50/50">
+                          <td className="p-2 font-mono border-r border-slate-200 text-slate-800">{v.date}</td>
+                          <td className="p-2 font-bold border-r border-slate-200 text-teal-900">{v.reason} (Wizyta)</td>
+                          <td className="p-2 border-r border-slate-200 text-slate-800">{v.treatmentGiven || v.diagnosis || 'Zalecenia podano'}</td>
+                          <td className="p-2 text-slate-700">{v.clinic || 'Lecznica'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
             {/* Footer stamp & signature area */}
-            <div className="mt-8 pt-6 border-t-2 border-slate-300 grid grid-cols-2 gap-8 text-xs text-slate-500">
+            <div className="mt-6 pt-5 border-t-2 border-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-500">
               <div>
-                <p className="font-semibold text-slate-800">Podpis Opiekuna Zwierzęcia:</p>
-                <div className="border-b border-slate-300 mt-8"></div>
+                <p className="font-bold text-slate-800">Podpis Opiekuna Zwierzęcia:</p>
+                <div className="border-b border-slate-300 mt-6 sm:mt-8"></div>
               </div>
               <div>
-                <p className="font-semibold text-slate-800">Pieczęć Przychodni Weterynaryjnej / Lekarza:</p>
-                <div className="border border-dashed border-slate-300 rounded-xl h-16 mt-2 flex items-center justify-center text-3xs text-slate-400">
+                <p className="font-bold text-slate-800">Pieczęć Przychodni Weterynaryjnej / Lekarza:</p>
+                <div className="border border-dashed border-slate-300 rounded-xl h-14 sm:h-16 mt-2 flex items-center justify-center text-[10px] text-slate-400">
                   MIEJSCE NA PIECZĘĆ LEKARZA WETERYNARII
                 </div>
               </div>
             </div>
 
-            <div className="text-center text-3xs text-slate-400 mt-6 print:mt-10">
-              Dokument wygenerowany cyfrowo w aplikacji PetCare. Zachowaj ten wydruk w dokumentacji domowej pupila.
+            <div className="text-center text-[10px] text-slate-400 mt-5 print:mt-10">
+              Dokument wygenerowany cyfrowo w aplikacji PetCare. Zachowaj ten wydruk lub plik PDF w dokumentacji domowej pupila.
             </div>
           </div>
         </div>

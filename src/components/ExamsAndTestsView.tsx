@@ -281,7 +281,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                 required
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-medium"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-teal-600"
               />
             </div>
             <div>
@@ -290,7 +290,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                 type="date"
                 value={formNextDate}
                 onChange={(e) => setFormNextDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-teal-400 text-xs sm:text-sm font-bold text-teal-800"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-teal-400 text-xs sm:text-sm font-bold text-teal-800 focus:outline-teal-600"
               />
             </div>
           </div>
@@ -303,7 +303,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                 placeholder="np. Klinika Weterynaryjna"
                 value={formClinic}
                 onChange={(e) => setFormClinic(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
               />
             </div>
             <div>
@@ -313,7 +313,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                 placeholder="dr wet."
                 value={formDoctor}
                 onChange={(e) => setFormDoctor(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
               />
             </div>
           </div>
@@ -327,7 +327,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                 placeholder="np. Wszystkie parametry w normie"
                 value={formSummary}
                 onChange={(e) => setFormSummary(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
               />
             </div>
             <div>

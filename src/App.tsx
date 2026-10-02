@@ -293,6 +293,7 @@ export default function App() {
     storage.saveVaccinations(combined);
     setVaccinations(items);
     uploadToCloud().catch(() => {});
+    syncAllScheduledNotifications().catch(() => {});
   };
 
   const handleUpdateMedications = (items: Medication[]) => {
@@ -302,6 +303,7 @@ export default function App() {
     storage.saveMedications(combined);
     setMedications(items);
     uploadToCloud().catch(() => {});
+    syncAllScheduledNotifications().catch(() => {});
   };
 
   const handleUpdateExams = (items: MedicalExam[]) => {
@@ -329,6 +331,7 @@ export default function App() {
     storage.saveVisits(combined);
     setVisits(items);
     uploadToCloud().catch(() => {});
+    syncAllScheduledNotifications().catch(() => {});
   };
 
   const handleSaveDashboardConfig = (newCfg: DashboardConfig) => {

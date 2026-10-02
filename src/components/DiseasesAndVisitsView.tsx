@@ -269,7 +269,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                 required
                 value={vDate}
                 onChange={(e) => setVDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-medium"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-teal-600"
               />
             </div>
             <div>
@@ -278,7 +278,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                 type="time"
                 value={vTime}
                 onChange={(e) => setVTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-bold text-teal-800"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-teal-800 focus:outline-teal-600"
               />
             </div>
           </div>
@@ -291,7 +291,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                 placeholder="np. Klinika Weterynaryjna"
                 value={vClinic}
                 onChange={(e) => setVClinic(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
               />
             </div>
             <div>
@@ -301,7 +301,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                 placeholder="dr wet."
                 value={vDoctor}
                 onChange={(e) => setVDoctor(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
               />
             </div>
           </div>
@@ -315,7 +315,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                 placeholder="np. 150"
                 value={vCost}
                 onChange={(e) => setVCost(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-bold text-slate-900"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-teal-600"
               />
             </div>
             <div>
@@ -324,7 +324,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                 type="date"
                 value={vNextDate}
                 onChange={(e) => setVNextDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-teal-400 text-xs sm:text-sm font-bold text-teal-800"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-teal-400 text-xs sm:text-sm font-bold text-teal-800 focus:outline-teal-600"
               />
             </div>
           </div>
@@ -336,7 +336,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
               placeholder="np. Podano antybiotyk, kontrola za 7 dni"
               value={vTreatment}
               onChange={(e) => setVTreatment(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm"
+              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
             />
           </div>
 
@@ -398,7 +398,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                 required
                 value={cDate}
                 onChange={(e) => setCDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-medium"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-teal-600"
               />
             </div>
             <div>
@@ -406,7 +406,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
               <select
                 value={cStatus}
                 onChange={(e) => setCStatus(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-bold text-slate-800"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 focus:outline-teal-600"
               >
                 <option value="active">W trakcie leczenia (aktywna)</option>
                 <option value="cured">Wyleczona</option>
@@ -422,7 +422,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
               placeholder="np. Dieta eliminacyjna, unikać kurczaka"
               value={cNotes}
               onChange={(e) => setCNotes(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm"
+              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
             />
           </div>
 

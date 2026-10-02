@@ -88,25 +88,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.41.0' }}
-          name: "PetCare v2.41.0 - Czysty Ekran Startowy, Brak Wymogu Zakładania Konta & Usunięcie Opcji Baterii"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.43.0' }}
+          name: "PetCare v2.43.0 - Poprawki PDF, Widoczności Tekstu, Powiadomień i Skanera AI"
           body: |
-            ### 🐾 PetCare v2.41.0 - Wydanie Czyste i Minimalistyczne!
+            ### 🐾 PetCare v2.43.0 - Nowe Wydanie z Pakietem Kluczowych Poprawek!
 
-            1. 🚀 **Zero Wymogu Zakładania Konta / Rejestracji:**
-               - Usunięto ekran rejestracji i logowania. Aplikacja otwiera się natychmiast, działa w 100% lokalnie i prywatnie na Twoim urządzeniu.
-               - Brak konieczności wpisywania haseł i tworzenia zbędnych kont. Kopia na Dysk Google pozostaje dostępna opcjonalnie w nagłówku.
+            1. 📄 **Książeczka Zdrowia w formacie PDF (pełna responsywność):**
+               - Naprawiono skalowanie na ekranach telefonów – tabele posiadają teraz płynne przewijanie i nie rozpychają widoku.
+               - Dodano bezpośredni przycisk **„Pobierz PDF”** (generujący gotowy plik `.pdf` do pamięci telefonu).
 
-            2. 📱 **Czysty, „Goły” Ekran Startowy:**
-               - Usunięto sztuczne ramki telefonu, wcięcia głośnika i przełączniki widoków.
-               - Interfejs wypełnia ekran czysto, bezpośrednio i nowocześnie jak natywna aplikacja Androida.
+            2. ✍️ **100% Widoczność Wpisywanego Tekstu:**
+               - Naprawiono problem znikającego/białego tekstu w polach formularzy (leki, wizyty, badania, edycja profilu pupila) przy włączonym trybie ciemnym telefonu.
 
-            3. 🔋 **Usunięcie Zbędnych Opcji Baterii:**
-               - Usunięto przycisk i modal optymalizacji baterii z ekranu głównego.
+            3. 🔔 **Niezawodne Powiadomienia o Lekach:**
+               - Naprawiono kanał powiadomień Androida (wysoki priorytet Heads-Up).
+               - Harmonogram leków planuje teraz przypomnienia dokładnie na godziny ustalone dla danego leku (np. 08:00, 20:00).
+               - Dodano flagę `allowWhileIdle: true` (działanie w trybie oszczędzania energii).
+               - Automatyczna synchronizacja powiadomień po każdej zmianie w apteczce i wizytach.
 
-            4. 🧹 **Oczyszczenie Kodu:**
-               - Usunięto zbędne i powtarzające się komentarze z całego projektu.
-               - Podbito `versionCode` do 21 (v2.41.0).
+            4. 🔬 **Skaner AI i OCR dla Kart Informacyjnych Wizyt:**
+               - Dodano pełne rozpoznawanie polskich kart leczenia (np. leki tarczycowe jak **Forthyron 800 mg**, dawkowanie 2x 1/2 tabletki).
+               - Poprawiono komunikację z backendem AI oraz automatyczne uzupełnianie zaleceń i apteczki.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

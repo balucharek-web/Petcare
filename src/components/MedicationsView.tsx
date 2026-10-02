@@ -705,7 +705,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                       type="number"
                       value={formPackageSize}
                       onChange={(e) => setFormPackageSize(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-300 text-xs font-semibold"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-teal-600"
                     />
                   </div>
                   <div>
@@ -714,7 +714,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                       type="number"
                       value={formCurrentStock}
                       onChange={(e) => setFormCurrentStock(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-300 text-xs font-semibold"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-teal-600"
                     />
                   </div>
                 </div>
@@ -725,7 +725,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                     placeholder="np. z jedzeniem, po posiłku, na czczo"
                     value={formInstructions}
                     onChange={(e) => setFormInstructions(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-300 text-xs"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 placeholder:text-slate-400 font-medium focus:outline-teal-600"
                   />
                 </div>
               </div>

@@ -40,7 +40,7 @@ export function saveNotificationSettings(settings: Partial<NotificationSettings>
 }
 
 /**
- * Initialize Notification Channels on Android
+ * Initialize Notification Channels on Android with maximum reliability
  */
 export async function initNotificationChannels(): Promise<void> {
   if (Capacitor.isNativePlatform()) {
@@ -49,13 +49,13 @@ export async function initNotificationChannels(): Promise<void> {
         id: 'petcare_alerts',
         name: 'Powiadomienia PetCare',
         description: 'Przypomnienia o lekach, szczepieniach i wizytach pupili',
-        importance: 5, // High importance
-        visibility: 1, // Public
-        sound: 'res_custom_notification',
+        importance: 5, // High importance (heads-up notification)
+        visibility: 1, // Public on lockscreen
         vibration: true,
         lights: true,
         lightColor: '#0D9488',
       });
+      console.log('[Notifications] Kanał powiadomień Android utworzony pomyślnie');
     } catch (err) {
       console.warn('[Notifications] Błąd tworzenia kanału:', err);
     }
@@ -87,7 +87,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
     try {
       await initNotificationChannels();
       const result = await LocalNotifications.requestPermissions();
-      return result.display === 'granted';
+      const isGranted = result.display === 'granted';
+      if (isGranted) {
+        await syncAllScheduledNotifications();
+      }
+      return isGranted;
     } catch (err) {
       console.error('[Notifications] Błąd żądania uprawnień:', err);
       return false;
@@ -117,6 +121,7 @@ export async function sendInstantNotification(title: string, body: string, idOff
 
   if (Capacitor.isNativePlatform()) {
     try {
+      await initNotificationChannels();
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -124,10 +129,7 @@ export async function sendInstantNotification(title: string, body: string, idOff
             title,
             body,
             channelId: 'petcare_alerts',
-            smallIcon: 'ic_launcher_foreground',
-            largeIcon: 'ic_launcher',
-            iconColor: '#0D9488',
-            schedule: { at: new Date(Date.now() + 800) },
+            schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
           },
         ],
       });
@@ -142,8 +144,8 @@ export async function sendInstantNotification(title: string, body: string, idOff
     try {
       new Notification(title, {
         body,
-        icon: '/pwa-192x192.png',
-        badge: '/pwa-192x192.png',
+        icon: '/icon.svg',
+        badge: '/icon.svg',
       });
       return true;
     } catch (e) {
@@ -156,6 +158,7 @@ export async function sendInstantNotification(title: string, body: string, idOff
 
 /**
  * Synchronizes and schedules all upcoming reminders for medications, vaccines and visits
+ * Accurately handles custom dosage hours, daily repetition and multiple pets.
  */
 export async function syncAllScheduledNotifications(): Promise<number> {
   const settings = getNotificationSettings();
@@ -164,10 +167,14 @@ export async function syncAllScheduledNotifications(): Promise<number> {
   const isGranted = await checkNotificationPermission();
   if (!isGranted) return 0;
 
-  if (!Capacitor.isNativePlatform()) return 0;
+  if (!Capacitor.isNativePlatform()) {
+    return 0;
+  }
 
   try {
-    // Cancel existing scheduled petcare notifications to avoid duplicates
+    await initNotificationChannels();
+
+    // Cancel existing scheduled petcare notifications to prevent duplicates
     const pending = await LocalNotifications.getPending();
     if (pending.notifications.length > 0) {
       await LocalNotifications.cancel({ notifications: pending.notifications });
@@ -176,63 +183,94 @@ export async function syncAllScheduledNotifications(): Promise<number> {
     const scheduledNotifications: ScheduleOptions['notifications'] = [];
     const pets = storage.getPets();
     const petMap = new Map(pets.map(p => [p.id, p.name]));
-
+    const now = new Date();
     let currentId = 1000;
 
-    // 1. Medication Reminders
+    // 1. Medication Reminders (Calculated accurately for each dose slot in timesOfDay)
     if (settings.medications) {
       const medications = storage.getMedications();
-      const now = new Date();
 
       medications.forEach(med => {
+        if (!med.isActive) return;
         const petName = petMap.get(med.petId) || 'Pupil';
-        // If medication is still active
         const end = med.endDate ? new Date(med.endDate) : null;
-        if (!end || end >= now) {
-          // Schedule for tomorrow 09:00 and 19:00
-          for (let dayOffset = 0; dayOffset < 3; dayOffset++) {
-            const morning = new Date();
-            morning.setDate(morning.getDate() + dayOffset);
-            morning.setHours(9, 0, 0, 0);
+        if (end && end < now) return;
 
-            if (morning > now) {
+        // Default to morning 08:00 and evening 20:00 if timesOfDay is empty
+        const slots = med.timesOfDay && med.timesOfDay.length > 0 
+          ? med.timesOfDay 
+          : [
+              { id: 'def-1', label: 'Rano', time: '08:00', amount: med.dosage || '1 dawka' },
+              { id: 'def-2', label: 'Wieczór', time: '20:00', amount: med.dosage || '1 dawka' },
+            ];
+
+        // Schedule for the next 7 days
+        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+          slots.forEach(slot => {
+            const timeParts = (slot.time || '08:00').split(':').map(Number);
+            const hours = isNaN(timeParts[0]) ? 8 : timeParts[0];
+            const minutes = isNaN(timeParts[1]) ? 0 : timeParts[1];
+
+            const scheduledTime = new Date();
+            scheduledTime.setDate(scheduledTime.getDate() + dayOffset);
+            scheduledTime.setHours(hours, minutes, 0, 0);
+
+            // Only future dates
+            if (scheduledTime > now) {
+              const doseDesc = slot.amount || med.dosage || 'zgodnie z zaleceniem';
+              const labelDesc = slot.label ? `${slot.label} (${slot.time})` : slot.time;
+
               scheduledNotifications.push({
                 id: currentId++,
                 title: `💊 Czas na lek dla: ${petName}`,
-                body: `${med.name} - dawka: ${med.dosage || 'zgodnie z zaleceniem'}`,
+                body: `${med.name} • ${doseDesc} • ${labelDesc}`,
                 channelId: 'petcare_alerts',
-                smallIcon: 'ic_launcher_foreground',
-                schedule: { at: morning },
+                schedule: { 
+                  at: scheduledTime,
+                  allowWhileIdle: true 
+                },
               });
             }
-          }
+          });
         }
       });
     }
 
-    // 2. Upcoming Vaccinations
+    // 2. Upcoming Vaccinations & Parasite Protection
     if (settings.vaccinations) {
       const vaccinations = storage.getVaccinations();
-      const now = new Date();
 
       vaccinations.forEach(vac => {
         if (vac.validUntil) {
           const dueDate = new Date(vac.validUntil);
+          if (isNaN(dueDate.getTime())) return;
           const petName = petMap.get(vac.petId) || 'Pupil';
 
-          // Reminder 2 days before
-          const reminderDate = new Date(dueDate);
-          reminderDate.setDate(reminderDate.getDate() - 2);
-          reminderDate.setHours(10, 0, 0, 0);
+          // Reminder 3 days before
+          const reminder3Days = new Date(dueDate);
+          reminder3Days.setDate(reminder3Days.getDate() - 3);
+          reminder3Days.setHours(10, 0, 0, 0);
 
-          if (reminderDate > now) {
+          if (reminder3Days > now) {
             scheduledNotifications.push({
               id: currentId++,
               title: `💉 Zbliża się szczepienie: ${petName}`,
-              body: `Szczepienie "${vac.name}" traci ważność za 2 dni (${vac.validUntil}).`,
+              body: `Szczepienie "${vac.name}" traci ważność za 3 dni (${vac.validUntil}).`,
               channelId: 'petcare_alerts',
-              smallIcon: 'ic_launcher_foreground',
-              schedule: { at: reminderDate },
+              schedule: { at: reminder3Days, allowWhileIdle: true },
+            });
+          }
+
+          // Reminder on due date
+          const reminderDueDate = new Date(dueDate);
+          reminderDueDate.setHours(9, 0, 0, 0);
+          if (reminderDueDate > now) {
+            scheduledNotifications.push({
+              id: currentId++,
+              title: `⚠️ Termin szczepienia dzisiaj: ${petName}`,
+              body: `Dziś upływa termin ważności szczepienia "${vac.name}".`,
+              channelId: 'petcare_alerts',
+              schedule: { at: reminderDueDate, allowWhileIdle: true },
             });
           }
         }
@@ -242,39 +280,43 @@ export async function syncAllScheduledNotifications(): Promise<number> {
     // 3. Vet Visits
     if (settings.visits) {
       const visits = storage.getVisits();
-      const now = new Date();
 
       visits.forEach(visit => {
-        if (visit.date) {
-          const visitDate = new Date(visit.date);
+        const visitDateStr = visit.nextAppointmentDate || visit.date;
+        if (visitDateStr) {
+          const visitDate = new Date(visitDateStr);
+          if (isNaN(visitDate.getTime())) return;
           const petName = petMap.get(visit.petId) || 'Pupil';
 
           // Alert 1 day before
           const reminderDate = new Date(visitDate);
           reminderDate.setDate(reminderDate.getDate() - 1);
-          reminderDate.setHours(12, 0, 0, 0);
+          reminderDate.setHours(11, 0, 0, 0);
 
           if (reminderDate > now) {
             scheduledNotifications.push({
               id: currentId++,
-              title: `🩺 Wizyta weterynaryjna: ${petName}`,
-              body: `Zaplanowano wizytę: ${visit.clinic || 'Lecznica'} (${visit.date}). Powód: ${visit.reason || 'Kontrola'}`,
+              title: `🩺 Wizyta weterynaryjna jutro: ${petName}`,
+              body: `${visit.clinic || 'Lecznica'} (${visitDateStr}) • Powód: ${visit.reason || 'Kontrola'}`,
               channelId: 'petcare_alerts',
-              smallIcon: 'ic_launcher_foreground',
-              schedule: { at: reminderDate },
+              schedule: { at: reminderDate, allowWhileIdle: true },
             });
           }
         }
       });
     }
 
-    if (scheduledNotifications.length > 0) {
+    // Limit to 50 scheduled notifications to stay well within OS limits
+    const toSchedule = scheduledNotifications.slice(0, 50);
+
+    if (toSchedule.length > 0) {
       await LocalNotifications.schedule({
-        notifications: scheduledNotifications.slice(0, 30), // Max 30 scheduled alarms
+        notifications: toSchedule,
       });
+      console.log(`[Notifications] Pomyślnie zaplanowano ${toSchedule.length} powiadomień w systemie Android.`);
     }
 
-    return scheduledNotifications.length;
+    return toSchedule.length;
   } catch (err) {
     console.warn('[Notifications] Błąd planowania powiadomień:', err);
     return 0;

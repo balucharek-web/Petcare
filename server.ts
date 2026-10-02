@@ -21,20 +21,19 @@ async function startServer() {
   // Disable fingerprinting
   app.disable('x-powered-by');
 
-  // Enterprise HTTP Security Headers
+  // Enterprise HTTP Security Headers (adjusted for AI Studio preview iframe support)
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self), microphone=()');
     if (process.env.NODE_ENV === 'production') {
       res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
-    // Content Security Policy permitting Vite, Google APIs, and OpenStreetMap
+    // Content Security Policy permitting Vite, Google APIs, OpenStreetMap, and AI Studio iframe preview
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:; frame-ancestors 'self';"
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:;"
     );
     next();
   });
@@ -909,14 +908,18 @@ ZASADY TRANSLACJI I ROZPOZNAWANIA WETERYNARYJNEGO:
   * "1x1", "2x1", "1x dz.", "2x dz.", "co 12h", "co 24h", "co 8h", "1/2 tab.", "1/4 tab.", "0.5 tabl."
   * "rano i wieczorem", "z posiłkiem", "na czczo", "przez X dni".
 - Wykorzystaj znajomość leków weterynaryjnych:
-  * Przeciwbólowe/NLPZ: Onsior, Metacam (Meloksykam), Cimalgex, Previcox, Rimadyl, Trocoxil, Cortavet
+  * Endokrynologia i tarczyca: Forthyron (200 ug, 400 ug, 800 ug - lewotyroksyna sodowa na niedoczynność tarczycy), Euthyrox, Letrox, Vetoryl (Trilostan - Cushing), Felimazole, Apelka, Thyronorm (Tiamazol)
+  * Przeciwbólowe/NLPZ: Onsior, Metacam (Meloksykam), Cimalgex, Previcox, Rimadyl, Trocoxil, Cortavet, Librela, Solensia
   * Antybiotyki: Synulox, Kesium, Clavaseptin, Amotaks, Marbocyl, Enrobioflox, Baytril, Synergal
   * Dermatologia/Alergie: Apoquel (5.4mg, 16mg), Cytopoint, Atopica, Cortavance, Dexafort
-  * Kardiologia i Nerki: Vetmedin, Cardalis, Cardisure, Benakor, Fortekor, Semintra, Pronefra, RenalVet
+  * Kardiologia i Nerki: Vetmedin, Cardalis, Cardisure, Benakor, Fortekor, Semintra, Pronefra, RenalVet, Prilactone
   * Przeciwpasożytnicze: Bravecto, NexGard, Simparica, Credelio, Milpro, Milprazon, Drontal, Dehinel, NexGard Spectra
-  * Gastrologia: Cerenia, Flora Defense, Hepato Force, Zentonil, Venter, Ranigast
+  * Gastrologia i Wątroba: Cerenia, Flora Defense, Hepato Force, Hepatiale, Zentonil, Venter, Ranigast, Ursofalk
   * Sterydy i inne: Encorton, Prednicortone, Gabapentyna, Pexion.
-  Dopasuj nawet częściowo nieczytelne słowa (np. "Sy...ux 250" -> "Synulox 250 mg", "Apoq... 5.4" -> "Apoquel 5.4 mg").
+  Dopasuj nawet częściowo nieczytelne słowa (np. "Sy...ux 250" -> "Synulox 250 mg", "FORTHYRON 800" -> "FORTHYRON 800 mg", "Apoq... 5.4" -> "Apoquel 5.4 mg").
+
+- KLUCZOWA ZASADA: Wydruki "Karta informacyjna wizyty", "Zastosowane leki", "Zalecenia", "Lekarz prowadzący", badania krwi oraz odręczne dopiski (np. "2 * 1/2 tabl.") to w 100% PRAWIDŁOWA DOKUMENTACJA WETERYNARYJNA (isValidMedicalDocument: true).
+- Wypisz dokładnie zastosowane leki, dawkę (np. "1/2 tabletki 2 x dziennie"), zalecenia lekarskie (np. podawać co 12h na czczo przed posiłkiem) i godziny podania.
 
 - Wygeneruj sugerowane konkretne godziny podania (np. 2x dziennie -> ["08:00", "20:00"]; 1x rano -> ["08:00"]).
 

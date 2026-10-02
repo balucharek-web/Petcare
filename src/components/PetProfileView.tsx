@@ -429,7 +429,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="text"
                 value={editForm.name || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-bold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                 required
               />
             </div>
@@ -440,7 +440,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="text"
                 value={editForm.breed || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, breed: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               />
             </div>
 
@@ -449,7 +449,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <select
                 value={editForm.species || 'dog'}
                 onChange={e => setEditForm(prev => ({ ...prev, species: e.target.value as any }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               >
                 <option value="dog">Pies</option>
                 <option value="cat">Kot</option>
@@ -462,7 +462,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <select
                 value={editForm.gender || 'male'}
                 onChange={e => setEditForm(prev => ({ ...prev, gender: e.target.value as any }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               >
                 <option value="male">Samiec</option>
                 <option value="female">Samica</option>
@@ -475,7 +475,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="date"
                 value={editForm.birthDate || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, birthDate: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               />
             </div>
 
@@ -486,7 +486,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 step="0.1"
                 value={editForm.weightKg || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, weightKg: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-bold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               />
             </div>
 
@@ -496,7 +496,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="text"
                 value={editForm.chipNumber || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, chipNumber: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none font-mono"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-mono font-bold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                 placeholder="616093900123456"
               />
             </div>
@@ -507,7 +507,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="text"
                 value={editForm.passportNumber || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, passportNumber: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                 placeholder="PL 1234567"
               />
             </div>
@@ -518,7 +518,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="text"
                 value={editForm.color || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, color: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               />
             </div>
 
@@ -554,7 +554,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="text"
                 value={editForm.vetClinicName || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, vetClinicName: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               />
             </div>
 
@@ -564,7 +564,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="tel"
                 value={editForm.vetPhone || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, vetPhone: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
               />
             </div>
           </div>
@@ -576,7 +576,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               value={editForm.allergies || ''}
               onChange={e => setEditForm(prev => ({ ...prev, allergies: e.target.value }))}
               placeholder="np. kurczak, pyłki, jad osy, penicylina"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+              className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium text-sm focus:ring-2 focus:ring-teal-500 outline-none"
             />
           </div>
 
@@ -586,7 +586,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               rows={2}
               value={editForm.specialNotes || ''}
               onChange={e => setEditForm(prev => ({ ...prev, specialNotes: e.target.value }))}
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+              className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium text-sm focus:ring-2 focus:ring-teal-500 outline-none"
             />
           </div>
 

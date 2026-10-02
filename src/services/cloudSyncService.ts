@@ -12,7 +12,7 @@ import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('capacitor:') && !window.location.origin.startsWith('file:') && window.location.origin.includes('.run.app') ? window.location.origin : 'https://ais-pre-degudhbnx7klcnyulvhx3v-12487892955.europe-west2.run.app');
+const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('capacitor:') && !window.location.origin.startsWith('file:') && window.location.origin.includes('.run.app') ? window.location.origin : 'https://ais-pre-ikwyyen5v5xsycfajtbpir-559140193543.europe-west3.run.app');
 
 export interface CloudUser {
   email: string;
@@ -97,19 +97,17 @@ export async function checkCloudBackup(email: string, token?: string): Promise<{
 export function getApiUrl(endpoint: string): string {
   if (typeof window === 'undefined') return endpoint;
   const origin = window.location.origin || '';
-  const hostname = window.location.hostname || '';
+  // If running inside Capacitor native container (Android APK) or file protocol, use the live cloud backend
   if (
     Capacitor.isNativePlatform() ||
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
     origin.startsWith('capacitor:') || 
     origin.startsWith('file:') ||
     origin.startsWith('android-') ||
-    origin === 'null' ||
-    !origin.includes('.run.app')
+    origin === 'null'
   ) {
     return `${REMOTE_BACKEND_URL}${endpoint}`;
   }
+  // When running on web or preview or localhost, use relative path directly
   return endpoint;
 }
 

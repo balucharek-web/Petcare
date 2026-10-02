@@ -33,6 +33,25 @@
   input, select, textarea, button {
     font-size: 0.95rem;
   }
+
+  /* Ensure typed text in all form inputs is always crisp, dark, and 100% visible */
+  input, select, textarea {
+    color: #0f172a !important;
+    color-scheme: light !important;
+    background-color: #ffffff;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+
+  /* Specific dark-styled inputs if explicitly opted-in */
+  .dark-field {
+    color: #f8fafc !important;
+    background-color: #1e293b !important;
+    color-scheme: dark !important;
+  }
 }
 
 @keyframes fadeIn {
