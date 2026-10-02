@@ -34,7 +34,8 @@ import {
   ArrowUpDown,
   RotateCcw,
   LayoutDashboard,
-  Printer
+  Printer,
+  Crop
 } from 'lucide-react';
 import { 
   Pet, 
@@ -50,6 +51,8 @@ import { ScanViewerModal } from './ScanViewerModal';
 import { calculatePetHumanAge } from './AgeCalculatorModal';
 import { TodayQuickActionsWidget } from './TodayQuickActionsWidget';
 import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
+import { InlinePhotoCropper } from './InlinePhotoCropper';
+import { DeletePetConfirmModal } from './DeletePetConfirmModal';
 
 interface PetProfileViewProps {
   pet: Pet;
@@ -109,6 +112,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   const [newWeightNotes, setNewWeightNotes] = useState('');
   const [previewBookletScan, setPreviewBookletScan] = useState<{ url: string; title: string; date?: string } | null>(null);
   const [isSamplePhotoPickerOpen, setIsSamplePhotoPickerOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAdjustingPhoto, setIsAdjustingPhoto] = useState(false);
 
   // Drag and drop / tile reordering state
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -370,18 +375,24 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
     e.target.value = '';
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const res = await compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.82 });
-      onUpdatePet({
-        ...pet,
-        photoUrl: res.dataUrl,
-      });
-    } catch (err) {
-      console.warn('Błąd zmiany zdjęcia profilowego pupila:', err);
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const url = ev.target?.result as string;
+      if (url) {
+        onUpdatePet({
+          ...pet,
+          photoUrl: url,
+        });
+        if (isEditing) {
+          setEditForm(prev => ({ ...prev, photoUrl: url }));
+        }
+        setIsAdjustingPhoto(true);
+      }
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
@@ -442,6 +453,25 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
         </div>
 
         <form onSubmit={handleSaveEdit} className="space-y-4">
+          {/* In-Place Interactive Photo Preview & Cropper */}
+          <div className="space-y-1.5 mb-2">
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-slate-700 dark:text-slate-200 block text-xs">
+                Zdjęcie i kadr pupila
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Przesuwaj w okienku, aby dopasować kadr
+              </span>
+            </div>
+            <InlinePhotoCropper
+              photoUrl={editForm.photoUrl || pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80'}
+              onPhotoCropped={(croppedUrl) => {
+                setEditForm(prev => ({ ...prev, photoUrl: croppedUrl }));
+              }}
+              onOpenSampleGallery={() => setIsSamplePhotoPickerOpen(true)}
+            />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Imię</label>
@@ -610,18 +640,15 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             />
           </div>
 
-          <div className="sticky bottom-20 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl flex justify-between items-center mt-6">
+          <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl flex justify-between items-center mt-6">
             {onDeletePet ? (
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm(`Czy na pewno usunąć profil ${pet.name}?`)) {
-                    onDeletePet(pet.id);
-                  }
-                }}
-                className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-semibold text-xs transition cursor-pointer"
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-semibold text-xs transition cursor-pointer flex items-center gap-1.5"
               >
-                Usuń profil
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Usuń profil</span>
               </button>
             ) : <div />}
 
@@ -643,6 +670,16 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
           </div>
         </form>
+
+        <DeletePetConfirmModal
+          isOpen={isDeleteModalOpen}
+          pet={pet}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirmDelete={(id) => {
+            onDeletePet?.(id);
+            setIsEditing(false);
+          }}
+        />
       </div>
     );
   }
@@ -1259,86 +1296,140 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
       {/* Top Pet Hero Card (Always Visible) */}
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-          <div className="flex flex-col items-center shrink-0">
-            <div className="relative group">
-              <img
-                src={pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
-                alt={pet.name}
-                className="w-20 h-20 rounded-2xl object-cover ring-2 ring-teal-500 shadow-md"
-              />
-              <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs shadow">
-                {pet.species === 'dog' ? '🐶' : pet.species === 'cat' ? '🐱' : pet.species === 'rabbit' ? '🐰' : '🐾'}
-              </span>
-              <label 
-                title="Wgraj nowe zdjęcie pupila"
-                className="absolute inset-0 bg-black/45 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-2xs"
-              >
-                <Camera className="w-5 h-5 text-white drop-shadow" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </label>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsSamplePhotoPickerOpen(true)}
-              className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2 py-0.5 rounded-lg border border-teal-200 transition-colors"
-              title="Wybierz z biblioteki gotowych zdjęć"
-            >
-              <Sparkles className="w-3 h-3 text-teal-600" />
-              <span>Galeria zdjęć</span>
-            </button>
-          </div>
-
-          <div className="flex-1 text-center sm:text-left">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        {isAdjustingPhoto ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-                  {pet.name}
-                </h1>
-                <p className="text-xs font-semibold text-slate-500">
-                  {pet.breed || 'Mieszaniec'} &bull; {pet.gender === 'female' ? 'Suczka / Samica' : 'Pies / Samiec'}
+                <h3 className="font-extrabold text-sm text-slate-800 dark:text-white">
+                  Kadr zdjęcia pupila: {pet.name}
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Przesuwaj palcem w okienku, aby ustawić idealny kadr
                 </p>
               </div>
-
-              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAdjustingPhoto(false)}
+                className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Zatwierdź kadr</span>
+              </button>
+            </div>
+            <InlinePhotoCropper
+              photoUrl={pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80'}
+              onPhotoCropped={(croppedUrl) => {
+                onUpdatePet({ ...pet, photoUrl: croppedUrl });
+              }}
+              onOpenSampleGallery={() => setIsSamplePhotoPickerOpen(true)}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <div className="flex flex-col items-center shrink-0">
+              <div className="relative group">
+                <img
+                  src={pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
+                  alt={pet.name}
+                  className="w-20 h-20 rounded-2xl object-cover ring-2 ring-teal-500 shadow-md"
+                />
+                <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs shadow">
+                  {pet.species === 'dog' ? '🐶' : pet.species === 'cat' ? '🐱' : pet.species === 'rabbit' ? '🐰' : '🐾'}
+                </span>
+                <label 
+                  title="Wgraj nowe zdjęcie pupila"
+                  className="absolute inset-0 bg-black/45 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-2xs"
+                >
+                  <Camera className="w-5 h-5 text-white drop-shadow" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </label>
+              </div>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                {pet.photoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAdjustingPhoto(true)}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2 py-0.5 rounded-lg border border-teal-200 transition-colors cursor-pointer"
+                    title="Wykadruj obecne zdjęcie pupila"
+                  >
+                    <Crop className="w-3 h-3 text-teal-600" />
+                    <span>Kadruj</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={onOpenMedicalReport}
-                  title="Otwórz oficjalny raport medyczny i książeczkę PDF pupila"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition border border-teal-200 shadow-xs cursor-pointer active:scale-95"
+                  onClick={() => setIsSamplePhotoPickerOpen(true)}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                  title="Wybierz z biblioteki gotowych zdjęć"
                 >
-                  <FileText className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Książeczka PDF</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditForm({ ...pet });
-                    setIsEditing(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  Edytuj
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onOpenDashboardCustomizer}
-                  title="Dostosuj widok strony głównej"
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200 shadow-xs cursor-pointer"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-slate-600" />
-                  <span className="hidden lg:inline">Dostosuj</span>
+                  <Sparkles className="w-3 h-3 text-teal-600" />
+                  <span>Galeria</span>
                 </button>
               </div>
             </div>
+
+            <div className="flex-1 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                    {pet.name}
+                  </h1>
+                  <p className="text-xs font-semibold text-slate-500">
+                    {pet.breed || 'Mieszaniec'} &bull; {pet.gender === 'female' ? 'Suczka / Samica' : 'Pies / Samiec'}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-end gap-1.5 sm:gap-2">
+                  <button
+                    type="button"
+                    onClick={onOpenMedicalReport}
+                    title="Otwórz oficjalny raport medyczny i książeczkę PDF pupila"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition border border-teal-200 shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-teal-600" />
+                    <span>Książeczka PDF</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditForm({ ...pet });
+                      setIsEditing(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edytuj</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onOpenDashboardCustomizer}
+                    title="Dostosuj widok strony głównej"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200 shadow-xs cursor-pointer"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-slate-600" />
+                    <span className="hidden lg:inline">Dostosuj</span>
+                  </button>
+
+                  {onDeletePet && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      title={`Usuń profil: ${pet.name}`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition border border-rose-200/80 shadow-xs cursor-pointer active:scale-95"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Usuń</span>
+                    </button>
+                  )}
+                </div>
+              </div>
 
             {/* Quick Metrics Badges */}
             <div className="grid grid-cols-3 gap-2 mt-4">
@@ -1417,6 +1508,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Reorder and Customization Action Toolbar */}
@@ -1611,6 +1703,15 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             ...pet,
             photoUrl: url,
           });
+        }}
+      />
+
+      <DeletePetConfirmModal
+        isOpen={isDeleteModalOpen}
+        pet={pet}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirmDelete={(id) => {
+          onDeletePet?.(id);
         }}
       />
     </div>

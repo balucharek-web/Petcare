@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Camera, Plus, X, Heart, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Plus, X, Heart, Sparkles } from 'lucide-react';
 import { Pet, Species, Gender } from '../types/pet';
-import { compressImage } from '../utils/imageCompressor';
 import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
 import { getDefaultPhotoForSpecies } from '../data/samplePetPhotos';
+import { InlinePhotoCropper } from './InlinePhotoCropper';
 
 interface NewPetModalProps {
   isOpen: boolean;
@@ -32,46 +32,25 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
   const [vetPhone, setVetPhone] = useState('');
   const [emergencyClinicPhone, setEmergencyClinicPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState(() => getDefaultPhotoForSpecies('dog'));
+  const [croppedPhotoUrl, setCroppedPhotoUrl] = useState<string>('');
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [hasCustomPhoto, setHasCustomPhoto] = useState(false);
 
   if (!isOpen) return null;
 
-  const [isCompressing, setIsCompressing] = useState(false);
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setIsCompressing(true);
-      const res = await compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.82 });
-      setPhotoUrl(res.dataUrl);
-      setHasCustomPhoto(true);
-    } catch {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const url = ev.target?.result as string;
-        if (url) {
-          setPhotoUrl(url);
-          setHasCustomPhoto(true);
-        }
-      };
-      reader.readAsDataURL(file);
-    } finally {
-      setIsCompressing(false);
-    }
-  };
-
   const handleSpeciesChange = (newSpecies: Species) => {
     setSpecies(newSpecies);
     if (!hasCustomPhoto) {
-      setPhotoUrl(getDefaultPhotoForSpecies(newSpecies));
+      const defaultUrl = getDefaultPhotoForSpecies(newSpecies);
+      setPhotoUrl(defaultUrl);
+      setCroppedPhotoUrl(defaultUrl);
     }
   };
 
   const handleSelectSamplePhoto = (url: string) => {
     setPhotoUrl(url);
     setHasCustomPhoto(true);
+    setIsPhotoPickerOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,6 +58,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
     if (!name.trim()) return;
 
     const newWeight = parseFloat(weightKg) || 1;
+    const finalPhoto = croppedPhotoUrl || photoUrl;
+
     const newPet: Pet = {
       id: `pet-${Date.now()}`,
       name: name.trim(),
@@ -91,7 +72,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
       passportNumber: passportNumber.trim() || undefined,
       color: color.trim() || 'Nie określono',
       isNeutered,
-      photoUrl,
+      photoUrl: finalPhoto,
       allergies: allergies.trim() || undefined,
       vetClinicName: vetClinicName.trim() || undefined,
       vetDoctorName: vetDoctorName.trim() || undefined,
@@ -130,59 +111,38 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            {/* Photo & Name */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-4">
-                <div className="relative group">
-                  <img
-                    src={photoUrl}
-                    alt="Podgląd"
-                    className="w-16 h-16 rounded-2xl object-cover ring-2 ring-teal-500 shadow-sm"
-                  />
-                  <label className="absolute -bottom-1 -right-1 p-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow cursor-pointer">
-                    <Camera className="w-3.5 h-3.5" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <label className="font-semibold text-slate-700 block">Imię pupila *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="np. Borys, Bella, Puszek"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900 focus:outline-teal-600"
-                  />
-                </div>
-              </div>
-
-              {/* Sample Photo & Upload Actions */}
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsPhotoPickerOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-semibold rounded-xl text-[11px] transition-colors border border-teal-200"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Wybierz przykładowe zdjęcie</span>
-                </button>
-                <label className="flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-[11px] transition-colors cursor-pointer border border-slate-200">
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Z aparatu / pliku</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
+            {/* Direct In-Place Photo Preview & Interactive Cropper */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-700 dark:text-slate-200 block text-xs">
+                  Zdjęcie i kadr pupila
                 </label>
+                <span className="text-[11px] text-slate-400">
+                  Przesuwaj w okienku, aby ustawić kadr
+                </span>
               </div>
+              <InlinePhotoCropper
+                photoUrl={photoUrl}
+                onPhotoCropped={(croppedUrl) => {
+                  setCroppedPhotoUrl(croppedUrl);
+                  setHasCustomPhoto(true);
+                }}
+                onOpenSampleGallery={() => setIsPhotoPickerOpen(true)}
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                Imię pupila *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="np. Borys, Bella, Puszek"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:outline-teal-600"
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-2">

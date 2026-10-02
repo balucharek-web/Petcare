@@ -196,6 +196,28 @@ export const storage = {
     this.saveExams(this.getExams().filter(e => e.petId !== id));
     this.saveConditions(this.getConditions().filter(c => c.petId !== id));
     this.saveVisits(this.getVisits().filter(v => v.petId !== id));
+    this.saveExpenses(this.getExpenses().filter(e => e.petId !== id));
+    this.saveParasites(this.getParasites().filter(p => p.petId !== id));
+    this.saveCustomCalendarEvents(this.getCustomCalendarEvents().filter(e => e.petId !== id));
+
+    // Clean up dose logs
+    const rawLogs = safeGetItem(STORAGE_KEYS.DOSE_LOGS);
+    if (rawLogs) {
+      try {
+        const logs: DoseLogEntry[] = JSON.parse(rawLogs);
+        safeSetItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(logs.filter(l => l.petId !== id)));
+      } catch {}
+    }
+
+    // Clean up petsitter plan
+    const rawPetsitter = safeGetItem(STORAGE_KEYS.PETSITTER);
+    if (rawPetsitter) {
+      try {
+        const plans = JSON.parse(rawPetsitter);
+        delete plans[id];
+        safeSetItem(STORAGE_KEYS.PETSITTER, JSON.stringify(plans));
+      } catch {}
+    }
   },
 
   getActivePetId(): string {

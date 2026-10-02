@@ -21,12 +21,14 @@ import {
   Moon,
   Bell,
   LogOut,
-  QrCode
+  QrCode,
+  Trash2
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { storage } from '../services/storage';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { getStoredSession, subscribeToCloudSync, manualSyncNow, signOut, CloudSession } from '../services/cloudSyncService';
+import { DeletePetConfirmModal } from './DeletePetConfirmModal';
 
 interface HeaderNavProps {
   pets: Pet[];
@@ -34,6 +36,7 @@ interface HeaderNavProps {
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
   onSelectPet: (petId: string) => void;
+  onDeletePet?: (petId: string) => void;
   onOpenNewPetModal: () => void;
   onOpenSOSModal: () => void;
   onOpenPassportModal: () => void;
@@ -54,6 +57,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   theme = 'light',
   onToggleTheme,
   onSelectPet,
+  onDeletePet,
   onOpenNewPetModal,
   onOpenSOSModal,
   onOpenPassportModal,
@@ -69,6 +73,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 }) => {
   const [showPetDropdown, setShowPetDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [session, setSession] = useState<CloudSession>(getStoredSession());
   const [isQuickSyncing, setIsQuickSyncing] = useState(false);
@@ -215,29 +220,51 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                     Twoje zwierzaki
                   </div>
                   {pets.map((p) => (
-                    <button
+                    <div
                       key={p.id}
-                      onClick={() => {
-                        onSelectPet(p.id);
-                        setShowPetDropdown(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition ${
-                        p.id === activePet?.id ? 'bg-teal-50/70 dark:bg-teal-950/50 text-teal-900 dark:text-teal-200 font-semibold' : 'text-slate-700 dark:text-slate-200'
+                      className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition ${
+                        p.id === activePet?.id ? 'bg-teal-50/70 dark:bg-teal-950/50' : ''
                       }`}
                     >
-                      <img
-                        src={p.photoUrl}
-                        alt={p.name}
-                        className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                      />
-                      <div className="truncate flex-1">
-                        <p className="text-sm truncate">{p.name}</p>
-                        <p className="text-[11px] text-slate-400 truncate">{p.breed || 'Zwierzak'}</p>
-                      </div>
-                      {p.id === activePet?.id && (
-                        <span className="w-2 h-2 rounded-full bg-teal-600" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectPet(p.id);
+                          setShowPetDropdown(false);
+                        }}
+                        className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
+                      >
+                        <img
+                          src={p.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=150&q=80'}
+                          alt={p.name}
+                          className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
+                        />
+                        <div className="truncate flex-1 min-w-0">
+                          <p className={`text-xs truncate ${p.id === activePet?.id ? 'font-bold text-teal-900 dark:text-teal-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                            {p.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate">{p.breed || 'Zwierzak'}</p>
+                        </div>
+                        {p.id === activePet?.id && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-600 shrink-0" />
+                        )}
+                      </button>
+
+                      {onDeletePet && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowPetDropdown(false);
+                            setPetToDelete(p);
+                          }}
+                          title={`Usuń profil: ${p.name}`}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition shrink-0 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       )}
-                    </button>
+                    </div>
                   ))}
 
                   <div className="border-t border-slate-100 dark:border-slate-800 mt-2 pt-2 px-2">
@@ -520,6 +547,19 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {petToDelete && (
+        <DeletePetConfirmModal
+          isOpen={true}
+          pet={petToDelete}
+          onClose={() => setPetToDelete(null)}
+          onConfirmDelete={(id) => {
+            onDeletePet?.(id);
+            setPetToDelete(null);
+          }}
+          isLastPet={pets.length === 1}
+        />
       )}
     </>
   );

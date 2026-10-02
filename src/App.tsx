@@ -65,6 +65,7 @@ import { CommercialPrivacyModal } from './components/CommercialPrivacyModal';
 import { HomeScreenWidgetModal } from './components/HomeScreenWidgetModal';
 import { ParasiteProtectionModal } from './components/ParasiteProtectionModal';
 import { syncWidgetWithLatestData } from './services/nativeWidget';
+import { NoPetsView } from './components/NoPetsView';
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
@@ -288,6 +289,29 @@ export default function App() {
     storage.savePets(newPets);
     setActivePetId(newPet.id);
     uploadToCloud().catch(() => {});
+  };
+
+  const handleDeletePet = (petId: string) => {
+    storage.deletePet(petId);
+    const remainingPets = storage.getPets();
+    setPets(remainingPets);
+    const nextPetId = remainingPets[0]?.id || '';
+    setActivePetId(nextPetId);
+    if (nextPetId) {
+      setVaccinations(storage.getVaccinations(nextPetId));
+      setMedications(storage.getMedications(nextPetId));
+      setExams(storage.getExams(nextPetId));
+      setConditions(storage.getConditions(nextPetId));
+      setVisits(storage.getVisits(nextPetId));
+    } else {
+      setVaccinations([]);
+      setMedications([]);
+      setExams([]);
+      setConditions([]);
+      setVisits([]);
+    }
+    uploadToCloud().catch(() => {});
+    syncWidgetWithLatestData();
   };
 
   const handleUpdateVaccinations = (items: Vaccination[]) => {
@@ -524,6 +548,7 @@ export default function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onSelectPet={handleSelectPet}
+          onDeletePet={handleDeletePet}
           onOpenNewPetModal={() => setIsNewPetOpen(true)}
           onOpenSOSModal={() => setIsSOSOpen(true)}
           onOpenPassportModal={() => setIsPassportOpen(true)}
@@ -546,77 +571,95 @@ export default function App() {
         />
 
         {/* Main Body */}
-        <main className="flex-1 p-4 overflow-y-auto pb-28">
-          {currentTab === 'profile' && (
-            <PetProfileView
-              pet={activePet}
-              onUpdatePet={handleUpdatePet}
+        <main className="flex-1 px-3 sm:px-4 py-3 sm:py-4 overflow-y-auto pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
+          {!activePet || pets.length === 0 ? (
+            <NoPetsView
               onOpenNewPetModal={() => setIsNewPetOpen(true)}
-              totalVaccinationsCount={vaccinations.length}
-              activeMedicationsCount={activeMedsCount}
-              onNavigateToTab={(tab) => setCurrentTab(tab)}
-              dashboardConfig={dashboardConfig}
-              onSaveDashboardConfig={handleSaveDashboardConfig}
-              onOpenDashboardCustomizer={() => setIsCustomizerOpen(true)}
-              onOpenMedicalReport={() => setIsMedicalReportOpen(true)}
-              onOpenToxicityChecker={() => setIsToxicityOpen(true)}
-              onOpenAIScanner={() => setIsAIScannerOpen(true)}
-              onOpenNutritionCalculator={() => setIsNutritionOpen(true)}
-              onOpenExpenses={() => setIsExpensesOpen(true)}
-              onOpenPetsitter={() => setIsPetsitterOpen(true)}
-              onOpenAgeCalculator={() => setIsAgeCalculatorOpen(true)}
-              onOpenEmergencyVetFinder={() => setIsEmergencyVetFinderOpen(true)}
-              onOpenVetCard={() => setIsVetCardOpen(true)}
-              onOpenHealthTimeline={() => setIsHealthTimelineOpen(true)}
-              onOpenFamilySharing={() => setIsFamilySharingOpen(true)}
-              onOpenHomeScreenWidgetModal={() => setIsHomeScreenWidgetModalOpen(true)}
-              onOpenParasiteProtection={() => setIsParasiteProtectionOpen(true)}
+              onRestoreSamplePet={() => {
+                storage.seedSampleData();
+                reloadData();
+              }}
+              onOpenGoogleSync={() => setIsGoogleSyncOpen(true)}
+              onOpenQRTransfer={() => {
+                setQrInitialMode('receive');
+                setIsQRTransferOpen(true);
+              }}
             />
-          )}
+          ) : (
+            <>
+              {currentTab === 'profile' && (
+                <PetProfileView
+                  pet={activePet}
+                  onUpdatePet={handleUpdatePet}
+                  onDeletePet={handleDeletePet}
+                  onOpenNewPetModal={() => setIsNewPetOpen(true)}
+                  totalVaccinationsCount={vaccinations.length}
+                  activeMedicationsCount={activeMedsCount}
+                  onNavigateToTab={(tab) => setCurrentTab(tab)}
+                  dashboardConfig={dashboardConfig}
+                  onSaveDashboardConfig={handleSaveDashboardConfig}
+                  onOpenDashboardCustomizer={() => setIsCustomizerOpen(true)}
+                  onOpenMedicalReport={() => setIsMedicalReportOpen(true)}
+                  onOpenToxicityChecker={() => setIsToxicityOpen(true)}
+                  onOpenAIScanner={() => setIsAIScannerOpen(true)}
+                  onOpenNutritionCalculator={() => setIsNutritionOpen(true)}
+                  onOpenExpenses={() => setIsExpensesOpen(true)}
+                  onOpenPetsitter={() => setIsPetsitterOpen(true)}
+                  onOpenAgeCalculator={() => setIsAgeCalculatorOpen(true)}
+                  onOpenEmergencyVetFinder={() => setIsEmergencyVetFinderOpen(true)}
+                  onOpenVetCard={() => setIsVetCardOpen(true)}
+                  onOpenHealthTimeline={() => setIsHealthTimelineOpen(true)}
+                  onOpenFamilySharing={() => setIsFamilySharingOpen(true)}
+                  onOpenHomeScreenWidgetModal={() => setIsHomeScreenWidgetModalOpen(true)}
+                  onOpenParasiteProtection={() => setIsParasiteProtectionOpen(true)}
+                />
+              )}
 
-          {currentTab === 'medications' && (
-            <MedicationsView
-              pet={activePet}
-              medications={medications}
-              onUpdateMedications={handleUpdateMedications}
-            />
-          )}
+              {currentTab === 'medications' && (
+                <MedicationsView
+                  pet={activePet}
+                  medications={medications}
+                  onUpdateMedications={handleUpdateMedications}
+                />
+              )}
 
-          {currentTab === 'vaccinations' && (
-            <VaccinationsView
-              pet={activePet}
-              vaccinations={vaccinations}
-              onUpdateVaccinations={handleUpdateVaccinations}
-            />
-          )}
+              {currentTab === 'vaccinations' && (
+                <VaccinationsView
+                  pet={activePet}
+                  vaccinations={vaccinations}
+                  onUpdateVaccinations={handleUpdateVaccinations}
+                />
+              )}
 
-          {currentTab === 'exams' && (
-            <ExamsAndTestsView
-              pet={activePet}
-              exams={exams}
-              onUpdateExams={handleUpdateExams}
-            />
-          )}
+              {currentTab === 'exams' && (
+                <ExamsAndTestsView
+                  pet={activePet}
+                  exams={exams}
+                  onUpdateExams={handleUpdateExams}
+                />
+              )}
 
-          {currentTab === 'diseases' && (
-            <DiseasesAndVisitsView
-              pet={activePet}
-              conditions={conditions}
-              visits={visits}
-              onUpdateConditions={handleUpdateConditions}
-              onUpdateVisits={handleUpdateVisits}
-            />
-          )}
+              {currentTab === 'diseases' && (
+                <DiseasesAndVisitsView
+                  pet={activePet}
+                  conditions={conditions}
+                  visits={visits}
+                  onUpdateConditions={handleUpdateConditions}
+                  onUpdateVisits={handleUpdateVisits}
+                />
+              )}
 
-          {currentTab === 'calendar' && (
-            <CalendarHubView
-              pet={activePet}
-              vaccinations={vaccinations}
-              medications={medications}
-              exams={exams}
-              visits={visits}
-              onOpenParasiteProtection={() => setIsParasiteProtectionOpen(true)}
-            />
+              {currentTab === 'calendar' && (
+                <CalendarHubView
+                  pet={activePet}
+                  vaccinations={vaccinations}
+                  medications={medications}
+                  exams={exams}
+                  visits={visits}
+                  onOpenParasiteProtection={() => setIsParasiteProtectionOpen(true)}
+                />
+              )}
+            </>
           )}
         </main>
 
