@@ -1549,8 +1549,28 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </div>
             </div>
 
-            {/* Quick Health Shortcuts: Triage & Symptoms, 24h Emergency Clinics, Lab Trends, Food Lens */}
+            {/* Quick Health Shortcuts: Birthday, Triage & Symptoms, 24h Emergency Clinics, Lab Trends, Food Lens */}
             <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-2 mt-2.5">
+              {onOpenAgeCalculator && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptics.tap();
+                    onOpenAgeCalculator();
+                  }}
+                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 border border-teal-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                  title="Kliknij, aby otworzyć szczegóły urodzin i kalkulator wieku pupila"
+                >
+                  <div className="min-w-0">
+                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block truncate">Urodziny pupila</span>
+                    <span className="text-xs font-bold text-teal-950 truncate block">
+                      {pet.birthDate ? formatBirthday(pet.birthDate) : 'Ustaw datę'}
+                    </span>
+                  </div>
+                  <span className="text-sm shrink-0">🎂</span>
+                </button>
+              )}
+
               {onOpenSymptomChecker && (
                 <button
                   type="button"
@@ -1616,7 +1636,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                     haptics.tap();
                     onOpenFoodLens();
                   }}
-                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-900 border border-emerald-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-900 border border-emerald-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98 min-[340px]:col-span-2 sm:col-span-1"
                 >
                   <div className="min-w-0">
                     <span className="text-[9px] uppercase font-extrabold text-emerald-700 block truncate">Skaner karmy</span>
