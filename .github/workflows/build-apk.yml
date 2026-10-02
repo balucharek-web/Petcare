@@ -88,27 +88,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.38.0' }}
-          name: "PetCare v2.38.0 - Trwały Podpis APK (Płynne Aktualizacje), Galeria Zdjęć Pupilów & Kopia Google"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.39.0' }}
+          name: "PetCare v2.39.0 - Zabezpieczenia Enterprise PBKDF2, Atomowa Baza i Samonaprawa Quoty"
           body: |
-            ### 🐾 PetCare v2.38.0 - Oficjalne Wydanie z Naprawą Aktualizacji Aplikacji!
+            ### 🐾 PetCare v2.39.0 - Wydanie Bezpieczeństwa i Niezawodności Enterprise!
 
-            1. 🔄 **Trwały Klucz Podpisu APK & Płynne Aktualizacje (Koniec Błędów Przy Instalacji Nowych Wersji):**
-               - Skonfigurowano i zabezpieczono jednolity, trwały klucz produkcyjny `release.keystore` bez generowania losowych certyfikatów w chmurze.
-               - Od wersji v2.38.0 każda kolejna aktualizacja instaluje się bezpośrednio na starszą wersję bez konieczności odinstalowywania aplikacji i bez błędu konfliktu podpisów.
-               - Podbito wewnętrzny `versionCode` do 18.
-               - *(Wskazówka: Jeśli na Twoim telefonie zainstalowana jest starsza wersja testowa z losowym certyfikatem v2.35–v2.37, zrób kopię danych [Dysk Google lub eksport JSON w aplikacji], odinstaluj wersję testową i zainstaluj oficjalną v2.38.0. Od tej pory wszystkie przyszłe aktualizacje będą wchodzić płynnie).*
+            1. 🛡️ **Kryptograficzne Haszowanie Haseł PBKDF2-SHA-512:**
+               - 100 000 iteracji, 32-bajtowa unikalna sól, weryfikacja w stałym czasie `crypto.timingSafeEqual` odporna na ataki timingowe.
+               - Automatyczna, bezstratna migracja starszych kont w chmurze do standardu PBKDF2.
 
-            2. 📸 **Biblioteka Przykładowych Zdjęć Pupilów:**
-               - Gotowa galeria pięknych, starannie dobranych fotografii rasowych i wielorasowych dla psów, kotów, królików, fretek, ptaków i gryzoni.
-               - Dostępna przy dodawaniu nowego zwierzaka oraz w profilu pupila (przycisk ✨).
+            2. 💾 **Atomowa Baza Danych z Kolejką Mutex i Samonaprawą (.bak):**
+               - Eliminacja wyścigów danych (race condition) przy równoległym zapisie.
+               - Zapis do pliku tymczasowego i atomowa zamiana nazw oraz automatyczna kopia lustrzana `cloud_sync_db.json.bak`.
 
-            3. ☁️ **Poprawka Pobierania i Synchronizacji Kopii z Dysku Google:**
-               - Pełna autoryzacja tokenów OAuth z uprawnieniami Drive File/AppData.
-               - Bezpieczne przywracanie kopii zapasowej zwierzaka zaraz po zalogowaniu na konto Google.
+            3. ⚡ **Odporność na Przepełnienie Pamięci Przeglądarki (Quota Guard):**
+               - Samonaprawa przy wyczerpaniu limitu pamięci podręcznej i bufor w pamięci RAM gwarantujący zero crashy.
 
-            4. 📱 **Widżet Ekranu Startowego Androida (Android Widget):**
-               - Zoptymalizowany pod Androida 12-15 oraz nakładki OEM (MIUI/HyperOS, OneUI).
+            4. 🔒 **Ścisłe Nagłówki HTTP Security (CSP, HSTS, Permissions-Policy):**
+               - Pełna ochrona przed atakami XSS, clickjacking i podszywaniem się.
+
+            5. 🔑 **Jednolity Trwały Podpis APK (Płynne Aktualizacje):**
+               - Plik `PetCare.apk` podpisany stałym kluczem produkcyjnym `release.keystore`. Instalacja kolejnych wydań jako prosta aktualizacja bez konfliktów pakietów.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
