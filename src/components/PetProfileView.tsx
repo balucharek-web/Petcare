@@ -34,8 +34,7 @@ import {
   ArrowUpDown,
   RotateCcw,
   LayoutDashboard,
-  Printer,
-  BatteryCharging
+  Printer
 } from 'lucide-react';
 import { 
   Pet, 
@@ -51,7 +50,6 @@ import { ScanViewerModal } from './ScanViewerModal';
 import { calculatePetHumanAge } from './AgeCalculatorModal';
 import { TodayQuickActionsWidget } from './TodayQuickActionsWidget';
 import { HealthBookletModal } from './HealthBookletModal';
-import { BatteryOptimizationModal } from './BatteryOptimizationModal';
 import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
 
 interface PetProfileViewProps {
@@ -112,7 +110,6 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   const [newWeightNotes, setNewWeightNotes] = useState('');
   const [previewBookletScan, setPreviewBookletScan] = useState<{ url: string; title: string; date?: string } | null>(null);
   const [isHealthBookletOpen, setIsHealthBookletOpen] = useState(false);
-  const [isBatteryOptimizationOpen, setIsBatteryOptimizationOpen] = useState(false);
   const [isSamplePhotoPickerOpen, setIsSamplePhotoPickerOpen] = useState(false);
 
   // Drag and drop / tile reordering state
@@ -1300,16 +1297,6 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setIsBatteryOptimizationOpen(true)}
-                  title="Zabezpiecz powiadomienia przed usypianiem przez system Android"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition border border-amber-200 shadow-xs cursor-pointer active:scale-95"
-                >
-                  <BatteryCharging className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Bateria & Alarmy</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => {
                     setEditForm({ ...pet });
                     setIsEditing(true);
@@ -1598,13 +1585,6 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           isOpen={isHealthBookletOpen}
           onClose={() => setIsHealthBookletOpen(false)}
           pet={pet}
-        />
-      )}
-
-      {isBatteryOptimizationOpen && (
-        <BatteryOptimizationModal
-          isOpen={isBatteryOptimizationOpen}
-          onClose={() => setIsBatteryOptimizationOpen(false)}
         />
       )}
 

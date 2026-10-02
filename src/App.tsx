@@ -5,8 +5,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Smartphone, 
-  Monitor, 
   WifiOff, 
   AlertCircle,
   Plus,
@@ -47,7 +45,6 @@ import {
 } from './services/cloudSyncService';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { syncAllScheduledNotifications } from './services/notificationService';
-import { AuthScreen } from './components/AuthScreen';
 import { QRTransferModal } from './components/QRTransferModal';
 
 // New Feature Modals
@@ -137,9 +134,6 @@ export default function App() {
       isMounted = false;
     };
   }, [session.user?.email, pets.length]);
-
-  // Preview Mode: Android phone frame vs Full screen
-  const [deviceFrameMode, setDeviceFrameMode] = useState<'mobile' | 'full'>('mobile');
 
   // Theme Mode: Light / Dark
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -366,22 +360,11 @@ export default function App() {
     setAlertsDismissVersion(v => v + 1);
   };
 
-  // If user is not logged in: display the login/register screen only
-  if (!session.user) {
-    return (
-      <AuthScreen
-        onLoginSuccess={() => {
-          reloadData();
-        }}
-      />
-    );
-  }
-
-  // If user is logged in, but has not added any pet yet
+  // If no pet has been added yet: clean, direct onboarding
   if (!activePet) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 sm:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col items-center justify-start sm:p-4 selection:bg-teal-500 selection:text-white transition-colors duration-200">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 min-h-screen sm:min-h-[860px] sm:max-h-[920px] sm:rounded-[44px] sm:border-[8px] sm:border-slate-800 sm:shadow-2xl overflow-y-auto flex flex-col relative">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col items-center justify-start transition-colors duration-200">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 min-h-screen flex flex-col relative shadow-sm">
           <HeaderNav
             pets={[]}
             activePet={null}
@@ -415,58 +398,55 @@ export default function App() {
                 Twoja baza zwierzaków
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Zalogowano jako <strong className="text-teal-600 dark:text-teal-400">{session.user.email}</strong>. Wybierz jak chcesz rozpocząć:
+                Aplikacja działa w 100% lokalnie i bezpiecznie na Twoim urządzeniu. Rozpocznij dodając pierwszego zwierzaka:
               </p>
             </div>
 
             <div className="w-full max-w-sm space-y-2.5 pt-1 text-left">
-              {/* Option 1: QR Code instant transfer from another phone */}
-              <button
-                onClick={() => { setQrInitialMode('receive'); setIsQRTransferOpen(true); }}
-                className="w-full p-3.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-2xl shadow-md shadow-teal-600/25 active:scale-98 transition flex items-center gap-3 cursor-pointer group"
-              >
-                <div className="p-2.5 bg-white/20 rounded-xl shrink-0">
-                  <Camera className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs sm:text-sm">Skanuj Kod QR z innego telefonu</span>
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-white/25 rounded-md">Błyskawiczne</span>
-                  </div>
-                  <p className="text-[11px] text-teal-100 mt-0.5 leading-tight">
-                    Przenosi natychmiast 100% zwierzaków, zdjęć i leków
-                  </p>
-                </div>
-              </button>
-
-              {/* Option 2: Restore from Cloud backup */}
-              <button
-                onClick={() => setIsGoogleSyncOpen(true)}
-                className="w-full p-3.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 rounded-2xl shadow-xs active:scale-98 transition flex items-center gap-3 cursor-pointer"
-              >
-                <div className="p-2.5 bg-emerald-200/60 dark:bg-emerald-900/80 rounded-xl shrink-0">
-                  <Cloud className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-extrabold text-xs sm:text-sm block">Przywróć z Chmury / Dysku Google</span>
-                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5 leading-tight">
-                    Miałeś aplikację wcześniej? Pobierz zapisane zwierzaki
-                  </p>
-                </div>
-              </button>
-
-              {/* Option 3: Add new pet from scratch */}
+              {/* Option 1: Add new pet from scratch */}
               <button
                 onClick={() => setIsNewPetOpen(true)}
-                className="w-full p-3.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs active:scale-98 transition flex items-center gap-3 cursor-pointer"
+                className="w-full p-4 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl shadow-md shadow-teal-600/25 active:scale-98 transition flex items-center gap-3 cursor-pointer"
               >
-                <div className="p-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl shrink-0">
-                  <Plus className="w-5 h-5 text-teal-600 dark:text-teal-400 stroke-[2.5]" />
+                <div className="p-2.5 bg-white/20 rounded-xl shrink-0">
+                  <Plus className="w-5 h-5 text-white stroke-[2.5]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="font-extrabold text-xs sm:text-sm block">Dodaj nowego zwierzaka</span>
+                  <span className="font-extrabold text-sm block">Dodaj nowego zwierzaka</span>
+                  <p className="text-[11px] text-teal-100 mt-0.5 leading-tight">
+                    Rozpocznij tworzenie książeczki zdrowia
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: QR Code transfer from previous phone */}
+              <button
+                onClick={() => { setQrInitialMode('receive'); setIsQRTransferOpen(true); }}
+                className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 active:scale-98 transition flex items-center gap-3 cursor-pointer"
+              >
+                <div className="p-2.5 bg-white dark:bg-slate-700 rounded-xl shrink-0">
+                  <Camera className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-extrabold text-xs sm:text-sm block">Przenieś dane kodem QR</span>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
-                    Rozpocznij tworzenie nowej książeczki zdrowia od zera
+                    Zeskanuj kod z drugiego telefonu
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: Restore from Google Drive */}
+              <button
+                onClick={() => setIsGoogleSyncOpen(true)}
+                className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 active:scale-98 transition flex items-center gap-3 cursor-pointer"
+              >
+                <div className="p-2.5 bg-emerald-100 dark:bg-emerald-950 rounded-xl shrink-0">
+                  <Cloud className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-extrabold text-xs sm:text-sm block">Przywróć z Dysku Google</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                    Pobierz wcześniej zapisaną kopię
                   </p>
                 </div>
               </button>
@@ -510,59 +490,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 sm:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col items-center justify-start sm:p-4 selection:bg-teal-500 selection:text-white transition-colors duration-200">
-      {/* Top Device View Mode Switcher on desktop */}
-      <div className="hidden sm:flex items-center justify-between w-full max-w-4xl py-2 px-4 text-xs text-slate-300">
-        <div className="flex items-center gap-2">
-          <span className="font-bold tracking-tight text-white flex items-center gap-1.5">
-            🐾 PetCare Android App
-          </span>
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-teal-800/60 text-teal-200 border border-teal-600/40">
-            Zgodna z PWA & Android
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
-          <button
-            onClick={() => setDeviceFrameMode('mobile')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition ${
-              deviceFrameMode === 'mobile' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            Widok Smartfona Android
-          </button>
-          <button
-            onClick={() => setDeviceFrameMode('full')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium transition ${
-              deviceFrameMode === 'full' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            Pełna szerokość
-          </button>
-        </div>
-      </div>
-
-      {/* Main Container / Mobile Frame */}
-      <div
-        className={`w-full bg-slate-100 dark:bg-slate-900 flex flex-col relative transition-all duration-300 ${
-          deviceFrameMode === 'mobile'
-            ? 'max-w-md min-h-screen sm:min-h-[860px] sm:max-h-[920px] sm:rounded-[44px] sm:border-[8px] sm:border-slate-800 sm:shadow-2xl overflow-y-auto sm:ring-1 sm:ring-slate-700/50'
-            : 'max-w-4xl min-h-screen sm:rounded-3xl sm:shadow-2xl overflow-hidden'
-        }`}
-      >
-        {/* Android Speaker Bezel Notch */}
-        {deviceFrameMode === 'mobile' && (
-          <div className="hidden sm:flex justify-center pt-2 pb-1 bg-slate-900 sticky top-0 z-50">
-            <div className="w-20 h-3.5 bg-slate-800 rounded-full flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-slate-900 ring-1 ring-slate-700" />
-              <span className="w-10 h-1 bg-slate-700 rounded-full" />
-            </div>
-          </div>
-        )}
-
-        {/* PWA Install Banner */}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col items-center justify-start transition-colors duration-200">
+      <div className="w-full max-w-md min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col relative shadow-sm">
         {!isInstalled && <PWAInstallBanner />}
 
         {/* Google Drive auto-restore notification */}
@@ -726,7 +655,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 1: Medical Dossier / PDF Report */}
       {isMedicalReportOpen && (
         <MedicalReportModal
           isOpen={isMedicalReportOpen}
@@ -740,7 +668,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 2: Toxicity Database */}
       {isToxicityOpen && (
         <ToxicityCheckerModal
           isOpen={isToxicityOpen}
@@ -750,7 +677,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 3: AI Scanner */}
       {isAIScannerOpen && (
         <AIScannerModal
           isOpen={isAIScannerOpen}
@@ -760,7 +686,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 4: Nutrition & Calorie Calculator */}
       {isNutritionOpen && (
         <NutritionCalculatorModal
           isOpen={isNutritionOpen}
@@ -769,7 +694,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 5: Pet Expenses & Budget */}
       {isExpensesOpen && (
         <ExpensesModal
           isOpen={isExpensesOpen}
@@ -780,7 +704,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 6: Petsitter Mode */}
       {isPetsitterOpen && (
         <PetsitterModal
           isOpen={isPetsitterOpen}
@@ -790,7 +713,6 @@ export default function App() {
         />
       )}
 
-      {/* Dashboard Customizer (Show/Hide Widgets) */}
       {isCustomizerOpen && (
         <DashboardCustomizerModal
           isOpen={isCustomizerOpen}
@@ -800,7 +722,6 @@ export default function App() {
         />
       )}
 
-      {/* Tools Hub Menu */}
       {isToolsHubOpen && (
         <ToolsHubModal
           isOpen={isToolsHubOpen}
@@ -856,13 +777,11 @@ export default function App() {
             setIsParasiteProtectionOpen(true);
           }}
           onOpenSettings={() => {
-            // Can be opened from HeaderNav
             setIsToolsHubOpen(false);
           }}
         />
       )}
 
-      {/* Feature 7: Human Age Calculator & Senior Care */}
       {isAgeCalculatorOpen && (
         <AgeCalculatorModal
           isOpen={isAgeCalculatorOpen}
@@ -871,7 +790,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 8: 24/7 Veterinary Emergency Clinics & SOS */}
       {isEmergencyVetFinderOpen && (
         <EmergencyVetFinderModal
           isOpen={isEmergencyVetFinderOpen}
@@ -881,7 +799,6 @@ export default function App() {
         />
       )}
 
-      {/* Google Drive Cloud Synchronization */}
       {isGoogleSyncOpen && (
         <GoogleSyncModal
           isOpen={isGoogleSyncOpen}
@@ -890,7 +807,6 @@ export default function App() {
         />
       )}
 
-      {/* Push Notifications & Notification Center Modal */}
       {isNotificationsOpen && (
         <NotificationSettingsModal
           isOpen={isNotificationsOpen}
@@ -903,7 +819,6 @@ export default function App() {
         />
       )}
 
-      {/* Direct QR Device-to-Device Transfer */}
       {isQRTransferOpen && (
         <QRTransferModal
           isOpen={isQRTransferOpen}
@@ -913,7 +828,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 9: Karta Pacjenta (Tryb Lekarza) */}
       {isVetCardOpen && (
         <VetCardModal
           isOpen={isVetCardOpen}
@@ -926,7 +840,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 10: Zintegrowana Oś Czasu Zdrowia */}
       {isHealthTimelineOpen && (
         <HealthTimelineModal
           isOpen={isHealthTimelineOpen}
@@ -939,7 +852,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 11: Tryb Współwłaściciela i Rodzina */}
       {isFamilySharingOpen && (
         <FamilySharingModal
           isOpen={isFamilySharingOpen}
@@ -952,7 +864,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 12: Prywatność, Bezpieczeństwo & Standard Google Play */}
       {isCommercialPrivacyOpen && (
         <CommercialPrivacyModal
           isOpen={isCommercialPrivacyOpen}
@@ -961,7 +872,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 13: Natywny Widżet na Pulpit Telefonu (Android Home Screen) */}
       {isHomeScreenWidgetModalOpen && (
         <HomeScreenWidgetModal
           isOpen={isHomeScreenWidgetModalOpen}
@@ -971,7 +881,6 @@ export default function App() {
         />
       )}
 
-      {/* Feature 14: Asystent Kleszczy & Odrobaczania (Tarcza Ochronna) */}
       {isParasiteProtectionOpen && activePet && (
         <ParasiteProtectionModal
           isOpen={isParasiteProtectionOpen}

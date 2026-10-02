@@ -88,27 +88,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.40.0' }}
-          name: "PetCare v2.40.0 - Własny Interaktywny Kalendarz, Synchronizacja z Kalendarzem Google & Asystent Kleszczy"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.41.0' }}
+          name: "PetCare v2.41.0 - Czysty Ekran Startowy, Brak Wymogu Zakładania Konta & Usunięcie Opcji Baterii"
           body: |
-            ### 🐾 PetCare v2.40.0 - Własny Kalendarz Miesięczny, Google Calendar Sync & Asystent Ochrony Przed Kleszczami!
+            ### 🐾 PetCare v2.41.0 - Wydanie Czyste i Minimalistyczne!
 
-            1. 📅 **Dedykowany Interaktywny Kalendarz Miesięczny w Aplikacji:**
-               - Wizualna siatka miesięcy z polskim układem dni tygodnia (Pn-Nd) i wskaźnikami dzisiejszego dnia.
-               - Kolorowe kropki wydarzeń: 🟣 Szczepienia, 🟢 Leki, 🔵 Wizyty lekarskie, 🟠 Badania, 🛡️ Kleszcze i odrobaczanie, 🟡 Własne wydarzenia.
-               - Widok agendy wybranego dnia z możliwością planowania własnych terminów (groomer, ważenie, higiena, spacery).
+            1. 🚀 **Zero Wymogu Zakładania Konta / Rejestracji:**
+               - Usunięto ekran rejestracji i logowania. Aplikacja otwiera się natychmiast, działa w 100% lokalnie i prywatnie na Twoim urządzeniu.
+               - Brak konieczności wpisywania haseł i tworzenia zbędnych kont. Kopia na Dysk Google pozostaje dostępna opcjonalnie w nagłówku.
 
-            2. 🔄 **Synchronizacja z Kalendarzem Google (Google Calendar Sync) & Plik .ICS:**
-               - 1-klik dodaje dowolne wydarzenie lub lek bezpośrednio do aplikacji Kalendarza Google lub Kalendarza na telefonie.
-               - Zbiorczy eksport całego harmonogramu zdrowia pupila do pliku `.ics` dla Androida.
+            2. 📱 **Czysty, „Goły” Ekran Startowy:**
+               - Usunięto sztuczne ramki telefonu, wcięcia głośnika i przełączniki widoków.
+               - Interfejs wypełnia ekran czysto, bezpośrednio i nowocześnie jak natywna aplikacja Androida.
 
-            3. 🛡️ **Inteligentny Asystent Odrobaczania & Kleszczy (Parasite Protection Hub):**
-               - Wizualna tarcza bezpieczeństwa pupila ze statusem działania preparatu i licznikiem pozostałych dni ochrony.
-               - Baza preparatów weterynaryjnych (Foresto, Bravecto, Simparica, NexGard, Advantix, Fypryst, Milprazon, Drontal, Dehinel itp.) z automatycznym wyliczaniem czasu działania.
-               - Sezonowy radar aktywności kleszczy w Europie Środkowej z alertami przed babeszjozą i boreliozą.
+            3. 🔋 **Usunięcie Zbędnych Opcji Baterii:**
+               - Usunięto przycisk i modal optymalizacji baterii z ekranu głównego.
 
-            4. 🔑 **Trwały Podpis APK & Płynna Aktualizacja:**
-               - Plik `PetCare.apk` podpisany jednolitym oficjalnym kluczem produkcyjnym (aktualizacja wchodzi gładko jako „Aktualizuj”).
+            4. 🧹 **Oczyszczenie Kodu:**
+               - Usunięto zbędne i powtarzające się komentarze z całego projektu.
+               - Podbito `versionCode` do 21 (v2.41.0).
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
