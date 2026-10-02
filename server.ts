@@ -920,7 +920,7 @@ ZASADY ANALIZY:
    - Zalecenia kliniczne (np. objawy przedawkowania, stałe pory, leczenie do końca życia),
    - Kontrola (np. "Kontrola hormonów tarczycy we krwi po 4-6 tygodniach, 4-6h po porannej dawce na czczo"),
    - Dane lekarza (np. Mirosława Lewicka, tel. 0605 632 588, Mikołów),
-   - Data wizyty (np. 12/03/2026).
+   - Data wizyty: UWAGA! W Polsce daty zapisuje się w formacie Dzień/Miesiąc/Rok (DD/MM/YYYY). Zapis np. '12/03/2026 11:39' oznacza BEZWZGLĘDNIE 12 MARCA 2026 ROKU (zwróć w visitInfo.date jako "2026-03-12", nigdy jako grudzień!).
 4. WYKRYJ DANE ZWIERZĘCIA Z NAGŁÓWKA:
    - Imię pacjenta, gatunek, rasa, wiek, maść, płeć jeśli są na dokumencie.
 
@@ -1044,6 +1044,18 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
         parsed.isValidMedicalDocument = true;
         if (!parsed.type || parsed.type === 'invalid') {
           parsed.type = hasMeds ? 'medication' : hasExams ? 'exam_blood' : 'visit_recommendation';
+        }
+      }
+
+      // Normalize visit date if in Polish DD/MM/YYYY format
+      if (parsed.visitInfo && parsed.visitInfo.date) {
+        const rawDate = String(parsed.visitInfo.date).trim();
+        const dmy = rawDate.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
+        if (dmy) {
+          const day = dmy[1].padStart(2, '0');
+          const month = dmy[2].padStart(2, '0');
+          const year = dmy[3];
+          parsed.visitInfo.date = `${year}-${month}-${day}`;
         }
       }
 

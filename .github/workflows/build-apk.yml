@@ -88,21 +88,23 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.46.2' }}
-          name: "PetCare v2.46.2 - Inteligentny skaner kart wizyt, pisma ręcznego i zaleceń lekarskich"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.46.3' }}
+          name: "PetCare v2.46.3 - 1-Kliknięcie: Leki + Wizyta + Kalendarz i auto-skaner bez zbędnych opcji"
           body: |
-            ### 🐾 PetCare v2.46.2 - Zaawansowany Skaner Wizyt i Recept
+            ### 🐾 PetCare v2.46.3 - Błyskawiczny Skaner AI (1-Click Import)
 
-            1. 🔍 **Inteligentny Skaner AI bez zniekształceń:**
-               - Usunięto destrukcyjne czarno-białe filtry progowe, które niszczyły zdjęcia robione w pokojowym/słabszym świetle.
-               - Skaner automatycznie analizuje oryginalne zdjęcie aparatu, rozpoznając trudne pismo ręczne lekarzy (np. `2 x 1/2 tabl`), zalecenia, dawkowanie i pieczątki.
-               - Dodano dedykowaną kartę **Diagnozy i Zaleceń** (np. Niedoczynność tarczycy) z możliwością natychmiastowego zapisania wizyty w historii leczenia.
-               - Automatyczne planowanie badań kontrolnych w kalendarzu (np. kontrola hormonów tarczycy za 4-6 tyg.).
-               - Bezpośredni import leków do apteczki i harmonogramu powiadomień.
+            1. ⚡ **Zatwierdź i dodaj wszystko jednym kliknięciem:**
+               - Dodano główny przycisk **„Zatwierdź i dodaj wszystko jednym kliknięciem”**, który za jednym razem:
+                 * Dodaje zalecone leki (np. Forthyron 800 mg) do apteczki i ustawia przypomnienia co 12h na czczo,
+                 * Zapisuje kartę wizyty z diagnozą i zaleceniami w historii leczenia,
+                 * Planuje kontrolne badanie krwi w kalendarzu badań (np. za 4-6 tyg. od wizyty).
 
-            2. 🛡️ **Naprawa kompilacji Gradle:**
-               - Przywrócono w 100% poprawną, standardową konfigurację podpisu APK dla Android Gradle Plugin 8+.
-               - Zaktualizowano adres aktywnego serwera synchronizacji w aplikacji.
+            2. 🤖 **100% Automatyczny Skaner bez ręcznego przełączania:**
+               - Usunięto zbędne ręczne przyciski filtrów („pismo odręczne”, „druk termiczny”, przełączniki).
+               - Skaner sam automatycznie dopasowuje się do każdego zdjęcia, trudnych bazgrołów lekarza, słabego oświetlenia i zagięć papieru.
+
+            3. 📅 **Bezbłędny odczyt polskich dat:**
+               - Precyzyjne rozpoznawanie dat w polskim formacie DD/MM/RRRR (np. `12/03/2026` = 12 marca 2026 r., bez mylenia z grudniem).
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

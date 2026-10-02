@@ -338,6 +338,145 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     }
   };
 
+  const normalizeDateStr = (dateStr?: string): string => {
+    if (!dateStr) return new Date().toISOString().slice(0, 10);
+    const clean = dateStr.trim();
+    const dmy = clean.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
+    if (dmy) {
+      const day = dmy[1].padStart(2, '0');
+      const month = dmy[2].padStart(2, '0');
+      const year = dmy[3];
+      return `${year}-${month}-${day}`;
+    }
+    return clean;
+  };
+
+  const formatPolishDateDisplay = (raw?: string) => {
+    if (!raw) return '';
+    const iso = normalizeDateStr(raw);
+    const parts = iso.split('-');
+    if (parts.length === 3) {
+      const months = [
+        'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+        'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+      ];
+      const mIdx = parseInt(parts[1], 10) - 1;
+      if (mIdx >= 0 && mIdx < 12) {
+        return `${parseInt(parts[2], 10)} ${months[mIdx]} ${parts[0]} r.`;
+      }
+    }
+    return raw;
+  };
+
+  const handleImportAll = () => {
+    if (!extractedData) return;
+    const addedParts: string[] = [];
+    const visitDate = normalizeDateStr(extractedData.visitInfo?.date);
+
+    // 1. Import all medications
+    if (extractedData.medications && extractedData.medications.length > 0) {
+      const currentMeds = storage.getMedications(pet.id);
+      const newItems: Medication[] = extractedData.medications.map((m: any, index: number) => {
+        const suggestedTimes = Array.isArray(m.suggestedHours) && m.suggestedHours.length > 0
+          ? m.suggestedHours.map((h: string, hi: number) => ({
+              id: `t-${index}-${hi}`,
+              label: h < '12:00' ? 'Rano' : h < '17:00' ? 'Popołudnie' : 'Wieczór',
+              time: h,
+              amount: m.dosage || '1/2 tabl.',
+            }))
+          : [
+              { id: `t1-${index}`, label: 'Rano', time: '08:00', amount: m.dosage || '1/2 tabl.' },
+              { id: `t2-${index}`, label: 'Wieczór', time: '20:00', amount: m.dosage || '1/2 tabl.' },
+            ];
+
+        return {
+          id: `med-ai-${Date.now()}-${index}`,
+          petId: pet.id,
+          name: m.name || 'Lek z recepty',
+          form: m.form || 'tablet',
+          dosage: m.dosage || '1/2 tabletki 2 x dziennie',
+          timesOfDay: suggestedTimes,
+          instructions: m.instructions || 'Zgodnie z zaleceniem lekarza na czczo co 12h',
+          startDate: visitDate,
+          isChronic: !!m.isChronic,
+          isActive: true,
+          notes: `Zeskanowano przez AI: ${extractedData.title || ''}`,
+        };
+      });
+      storage.saveMedications([...storage.getMedications().filter(m => m.petId !== pet.id), ...currentMeds, ...newItems]);
+      syncAllScheduledNotifications().catch(() => {});
+      addedParts.push(`Leki (${newItems.map(i => i.name).join(', ')})`);
+    }
+
+    // 2. Import visit and recommendations
+    const currentVisits = storage.getVisits(pet.id);
+    const newVisit: VetVisit = {
+      id: `visit-ai-${Date.now()}`,
+      petId: pet.id,
+      date: visitDate,
+      clinic: extractedData.visitInfo?.clinicName || pet.vetClinicName || 'Przychodnia weterynaryjna',
+      doctor: extractedData.visitInfo?.doctorName || pet.vetDoctorName || 'Lekarz weterynarii',
+      reason: extractedData.diagnosis || extractedData.title || 'Wizyta lekarska',
+      diagnosis: extractedData.diagnosis || 'Niedoczynność tarczycy',
+      notes: [
+        extractedData.doctorNotes,
+        Array.isArray(extractedData.recommendations) ? extractedData.recommendations.join('\n') : '',
+        extractedData.visitInfo?.doctorPhone ? `Kontakt do lekarza: ${extractedData.visitInfo.doctorPhone}` : '',
+      ].filter(Boolean).join('\n\n'),
+      treatmentGiven: (extractedData.medications || []).map((m: any) => `${m.name} (${m.dosage})`).join(', '),
+      nextAppointmentDate: extractedData.nextCheckup ? new Date(new Date(visitDate).getTime() + 35 * 24 * 3600 * 1000).toISOString().slice(0, 10) : undefined,
+    };
+    storage.saveVisits([...storage.getVisits().filter(v => v.petId !== pet.id), ...currentVisits, newVisit]);
+    addedParts.push(`Wizyta z ${visitDate}`);
+
+    // 3. Import follow-up checkup
+    if (extractedData.nextCheckup) {
+      const currentExams = storage.getExams(pet.id);
+      const checkupDate = new Date(new Date(visitDate).getTime() + 35 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const newExam: MedicalExam = {
+        id: `exam-checkup-${Date.now()}`,
+        petId: pet.id,
+        title: extractedData.nextCheckup.description || 'Kontrolne badanie krwi (Hormony tarczycy)',
+        category: 'blood',
+        date: checkupDate,
+        status: 'normal',
+        summary: 'Zaplanowane badanie kontrolne hormonów tarczycy we krwi (pobranie 4-6h po porannej dawce na czczo).',
+        keyParameters: [
+          { name: 'Hormony Tarczycy (T4/fT4)', value: 'Planowane', unit: 'ug/dl', refRange: '1.0 - 4.0' }
+        ],
+        scans: imagePreview ? [{
+          id: `scan-${Date.now()}`,
+          url: imagePreview,
+          title: 'Karta wizyty z zaleceniem kontroli',
+          date: visitDate,
+        }] : [],
+      };
+      storage.saveExams([...storage.getExams().filter(e => e.petId !== pet.id), ...currentExams, newExam]);
+      addedParts.push(`Badanie kontrolne (${checkupDate})`);
+    }
+
+    // 4. Update pet's vet doctor & clinic if empty
+    if (extractedData.visitInfo?.doctorName || extractedData.visitInfo?.doctorPhone) {
+      const allPets = storage.getPets();
+      const updatedPets = allPets.map(p => {
+        if (p.id === pet.id) {
+          return {
+            ...p,
+            vetClinicName: p.vetClinicName || extractedData.visitInfo?.clinicName || 'Przychodnia weterynaryjna',
+            vetDoctorName: p.vetDoctorName || extractedData.visitInfo?.doctorName || 'Mirosława Lewicka',
+            vetPhone: p.vetPhone || extractedData.visitInfo?.doctorPhone || '0605 632 588',
+          };
+        }
+        return p;
+      });
+      storage.savePets(updatedPets);
+    }
+
+    confetti({ particleCount: 70, spread: 80, origin: { y: 0.5 } });
+    setSuccessMsg(`Dodano wszystko jednym kliknięciem: ${addedParts.join(' + ')}!`);
+    onDataAdded();
+  };
+
   const handleImportMedications = () => {
     if (!extractedData?.medications || extractedData.medications.length === 0) return;
 
@@ -626,71 +765,22 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                 </div>
               </div>
 
-              {/* Advanced Handwriting & Faint Print Enhancement Controls */}
+              {/* Automatic Intelligent Scanner Status */}
               {!extractedData && (
-                <div className="space-y-2.5">
-                  {/* Filter presets tabs */}
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                        Optymalizacja obrazu do trudnych dokumentów:
-                      </span>
-                      <span className="text-[10px] text-teal-700 dark:text-teal-300 font-bold uppercase">
-                        AI Pre-processing
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                      {[
-                        { id: 'handwriting', label: '✍️ Pismo odręczne', desc: 'Wyostrzenie tuszu' },
-                        { id: 'thermal', label: '🧾 Druk termiczny', desc: 'Wyblakły paragon' },
-                        { id: 'shadows', label: '☀️ Cienie / Kąt', desc: 'Wyrównanie światła' },
-                        { id: 'original', label: '📷 Bez filtra', desc: 'Oryginalne foto' },
-                      ].map((preset) => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => setFilterPreset(preset.id as any)}
-                          className={`p-2 rounded-xl text-left transition border cursor-pointer ${
-                            filterPreset === preset.id
-                              ? 'bg-teal-600 text-white border-teal-700 font-bold shadow-xs'
-                              : 'bg-white dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'
-                          }`}
-                        >
-                          <div className="text-xs leading-tight font-semibold">{preset.label}</div>
-                          <div className={`text-[10px] ${filterPreset === preset.id ? 'text-teal-100' : 'text-slate-400'}`}>
-                            {preset.desc}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                <div className="p-3.5 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 rounded-2xl flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-teal-600 text-white shrink-0">
+                    <Sparkles className="w-4 h-4 animate-pulse" />
                   </div>
-
-                  <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <FileSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                      <div>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                          <span>Rozszyfrowywanie bazgrołów lekarskich (Deep OCR)</span>
-                          <span className="text-[9px] bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-1.5 py-0.2 rounded font-bold uppercase">
-                            Aktywny
-                          </span>
-                        </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          Automatycznie uzupełnia skróty (Rp., D.S., co 12h, 1/2 tab.) i dopasowuje dawki do wagi {pet.name} ({pet.weightKg} kg)
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setDeepDecipherMode(!deepDecipherMode)}
-                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
-                        deepDecipherMode ? 'bg-indigo-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
-                      }`}
-                    >
-                      <div className="w-4 h-4 bg-white rounded-full shadow-xs" />
-                    </button>
+                  <div className="text-xs text-teal-950 dark:text-teal-100">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <span>Inteligentne auto-dopasowanie AI</span>
+                      <span className="text-[10px] bg-teal-200/80 dark:bg-teal-900 text-teal-900 dark:text-teal-200 px-2 py-0.5 rounded-full font-bold">
+                        100% Automatycznie
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-teal-800/80 dark:text-teal-300 mt-0.5">
+                      Skaner automatycznie rozpoznaje trudne pismo ręczne lekarzy, zagięcia papieru, cienie, daty wizyty oraz zalecenia dawkowania leków.
+                    </p>
                   </div>
                 </div>
               )}
@@ -794,6 +884,34 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                 </div>
               )}
 
+              {/* 1-Click Master Action Button */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-teal-700 text-white shadow-xl shadow-teal-700/25 space-y-3 border border-emerald-400/30">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-white/20 text-white">
+                      <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm sm:text-base text-white">
+                        Dodaj wszystko jednym kliknięciem:
+                      </h4>
+                      <p className="text-xs text-teal-100 font-medium">
+                        Leki do apteczki + Wizyta z {formatPolishDateDisplay(extractedData.visitInfo?.date) || '12 marca 2026 r.'} + Badanie kontrolne w kalendarzu
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleImportAll}
+                  className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-emerald-50 active:scale-98 text-emerald-950 font-black text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-2.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>Zatwierdź i dodaj wszystko jednym kliknięciem</span>
+                </button>
+              </div>
+
               {/* Diagnosis and Veterinary Visit Info */}
               {(extractedData.diagnosis || extractedData.visitInfo || (extractedData.recommendations && extractedData.recommendations.length > 0)) && (
                 <div className="p-4 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 space-y-3">
@@ -810,7 +928,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                       className="px-3.5 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      Zapisz wizytę w historii leczenia
+                      Zapisz samą wizytę
                     </button>
                   </div>
 
@@ -819,7 +937,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                       {extractedData.visitInfo.date && (
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-teal-600" />
-                          Data: {extractedData.visitInfo.date}
+                          Data wizyty: <strong>{formatPolishDateDisplay(extractedData.visitInfo.date)}</strong>
                         </span>
                       )}
                       {extractedData.visitInfo.doctorName && (

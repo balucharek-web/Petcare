@@ -338,8 +338,14 @@ export function analyzeExtractedMedicalText(
     const phoneMatch = rawText.match(/(?:tel\.?|telefon[:\s]*)([0-9\s-]{9,15})/i);
     const doctorPhone = phoneMatch ? phoneMatch[1].trim() : lower.includes('632') ? '0605 632 588' : '';
 
-    const dateMatch = rawText.match(/(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/);
-    const visitDate = dateMatch ? dateMatch[1] : '';
+    const dateMatch = rawText.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
+    let visitDate = '';
+    if (dateMatch) {
+      const day = dateMatch[1].padStart(2, '0');
+      const month = dateMatch[2].padStart(2, '0');
+      const year = dateMatch[3];
+      visitDate = `${year}-${month}-${day}`;
+    }
 
     const recs: string[] = [];
     if (lower.includes('pół godziny przed posiłkiem') || lower.includes('na czczo')) {
