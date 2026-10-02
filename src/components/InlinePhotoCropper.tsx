@@ -26,6 +26,11 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
   title,
   className = '',
 }) => {
+  // We keep an internal source image so that external cropped updates don't reset the source
+  const [sourceImage, setSourceImage] = useState<string>(photoUrl);
+  const lastExportedUrlRef = useRef<string>('');
+  const lastPropUrlRef = useRef<string>(photoUrl);
+
   const [scale, setScale] = useState(1);
   const [minScale, setMinScale] = useState(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -33,22 +38,32 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
   const [isMaskCircle, setIsMaskCircle] = useState(true);
   const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isInteracting, setIsInteracting] = useState(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [touchDistance, setTouchDistance] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const debounceTimerRef = useRef<any>(null);
+  const imgElementRef = useRef<HTMLImageElement | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const initialPinchDistRef = useRef<number | null>(null);
+  const initialPinchScaleRef = useRef<number>(1);
+  const exportTimerRef = useRef<any>(null);
 
   // Preview viewport size (responsive square frame)
   const FRAME_SIZE = 170; // 170x170 px preview frame
   const OUTPUT_SIZE = 600; // 600x600 px high-quality exported avatar
 
+  // Check if incoming photoUrl is an external change (not our own export)
+  useEffect(() => {
+    if (photoUrl && photoUrl !== lastExportedUrlRef.current && photoUrl !== lastPropUrlRef.current) {
+      lastPropUrlRef.current = photoUrl;
+      setSourceImage(photoUrl);
+    }
+  }, [photoUrl]);
+
   // Export cropped canvas helper
   const exportCrop = useCallback(() => {
-    if (!imgRef.current) return;
-    const img = imgRef.current;
+    if (!imgElementRef.current || !isLoaded) return;
+    const img = imgElementRef.current;
 
     try {
       const canvas = document.createElement('canvas');
@@ -75,21 +90,30 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
       ctx.restore();
 
       const croppedUrl = canvas.toDataURL('image/jpeg', 0.88);
+      lastExportedUrlRef.current = croppedUrl;
       onPhotoCropped(croppedUrl);
     } catch {
-      // If remote image triggers CORS taint, fallback to raw url
-      onPhotoCropped(photoUrl);
+      // If cross-origin prevents canvas reading, notify raw source
+      onPhotoCropped(sourceImage);
     }
-  }, [pan, scale, rotation, onPhotoCropped, photoUrl]);
+  }, [pan, scale, rotation, onPhotoCropped, sourceImage, isLoaded]);
 
-  // Load new image source
+  // Schedule export helper
+  const scheduleExport = useCallback((delay = 200) => {
+    if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
+    exportTimerRef.current = setTimeout(() => {
+      exportCrop();
+    }, delay);
+  }, [exportCrop]);
+
+  // Load image when sourceImage changes
   useEffect(() => {
     setIsLoaded(false);
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
-      imgRef.current = img;
+      imgElementRef.current = img;
 
       const effectiveW = (rotation % 180 === 0) ? img.naturalWidth : img.naturalHeight;
       const effectiveH = (rotation % 180 === 0) ? img.naturalHeight : img.naturalWidth;
@@ -99,110 +123,110 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
       setPan({ x: 0, y: 0 });
       setIsLoaded(true);
 
-      // Trigger initial crop export
       setTimeout(() => {
         exportCrop();
-      }, 50);
+      }, 60);
     };
     img.onerror = () => {
       setIsLoaded(true);
     };
-    img.src = photoUrl;
-  }, [photoUrl]);
+    img.src = sourceImage;
+  }, [sourceImage]);
 
-  // Debounced auto-export when user adjusts pan, scale, or rotation
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      exportCrop();
-    }, 120);
-
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    };
-  }, [pan, scale, rotation, isLoaded, exportCrop]);
-
-  // Mouse pan drag handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Pointer event handlers with PointerCapture (fluid 120fps, never gets stuck)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsInteracting(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isInteracting) return;
-    setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
-  };
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  const handleMouseUp = () => {
-    setIsInteracting(false);
-  };
-
-  // Touch pan & pinch-zoom handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      setIsInteracting(true);
-      setDragStart({
-        x: e.touches[0].clientX - pan.x,
-        y: e.touches[0].clientY - pan.y,
-      });
-      setTouchDistance(null);
-    } else if (e.touches.length === 2) {
-      setIsInteracting(false);
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      setTouchDistance(dist);
+    if (activePointersRef.current.size === 1) {
+      setIsDragging(true);
+      dragStartRef.current = {
+        x: e.clientX - pan.x,
+        y: e.clientY - pan.y,
+      };
+    } else if (activePointersRef.current.size === 2) {
+      setIsDragging(false);
+      const points = Array.from(activePointersRef.current.values());
+      const dist = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      initialPinchDistRef.current = dist;
+      initialPinchScaleRef.current = scale;
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && isInteracting) {
-      setPan({
-        x: e.touches[0].clientX - dragStart.x,
-        y: e.touches[0].clientY - dragStart.y,
-      });
-    } else if (e.touches.length === 2 && touchDistance !== null) {
-      const currentDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const diff = currentDist - touchDistance;
-      const zoomFactor = diff * 0.005;
-      setScale(prev => Math.min(Math.max(prev + zoomFactor, minScale), minScale * 4));
-      setTouchDistance(currentDist);
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!activePointersRef.current.has(e.pointerId)) return;
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointersRef.current.size === 1 && isDragging) {
+      const nextX = e.clientX - dragStartRef.current.x;
+      const nextY = e.clientY - dragStartRef.current.y;
+      setPan({ x: nextX, y: nextY });
+    } else if (activePointersRef.current.size === 2 && initialPinchDistRef.current !== null) {
+      const points = Array.from(activePointersRef.current.values());
+      const currentDist = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      const factor = currentDist / initialPinchDistRef.current;
+      const nextScale = Math.min(Math.max(initialPinchScaleRef.current * factor, minScale), minScale * 4);
+      setScale(nextScale);
     }
   };
 
-  const handleTouchEnd = () => {
-    setIsInteracting(false);
-    setTouchDistance(null);
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.delete(e.pointerId);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+
+    if (activePointersRef.current.size === 0) {
+      setIsDragging(false);
+      initialPinchDistRef.current = null;
+      // Trigger canvas export now that dragging has ended
+      scheduleExport(0);
+    } else if (activePointersRef.current.size === 1) {
+      const remaining = Array.from(activePointersRef.current.values())[0];
+      dragStartRef.current = {
+        x: remaining.x - pan.x,
+        y: remaining.y - pan.y,
+      };
+      setIsDragging(true);
+      initialPinchDistRef.current = null;
+    }
   };
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const zoomDelta = e.deltaY < 0 ? 0.08 : -0.08;
-    setScale(prev => Math.min(Math.max(prev + zoomDelta, minScale), minScale * 4));
+    setScale(prev => {
+      const next = Math.min(Math.max(prev + zoomDelta, minScale), minScale * 4);
+      scheduleExport(150);
+      return next;
+    });
   };
 
   const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
+    setRotation(prev => {
+      const next = (prev + 90) % 360;
+      setTimeout(() => scheduleExport(0), 50);
+      return next;
+    });
   };
 
   const handleReset = () => {
     setRotation(0);
-    if (imgRef.current) {
-      const initialCover = Math.max(FRAME_SIZE / imgRef.current.naturalWidth, FRAME_SIZE / imgRef.current.naturalHeight);
+    if (imgElementRef.current) {
+      const initialCover = Math.max(FRAME_SIZE / imgElementRef.current.naturalWidth, FRAME_SIZE / imgElementRef.current.naturalHeight);
       setScale(initialCover);
     }
     setPan({ x: 0, y: 0 });
+    setTimeout(() => scheduleExport(0), 50);
+  };
+
+  const handleScaleChange = (newScale: number) => {
+    setScale(newScale);
+    scheduleExport(150);
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,7 +236,8 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
     reader.onload = (ev) => {
       const url = ev.target?.result as string;
       if (url) {
-        onPhotoCropped(url);
+        lastPropUrlRef.current = url;
+        setSourceImage(url);
       }
     };
     reader.readAsDataURL(file);
@@ -231,22 +256,24 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
       <div className="relative group">
         <div
           ref={containerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           onWheel={handleWheel}
-          style={{ width: `${FRAME_SIZE}px`, height: `${FRAME_SIZE}px` }}
-          className={`relative overflow-hidden cursor-grab active:cursor-grabbing bg-slate-900 border-2 border-teal-500 shadow-md touch-none flex items-center justify-center transition-all ${
+          style={{ 
+            width: `${FRAME_SIZE}px`, 
+            height: `${FRAME_SIZE}px`,
+            touchAction: 'none'
+          }}
+          className={`relative overflow-hidden cursor-grab active:cursor-grabbing bg-slate-900 border-2 border-teal-500 shadow-md flex items-center justify-center select-none ${
             isMaskCircle ? 'rounded-full' : 'rounded-3xl'
           }`}
-          title="Przeciągaj palcem lub myszą, aby ustawić idealny kadr"
+          title="Przesuń palcem lub myszą, aby ustawić idealny kadr"
         >
           {isLoaded && (
             <img
-              src={photoUrl}
+              src={sourceImage}
               alt="Podgląd pupila"
               draggable={false}
               style={{
@@ -254,10 +281,11 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
                 height: `${imageSize.height * scale}px`,
                 maxWidth: 'none',
                 maxHeight: 'none',
-                transform: `translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg)`,
+                transform: `translate3d(${pan.x}px, ${pan.y}px, 0px) rotate(${rotation}deg)`,
                 transformOrigin: 'center center',
+                willChange: 'transform',
               }}
-              className="absolute pointer-events-none select-none transition-transform duration-75 ease-out"
+              className="absolute pointer-events-none select-none"
             />
           )}
 
@@ -278,7 +306,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
           <div className="absolute w-2 h-2 rounded-full bg-teal-400/80 pointer-events-none" />
 
           {/* Drag Hint badge */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/65 backdrop-blur-xs rounded-full text-[9px] font-bold text-white pointer-events-none flex items-center gap-1 shadow whitespace-nowrap opacity-90 group-hover:opacity-100">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-black/65 backdrop-blur-xs rounded-full text-[9px] font-bold text-white pointer-events-none flex items-center gap-1 shadow whitespace-nowrap opacity-90 group-hover:opacity-100">
             <Move className="w-2.5 h-2.5 text-teal-400" />
             <span>Przesuń kadr</span>
           </div>
@@ -287,7 +315,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
         {/* Camera upload badge overlay */}
         <label 
           className="absolute -bottom-1 -right-1 p-2 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl shadow-md cursor-pointer transition active:scale-95 z-10"
-          title="Zmień zdjęcie"
+          title="Wgraj nowe zdjęcie z aparatu lub pliku"
         >
           <Camera className="w-4 h-4" />
           <input
@@ -305,8 +333,8 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
         <div className="flex items-center gap-2 px-1">
           <button
             type="button"
-            onClick={() => setScale(prev => Math.max(prev - 0.15, minScale))}
-            className="p-1 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 transition cursor-pointer"
+            onClick={() => handleScaleChange(Math.max(scale - 0.15, minScale))}
+            className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 transition cursor-pointer"
             title="Oddal"
           >
             <ZoomOut className="w-3.5 h-3.5" />
@@ -317,14 +345,14 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
             max={minScale * 3.5}
             step={0.01}
             value={scale}
-            onChange={(e) => setScale(parseFloat(e.target.value))}
+            onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
             className="flex-1 accent-teal-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none"
             title="Przybliżenie"
           />
           <button
             type="button"
-            onClick={() => setScale(prev => Math.min(prev + 0.15, minScale * 3.5))}
-            className="p-1 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 transition cursor-pointer"
+            onClick={() => handleScaleChange(Math.min(scale + 0.15, minScale * 3.5))}
+            className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 transition cursor-pointer"
             title="Przybliż"
           >
             <ZoomIn className="w-3.5 h-3.5" />
@@ -333,11 +361,11 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
 
         {/* Action Buttons: Rotate, Recenter, Mask shape */}
         <div className="flex items-center justify-between gap-1 pt-0.5 text-xs">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleRotate}
-              className="flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold transition cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold transition cursor-pointer"
               title="Obróć o 90 stopni"
             >
               <RotateCw className="w-3 h-3 text-teal-600 dark:text-teal-400" />
@@ -347,7 +375,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold transition cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold transition cursor-pointer"
               title="Wyśrodkuj kadr"
             >
               <RotateCcw className="w-3 h-3 text-slate-500 dark:text-slate-400" />
@@ -357,7 +385,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
             <button
               type="button"
               onClick={() => setIsMaskCircle(prev => !prev)}
-              className="p-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 transition cursor-pointer"
               title={isMaskCircle ? 'Kształt: Okrągły' : 'Kształt: Zaokrąglony kwadrat'}
             >
               {isMaskCircle ? <Circle className="w-3.5 h-3.5 text-teal-600" /> : <Square className="w-3.5 h-3.5 text-teal-600" />}
@@ -368,7 +396,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
             <button
               type="button"
               onClick={onOpenSampleGallery}
-              className="flex items-center gap-1 px-2 py-1 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 text-[11px] font-semibold transition border border-teal-200/80 cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 text-[11px] font-semibold transition border border-teal-200/80 cursor-pointer"
               title="Wybierz z biblioteki ras"
             >
               <Sparkles className="w-3 h-3 text-teal-600" />

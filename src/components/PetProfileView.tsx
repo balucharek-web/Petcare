@@ -1450,7 +1450,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="button"
                 onClick={onOpenAgeCalculator}
                 className="bg-slate-50 hover:bg-teal-50/70 p-2.5 rounded-2xl border border-slate-100 hover:border-teal-200 text-center transition cursor-pointer active:scale-95 group"
-                title="Kliknij, aby otworzyć kalkulator wieku na lata ludzkie i etapy życia"
+                title="Kliknij, aby otworzyć kalkulator wieku i etapy życia pupila"
               >
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-[10px] uppercase font-bold text-slate-400 group-hover:text-teal-700 block">Wiek</span>
@@ -1461,7 +1461,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 </span>
                 {quickHumanAge && (
                   <span className="text-[10px] font-bold text-teal-700 block truncate mt-0.5">
-                    ≈ {quickHumanAge.humanAge} l. ludzkich
+                    {quickHumanAge.lifeStage.stageName.split(' ')[0]}
                   </span>
                 )}
               </button>
