@@ -183,7 +183,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
           <div className="relative min-w-0 flex-shrink">
             <button
               onClick={() => setShowPetDropdown(!showPetDropdown)}
-              className="flex items-center gap-2 p-1 pr-2.5 rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 transition active:scale-98 border border-slate-200/90 dark:border-slate-700/80 shadow-xs max-w-[170px] sm:max-w-none text-left"
+              className="flex items-center gap-1.5 sm:gap-2 p-1 pr-2 sm:pr-2.5 rounded-2xl bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 transition active:scale-98 border border-slate-200/90 dark:border-slate-700/80 shadow-xs max-w-[130px] min-[360px]:max-w-[165px] sm:max-w-none text-left"
             >
               <div className="relative shrink-0">
                 <img
@@ -376,10 +376,10 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             <button
               onClick={onOpenToolsHub}
               title="Wszystkie Narzędzia (Toksyczność, Skaner AI, Kalkulator, Petsitter, Wydatki)"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 active:scale-95 transition text-xs font-bold border border-teal-200/80 dark:border-teal-800/80 shadow-2xs cursor-pointer"
+              className="flex items-center gap-1 px-2 min-[360px]:px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 active:scale-95 transition text-xs font-bold border border-teal-200/80 dark:border-teal-800/80 shadow-2xs cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Menu</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="hidden min-[360px]:inline text-[11px] sm:text-xs">Menu</span>
             </button>
 
             {/* Notifications Button (Notification Center) */}

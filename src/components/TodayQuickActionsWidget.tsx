@@ -177,51 +177,51 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
       </div>
 
       {/* Quick Action Pills */}
-      <div className="grid grid-cols-4 gap-2 mb-4 relative z-10">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-4 relative z-10">
         <button
           onClick={onOpenVetCard}
-          className="p-2 sm:p-2.5 bg-white hover:bg-rose-50 border border-gray-200/90 hover:border-rose-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
+          className="p-1.5 sm:p-2.5 bg-white hover:bg-rose-50 border border-gray-200/90 hover:border-rose-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
         >
-          <div className="w-7 h-7 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center group-hover:scale-105 transition">
-            <FileHeart className="w-4 h-4" />
+          <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center group-hover:scale-105 transition">
+            <FileHeart className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-rose-700">
+          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-rose-700 text-center leading-tight truncate w-full">
             Karta Lekarza
           </span>
         </button>
 
         <button
           onClick={onOpenTimeline}
-          className="p-2 sm:p-2.5 bg-white hover:bg-teal-50 border border-gray-200/90 hover:border-teal-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
+          className="p-1.5 sm:p-2.5 bg-white hover:bg-teal-50 border border-gray-200/90 hover:border-teal-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
         >
-          <div className="w-7 h-7 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center group-hover:scale-105 transition">
-            <History className="w-4 h-4" />
+          <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center group-hover:scale-105 transition">
+            <History className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-teal-700">
+          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-teal-700 text-center leading-tight truncate w-full">
             Oś Czasu
           </span>
         </button>
 
         <button
           onClick={onOpenMedications}
-          className="p-2 sm:p-2.5 bg-white hover:bg-amber-50 border border-gray-200/90 hover:border-amber-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
+          className="p-1.5 sm:p-2.5 bg-white hover:bg-amber-50 border border-gray-200/90 hover:border-amber-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
         >
-          <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center group-hover:scale-105 transition">
-            <Pill className="w-4 h-4" />
+          <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center group-hover:scale-105 transition">
+            <Pill className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-amber-700">
+          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-amber-700 text-center leading-tight truncate w-full">
             Apteczka
           </span>
         </button>
 
         <button
           onClick={onOpenFamilySharing}
-          className="p-2 sm:p-2.5 bg-white hover:bg-indigo-50 border border-gray-200/90 hover:border-indigo-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
+          className="p-1.5 sm:p-2.5 bg-white hover:bg-indigo-50 border border-gray-200/90 hover:border-indigo-300 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs group cursor-pointer"
         >
-          <div className="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition">
-            <Users className="w-4 h-4" />
+          <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition">
+            <Users className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-indigo-700">
+          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-indigo-700 text-center leading-tight truncate w-full">
             Współopiekun
           </span>
         </button>
@@ -323,16 +323,16 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
       </div>
 
       {/* PREVENTATIVE HEALTH STATUS ROW */}
-      <div className="mt-3.5 pt-3 border-t border-emerald-100/80 grid grid-cols-3 gap-2 text-center text-xs relative z-10">
+      <div className="mt-3.5 pt-3 border-t border-emerald-100/80 grid grid-cols-3 gap-1.5 sm:gap-2 text-center text-xs relative z-10">
         {/* Odrobaczenie */}
-        <div className="p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
-          <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
+        <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
+          <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Odrobaczenie
           </span>
-          <div className="font-extrabold text-gray-800 text-xs">
+          <div className="font-extrabold text-gray-800 text-[11px] min-[360px]:text-xs truncate">
             {dewormingDaysAgo !== null ? `${dewormingDaysAgo} dni temu` : 'Brak danych'}
           </div>
-          <span className={`text-[10px] font-semibold block mt-0.5 ${
+          <span className={`text-[9px] min-[360px]:text-[10px] font-semibold block mt-0.5 truncate ${
             dewormingDaysAgo !== null && dewormingDaysAgo > 90 ? 'text-rose-600' : 'text-emerald-600'
           }`}>
             {dewormingDaysAgo !== null && dewormingDaysAgo > 90 ? '⚠️ Czas powtórzyć' : '✓ Zalecane co 3 mies.'}
@@ -340,16 +340,16 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
         </div>
 
         {/* Kleszcze / Pasożyty */}
-        <div className="p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
-          <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
+        <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
+          <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Kleszcze & Pchły
           </span>
-          <div className="font-extrabold text-gray-800 text-xs">
+          <div className="font-extrabold text-gray-800 text-[11px] min-[360px]:text-xs truncate">
             {tickDaysUntil !== null 
               ? (tickDaysUntil > 0 ? `Jeszcze ${tickDaysUntil} dni` : 'Wygasła') 
               : 'Brak danych'}
           </div>
-          <span className={`text-[10px] font-semibold block mt-0.5 ${
+          <span className={`text-[9px] min-[360px]:text-[10px] font-semibold block mt-0.5 truncate ${
             tickDaysUntil !== null && tickDaysUntil > 7 
               ? 'text-emerald-600' 
               : tickDaysUntil !== null 
@@ -361,16 +361,16 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
         </div>
 
         {/* Wścieklizna */}
-        <div className="p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
-          <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
+        <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
+          <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Wścieklizna
           </span>
-          <div className="font-extrabold text-gray-800 text-xs">
+          <div className="font-extrabold text-gray-800 text-[11px] min-[360px]:text-xs truncate">
             {rabiesDaysUntil !== null 
               ? (rabiesDaysUntil > 0 ? `Ważne (${rabiesDaysUntil} d.)` : 'Wygasło!') 
               : 'Brak danych'}
           </div>
-          <span className={`text-[10px] font-semibold block mt-0.5 ${
+          <span className={`text-[9px] min-[360px]:text-[10px] font-semibold block mt-0.5 truncate ${
             rabiesDaysUntil !== null && rabiesDaysUntil > 30 ? 'text-emerald-600' : 'text-rose-600'
           }`}>
             {rabiesDaysUntil !== null && rabiesDaysUntil > 0 ? '✓ Szczepienie OK' : 'Zaszczep pupila'}

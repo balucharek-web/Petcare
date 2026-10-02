@@ -47,21 +47,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             >
               {/* Active pill background effect */}
               <div 
-                className={`relative p-1 sm:p-1.5 px-2 sm:px-3 rounded-2xl transition-all duration-200 ${
+                className={`relative p-1 min-[360px]:p-1.5 px-1.5 min-[360px]:px-2.5 sm:px-3 rounded-2xl transition-all duration-200 ${
                   isActive 
                     ? 'bg-teal-600 text-white shadow-sm -translate-y-0.5' 
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                <Icon className={`w-4.5 h-4.5 sm:w-5 sm:h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[2]'}`} />
+                <Icon className={`w-4 h-4 min-[360px]:w-4.5 min-[360px]:h-4.5 sm:w-5 sm:h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[2]'}`} />
                 {!!tab.badge && tab.badge > 0 && !isActive && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 bg-teal-500 text-white rounded-full text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4 sm:w-4.5 sm:h-4.5 bg-teal-500 text-white rounded-full text-[8px] min-[360px]:text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center">
                     {tab.badge}
                   </span>
                 )}
               </div>
               <span
-                className={`text-[10px] sm:text-[11px] leading-tight transition-colors truncate w-full text-center px-0.5 ${
+                className={`text-[9px] min-[360px]:text-[10px] sm:text-[11px] leading-tight transition-colors truncate w-full text-center px-0.5 ${
                   isActive ? 'font-extrabold text-teal-700 dark:text-teal-400' : 'font-semibold text-slate-600 dark:text-slate-400'
                 }`}
               >

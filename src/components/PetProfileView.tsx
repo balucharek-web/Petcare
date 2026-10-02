@@ -1480,57 +1480,57 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </div>
 
             {/* Quick Metrics Badges */}
-            <div className="grid grid-cols-3 gap-2 mt-4">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-4">
               <button
                 type="button"
                 onClick={onOpenAgeCalculator}
-                className="bg-slate-50 hover:bg-teal-50/70 p-2.5 rounded-2xl border border-slate-100 hover:border-teal-200 text-center transition cursor-pointer active:scale-95 group"
+                className="bg-slate-50 hover:bg-teal-50/70 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 hover:border-teal-200 text-center transition cursor-pointer active:scale-95 group"
                 title="Kliknij, aby otworzyć kalkulator wieku i etapy życia pupila"
               >
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 group-hover:text-teal-700 block">Wiek</span>
-                  <Sparkles className="w-2.5 h-2.5 text-teal-600 opacity-60 group-hover:opacity-100" />
+                  <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 group-hover:text-teal-700 block truncate">Wiek</span>
+                  <Sparkles className="w-2.5 h-2.5 text-teal-600 opacity-60 group-hover:opacity-100 shrink-0" />
                 </div>
-                <span className="text-xs sm:text-sm font-bold text-slate-800 truncate block">
+                <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-slate-800 truncate block">
                   {calculateAge(pet.birthDate)}
                 </span>
                 {quickHumanAge && (
-                  <span className="text-[10px] font-bold text-teal-700 block truncate mt-0.5">
+                  <span className="text-[9px] min-[360px]:text-[10px] font-bold text-teal-700 block truncate mt-0.5">
                     {quickHumanAge.lifeStage.stageName.split(' ')[0]}
                   </span>
                 )}
               </button>
-              <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Waga</span>
-                <span className="text-xs sm:text-sm font-bold text-teal-700 truncate block">
+              <div className="bg-slate-50 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 text-center">
+                <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 block truncate">Waga</span>
+                <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-teal-700 truncate block">
                   {pet.weightKg} kg
                 </span>
-                <span className="text-[10px] font-bold text-slate-400 block truncate mt-0.5">
+                <span className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-400 block truncate mt-0.5">
                   {pet.species === 'dog' ? (pet.weightKg <= 10 ? 'Rasa mała' : pet.weightKg <= 25 ? 'Rasa średnia' : pet.weightKg <= 45 ? 'Rasa duża' : 'Rasa olbrzymia') : 'Kot'}
                 </span>
               </div>
-              <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Kastracja</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-800 truncate block">
+              <div className="bg-slate-50 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 text-center">
+                <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 block truncate">Kastracja</span>
+                <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-slate-800 truncate block">
                   {pet.isNeutered ? 'Tak' : 'Nie'}
                 </span>
-                <span className="text-[10px] font-bold text-slate-400 block truncate mt-0.5">
+                <span className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-400 block truncate mt-0.5">
                   {pet.gender === 'male' ? 'Samiec' : 'Samica'}
                 </span>
               </div>
             </div>
 
             {/* Quick Health Shortcuts: Age & 24h Emergency Clinics */}
-            <div className="grid grid-cols-2 gap-2 mt-2.5">
+            <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-2 mt-2.5">
               {onOpenAgeCalculator && (
                 <button
                   type="button"
                   onClick={onOpenAgeCalculator}
-                  className="p-2.5 rounded-2xl bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 border border-teal-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 border border-teal-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
                   title="Kliknij, aby otworzyć szczegóły urodzin i kalkulator wieku pupila"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block">Urodziny pupila</span>
+                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block truncate">Urodziny pupila</span>
                     <span className="text-xs font-bold text-teal-950 truncate block">
                       {pet.birthDate ? formatBirthday(pet.birthDate) : 'Ustaw datę'}
                     </span>
@@ -1543,10 +1543,10 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 <button
                   type="button"
                   onClick={onOpenEmergencyVetFinder}
-                  className="p-2.5 rounded-2xl bg-rose-50/70 hover:bg-rose-100/70 text-rose-900 border border-rose-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                  className="p-2 min-[360px]:p-2.5 rounded-2xl bg-rose-50/70 hover:bg-rose-100/70 text-rose-900 border border-rose-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-rose-700 block">Ostry dyżur 24h</span>
+                    <span className="text-[9px] uppercase font-extrabold text-rose-700 block truncate">Ostry dyżur 24h</span>
                     <span className="text-xs font-bold text-rose-950 truncate block">
                       Kliniki w pobliżu
                     </span>
