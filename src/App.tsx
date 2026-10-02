@@ -546,7 +546,7 @@ export default function App() {
         />
 
         {/* Main Body */}
-        <main className="flex-1 p-4 overflow-y-auto">
+        <main className="flex-1 p-4 overflow-y-auto pb-28">
           {currentTab === 'profile' && (
             <PetProfileView
               pet={activePet}

@@ -11,6 +11,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 import { storage, subscribeToStorageChanges } from './storage';
 import { Capacitor } from '@capacitor/core';
 import { fetchNativeDriveToken } from './nativeGoogleAuth';
+import { tryGisOAuthToken } from './gisAuth';
 
 // Initialize Firebase App
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -124,6 +125,34 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
+    const errorCode = error?.code || '';
+    const errorMsg = error?.message || '';
+
+    if (errorCode === 'auth/unauthorized-domain' || errorMsg.includes('unauthorized-domain')) {
+      console.warn('Firebase auth/unauthorized-domain w googleDriveSync. Próba logowania przez GIS...');
+      try {
+        const gisResult = await tryGisOAuthToken();
+        if (gisResult && gisResult.accessToken) {
+          cachedAccessToken = gisResult.accessToken;
+          const mockUser: any = {
+            email: gisResult.email,
+            displayName: gisResult.name,
+            photoURL: gisResult.photoUrl,
+            uid: 'gis_' + gisResult.email,
+          };
+          updateSyncMetadata({
+            userEmail: gisResult.email,
+            userName: gisResult.name,
+            userPhoto: gisResult.photoUrl,
+            lastSyncStatus: 'idle',
+          });
+          return { user: mockUser, accessToken: gisResult.accessToken };
+        }
+      } catch (gisErr) {
+        console.warn('Błąd fallbacku GIS w googleDriveSync:', gisErr);
+      }
+    }
+
     console.error('Błąd logowania Google:', error);
     throw error;
   } finally {

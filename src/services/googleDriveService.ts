@@ -8,6 +8,7 @@ import {
   signOut 
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { tryGisOAuthToken } from './gisAuth';
 
 // Initialize Firebase App instance
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -64,6 +65,28 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     cachedAccessToken = credential.accessToken;
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
+    const errorCode = error?.code || '';
+    const errorMsg = error?.message || '';
+
+    if (errorCode === 'auth/unauthorized-domain' || errorMsg.includes('unauthorized-domain')) {
+      console.warn('Firebase auth/unauthorized-domain w googleDriveService. Próba GIS...');
+      try {
+        const gisResult = await tryGisOAuthToken();
+        if (gisResult && gisResult.accessToken) {
+          cachedAccessToken = gisResult.accessToken;
+          const mockUser: any = {
+            email: gisResult.email,
+            displayName: gisResult.name,
+            photoURL: gisResult.photoUrl,
+            uid: 'gis_' + gisResult.email,
+          };
+          return { user: mockUser, accessToken: gisResult.accessToken };
+        }
+      } catch (gisErr) {
+        console.warn('GIS fallback w googleDriveService nie powiódł się:', gisErr);
+      }
+    }
+
     console.error('Google Sign In Error:', error);
     throw error;
   } finally {

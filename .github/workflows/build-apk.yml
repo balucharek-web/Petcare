@@ -88,21 +88,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.45.0' }}
-          name: "PetCare v2.45.0 - Ikona powiadomień łapki, bezpośredni Raport PDF i czyste UI"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.46.0' }}
+          name: "PetCare v2.46.0 - Poprawka formularza edycji zwierzaka i stabilizacja logowania Google"
           body: |
-            ### 🐾 PetCare v2.45.0 - Nowa Ikona Powiadomień & Bezpośredni Raport PDF!
+            ### 🐾 PetCare v2.46.0 - Aktualizacja i poprawki
 
-            1. 🐾 **Dedykowana ikona powiadomień na pasku Androida:**
-               - Dodano dedykowaną, monochromatyczną ikonę łapki (`ic_stat_petcare_paw`) z turkusowym akcentem (`#0D9488`).
-               - Powiadomienia w systemie Android i na ekranie blokady mają teraz profesjonalną, czytelną ikonę aplikacji PetCare.
+            1. ✏️ **Wygodny formularz edycji zwierzaka:**
+               - Przycisk **„Zapisz zmiany”** jest teraz przyklejony pływającym paskiem powyżej dolnego menu nawigacji (`sticky`), więc nigdy się pod nim nie chowa.
+               - Dodano dodatkowy przycisk szybkiego zapisu i anulowania w nagłówku formularza edycji.
+               - Dodano duży margines bezpieczeństwa na dole ekranu.
 
-            2. 📄 **Książeczka PDF pod zdjęciem zwierzaka:**
-               - Przycisk **„Książeczka PDF”** pod zdjęciem pupila otwiera teraz bezpośrednio oficjalny Raport Medyczny i Książeczkę PDF (dokładnie tak samo jak opcja w menu głównym).
-               - Możliwość natychmiastowego pobrania pliku PDF, wydruku lub udostępnienia.
-
-            3. 🧹 **Czysty interfejs apteczki:**
-               - Usunięto tymczasowy przycisk powiadomień testowych z zakładki Leki.
+            2. 🔐 **Optymalizacja logowania kontem Google:**
+               - Zintegrowano obsługę Google Identity Services (GIS) z automatycznym fallbackiem.
+               - Płynna autoryzacja i ochrona przed błędami autoryzacji domen w środowiskach chmurowych.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

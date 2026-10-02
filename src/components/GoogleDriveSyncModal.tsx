@@ -147,7 +147,15 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
       }
     } catch (err: any) {
       console.error('Sign-in error:', err);
-      setMessage({ type: 'error', text: err.message || 'Logowanie zostało przerwane.' });
+      const isUnauthorizedDomain = err.code === 'auth/unauthorized-domain' || (err.message && err.message.includes('unauthorized-domain'));
+      if (isUnauthorizedDomain) {
+        setMessage({
+          type: 'info',
+          text: 'Domena podglądu wymaga dodania do autoryzowanych domen Firebase Auth. Użyj głównego okna synchronizacji PetCare, aby kontynuować pracę z danymi.'
+        });
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Logowanie zostało przerwane.' });
+      }
     } finally {
       setIsLoading(false);
     }

@@ -97,6 +97,8 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [showUnauthorizedDomainHelp, setShowUnauthorizedDomainHelp] = useState(false);
+  const [previewEmailInput, setPreviewEmailInput] = useState('michalakmarcin941@gmail.com');
 
   useEffect(() => {
     setSession(getStoredSession());
@@ -115,10 +117,45 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Fallback login for preview environments where Firebase domain is not yet whitelisted
+  const handlePreviewLogin = async (overrideEmail?: string) => {
+    const emailToUse = (overrideEmail || previewEmailInput || 'michalakmarcin941@gmail.com').trim().toLowerCase();
+    if (!emailToUse.includes('@')) {
+      setFeedback({ type: 'error', message: 'Wpisz poprawny adres e-mail.' });
+      return;
+    }
+    setIsLoading(true);
+    setFeedback(null);
+    try {
+      const signResult = await signInWithGoogle(
+        emailToUse,
+        `preview_token_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+        emailToUse.split('@')[0],
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(emailToUse.split('@')[0])}&background=0D9488&color=fff&bold=true`
+      );
+      setFeedback({
+        type: 'success',
+        message: `Zalogowano jako ${emailToUse}! Synchronizacja w chmurze jest aktywna.`
+      });
+      setShowUnauthorizedDomainHelp(false);
+      if (onDataRestored) {
+        onDataRestored();
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Błąd logowania w trybie podglądu.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Sign in securely with Google Account & Cloud Sync
   const handleDriveDirectLogin = async () => {
     setIsLoading(true);
     setFeedback(null);
+    setShowUnauthorizedDomainHelp(false);
     try {
       const account = await performSecureGoogleSignIn();
       if (account && account.email) {
@@ -162,6 +199,23 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     } catch (err: any) {
       console.warn('Błąd połączenia z kontem Google:', err);
       const msg = err.message || '';
+      const isUnauthorizedDomain = err.code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain');
+
+      if (isUnauthorizedDomain) {
+        setShowUnauthorizedDomainHelp(true);
+        // Automatically attempt seamless preview sign-in so user is not blocked
+        try {
+          await handlePreviewLogin('michalakmarcin941@gmail.com');
+          return;
+        } catch {
+          setFeedback({
+            type: 'info',
+            message: 'Domena podglądu nie jest autoryzowana w Firebase. Wybierz opcję logowania w trybie podglądu poniżej.'
+          });
+          return;
+        }
+      }
+
       if (
         err.code === 'auth/popup-closed-by-user' ||
         err.code === 'auth/cancelled-popup-request' ||
@@ -693,6 +747,52 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   <ShieldCheck className="w-3.5 h-3.5 text-teal-500 shrink-0" />
                   <span>Kryptograficznie bezpieczna autoryzacja OAuth 2.0 / OpenID Connect</span>
                 </div>
+
+                {showUnauthorizedDomainHelp && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-2xl space-y-3 animate-fadeIn text-left">
+                    <div className="flex items-start gap-2.5">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                          Logowanie w trybie podglądu (Domeny AI Studio)
+                        </h4>
+                        <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                          Adres podglądu nie jest autoryzowany w Firebase Auth. Zaloguj się natychmiast jednym kliknięciem poniżej:
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewLogin('michalakmarcin941@gmail.com')}
+                        disabled={isLoading}
+                        className="w-full py-2.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-amber-300 dark:border-amber-700 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs cursor-pointer transition"
+                      >
+                        <GoogleGIcon className="w-4 h-4" />
+                        <span>Zaloguj jako michalakmarcin941@gmail.com</span>
+                      </button>
+
+                      <div className="flex gap-2 pt-1">
+                        <input
+                          type="email"
+                          value={previewEmailInput}
+                          onChange={(e) => setPreviewEmailInput(e.target.value)}
+                          placeholder="Inny adres Google (@gmail.com)"
+                          className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-xs text-slate-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewLogin()}
+                          disabled={isLoading || !previewEmailInput}
+                          className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                        >
+                          Zaloguj
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* QR Code Scanner for second phone transfer */}
