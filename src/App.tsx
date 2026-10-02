@@ -44,7 +44,7 @@ import {
   CloudSession 
 } from './services/cloudSyncService';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
-import { syncAllScheduledNotifications } from './services/notificationService';
+import { syncAllScheduledNotifications, requestNotificationPermission } from './services/notificationService';
 import { QRTransferModal } from './components/QRTransferModal';
 
 // New Feature Modals
@@ -179,9 +179,13 @@ export default function App() {
 
   // Initialize daily background synchronization and push notifications
   useEffect(() => {
-    // 1. Perform background auto-sync check on app startup
+    // 1. Perform background auto-sync check on app startup and request notification permission
     checkDailyAutoSync().catch(() => {});
-    syncAllScheduledNotifications().catch(() => {});
+    requestNotificationPermission().then(() => {
+      syncAllScheduledNotifications().catch(() => {});
+    }).catch(() => {
+      syncAllScheduledNotifications().catch(() => {});
+    });
 
     // 2. Periodic check every 1 hour and on app visibility change
     const interval = setInterval(() => {

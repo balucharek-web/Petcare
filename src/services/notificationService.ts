@@ -111,10 +111,10 @@ export async function requestNotificationPermission(): Promise<boolean> {
  * Sends an immediate push notification (e.g. test or important event)
  */
 export async function sendInstantNotification(title: string, body: string, idOffset = 0): Promise<boolean> {
-  const isGranted = await checkNotificationPermission();
+  let isGranted = await checkNotificationPermission();
   if (!isGranted) {
-    const requested = await requestNotificationPermission();
-    if (!requested) return false;
+    isGranted = await requestNotificationPermission();
+    if (!isGranted) return false;
   }
 
   const notifId = Math.floor(100000 + Math.random() * 899999) + idOffset;
@@ -129,7 +129,7 @@ export async function sendInstantNotification(title: string, body: string, idOff
             title,
             body,
             channelId: 'petcare_alerts',
-            schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
+            schedule: { at: new Date(Date.now() + 200), allowWhileIdle: true },
           },
         ],
       });
@@ -164,8 +164,14 @@ export async function syncAllScheduledNotifications(): Promise<number> {
   const settings = getNotificationSettings();
   if (!settings.enabled) return 0;
 
-  const isGranted = await checkNotificationPermission();
-  if (!isGranted) return 0;
+  let isGranted = await checkNotificationPermission();
+  if (!isGranted) {
+    isGranted = await requestNotificationPermission();
+    if (!isGranted) {
+      console.warn('[Notifications] Brak uprawnień do powiadomień.');
+      return 0;
+    }
+  }
 
   if (!Capacitor.isNativePlatform()) {
     return 0;

@@ -17,11 +17,17 @@ import {
   ChevronDown, 
   ChevronUp, 
   TrendingUp, 
-  AlertTriangle 
+  AlertTriangle,
+  Bell
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Pet, Medication, DoseScheduleItem, MedicationForm } from '../types/pet';
 import { storage } from '../services/storage';
+import { 
+  sendInstantNotification, 
+  requestNotificationPermission, 
+  syncAllScheduledNotifications 
+} from '../services/notificationService';
 import { 
   createGoogleCalendarUrl, 
   downloadICalendarFile, 
@@ -194,9 +200,41 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
   const [editingMed, setEditingMed] = useState<Medication | null>(null);
   const [medicationToDelete, setMedicationToDelete] = useState<Medication | null>(null);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-
   const todayStr = new Date().toISOString().slice(0, 10);
+
   const [doseLogs, setDoseLogs] = useState(() => storage.getDoseLogs(pet.id, todayStr));
+  const [testNotifMsg, setTestNotifMsg] = useState<string | null>(null);
+  const [isSendingTestNotif, setIsSendingTestNotif] = useState(false);
+
+  const handleSendTestNotification = async () => {
+    try {
+      setIsSendingTestNotif(true);
+      setTestNotifMsg('Wysyłanie powiadomienia na telefon...');
+      
+      const granted = await requestNotificationPermission();
+      const med = activeMeds[0];
+      const medName = med ? med.name : 'Twój lek';
+      const medDose = med?.timesOfDay?.[0]?.amount || med?.dosage || '1/2 tabletki';
+
+      const success = await sendInstantNotification(
+        `💊 PetCare: Przypomnienie o leku dla: ${pet.name}`,
+        `${medName} • Dawka: ${medDose} (Powiadomienia na telefonie działają prawidłowo!)`
+      );
+
+      await syncAllScheduledNotifications();
+
+      if (success || granted) {
+        setTestNotifMsg('✅ Wysłano testowe powiadomienie! Sprawdź górny pasek powiadomień w telefonie.');
+      } else {
+        setTestNotifMsg('⚠️ Zezwól aplikacji na powiadomienia w ustawieniach systemu Android.');
+      }
+    } catch {
+      setTestNotifMsg('⚠️ Błąd wysyłania powiadomienia. Upewnij się, że powiadomienia są włączone.');
+    } finally {
+      setIsSendingTestNotif(false);
+      setTimeout(() => setTestNotifMsg(null), 6000);
+    }
+  };
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -904,15 +942,31 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
 
       {/* Active Medications List */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
           <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
             <span>Aktywne kuracje i leki</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold">
               {activeMeds.length}
             </span>
           </h3>
-          <span className="text-xs text-slate-400">Synchronizuj z kalendarzem</span>
+
+          <button
+            type="button"
+            onClick={handleSendTestNotification}
+            disabled={isSendingTestNotif}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold border border-teal-200 transition active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Kliknij, aby wysłać natychmiastowe powiadomienie testowe na telefon i sprawdzić działanie"
+          >
+            <Bell className="w-3.5 h-3.5 text-teal-600" />
+            <span>Przetestuj powiadomienie na telefonie</span>
+          </button>
         </div>
+
+        {testNotifMsg && (
+          <div className="p-3 rounded-2xl bg-teal-50 border border-teal-200 text-teal-900 text-xs font-bold animate-fadeIn flex items-center gap-2 shadow-xs">
+            <span>{testNotifMsg}</span>
+          </div>
+        )}
 
         {activeMeds.length === 0 ? (
           <div className="bg-white rounded-3xl p-8 text-center border border-slate-200 text-slate-500">

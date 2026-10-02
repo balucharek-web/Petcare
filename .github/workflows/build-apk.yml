@@ -88,27 +88,20 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.43.0' }}
-          name: "PetCare v2.43.0 - Poprawki PDF, Widoczności Tekstu, Powiadomień i Skanera AI"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.44.0' }}
+          name: "PetCare v2.44.0 - Mobilna Karta Weterynaryjna & Poprawka Powiadomień"
           body: |
-            ### 🐾 PetCare v2.43.0 - Nowe Wydanie z Pakietem Kluczowych Poprawek!
+            ### 🐾 PetCare v2.44.0 - Mobilna Karta Pupila & Niezawodne Powiadomienia!
 
-            1. 📄 **Książeczka Zdrowia w formacie PDF (pełna responsywność):**
-               - Naprawiono skalowanie na ekranach telefonów – tabele posiadają teraz płynne przewijanie i nie rozpychają widoku.
-               - Dodano bezpośredni przycisk **„Pobierz PDF”** (generujący gotowy plik `.pdf` do pamięci telefonu).
+            1. 📱 **Karta dla Weterynarza dopasowana do ekranu telefonu:**
+               - Zastąpiono uciążliwą, uciętą tabelę nowoczesnymi, czytelnymi kartami mobilnymi (100% szerokości ekranu, zero przewijania poziomego).
+               - Dodano przełącznik: `Widok mobilny (Karty)` oraz `Arkusz A4 (Podgląd druku)`.
+               - Przycisk **„Pobierz PDF”** natychmiast generuje oficjalny, pełny dokument A4 ze wszystkimi danymi, tabelami i miejscem na pieczęć weterynarza.
 
-            2. ✍️ **100% Widoczność Wpisywanego Tekstu:**
-               - Naprawiono problem znikającego/białego tekstu w polach formularzy (leki, wizyty, badania, edycja profilu pupila) przy włączonym trybie ciemnym telefonu.
-
-            3. 🔔 **Niezawodne Powiadomienia o Lekach:**
-               - Naprawiono kanał powiadomień Androida (wysoki priorytet Heads-Up).
-               - Harmonogram leków planuje teraz przypomnienia dokładnie na godziny ustalone dla danego leku (np. 08:00, 20:00).
-               - Dodano flagę `allowWhileIdle: true` (działanie w trybie oszczędzania energii).
-               - Automatyczna synchronizacja powiadomień po każdej zmianie w apteczce i wizytach.
-
-            4. 🔬 **Skaner AI i OCR dla Kart Informacyjnych Wizyt:**
-               - Dodano pełne rozpoznawanie polskich kart leczenia (np. leki tarczycowe jak **Forthyron 800 mg**, dawkowanie 2x 1/2 tabletki).
-               - Poprawiono komunikację z backendem AI oraz automatyczne uzupełnianie zaleceń i apteczki.
+            2. 🔔 **Natychmiastowe testowanie i automatyczne uprawnienia powiadomień:**
+               - Dodano przycisk **„Przetestuj powiadomienie na telefonie”** w zakładce leków pupila – pozwala od razu zweryfikować działanie powiadomień w systemie Android.
+               - Automatyczne żądanie uprawnień do powiadomień przy otwarciu aplikacji (obsługa Android 13/14 `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, `USE_EXACT_ALARM`).
+               - Pełne wsparcie dla wybudzania `WAKE_LOCK` i działania w trybie uśpienia baterii `allowWhileIdle`.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
