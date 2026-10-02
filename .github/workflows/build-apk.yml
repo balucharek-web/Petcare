@@ -88,10 +88,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.46.1' }}
-          name: "PetCare v2.46.1 - Inteligentny skaner kart wizyt, pisma ręcznego i zaleceń lekarskich"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.46.2' }}
+          name: "PetCare v2.46.2 - Inteligentny skaner kart wizyt, pisma ręcznego i zaleceń lekarskich"
           body: |
-            ### 🐾 PetCare v2.46.1 - Zaawansowany Skaner Wizyt i Recept
+            ### 🐾 PetCare v2.46.2 - Zaawansowany Skaner Wizyt i Recept
 
             1. 🔍 **Inteligentny Skaner AI bez zniekształceń:**
                - Usunięto destrukcyjne czarno-białe filtry progowe, które niszczyły zdjęcia robione w pokojowym/słabszym świetle.
@@ -100,8 +100,8 @@ jobs:
                - Automatyczne planowanie badań kontrolnych w kalendarzu (np. kontrola hormonów tarczycy za 4-6 tyg.).
                - Bezpośredni import leków do apteczki i harmonogramu powiadomień.
 
-            2. 🛡️ **Podpis cyfrowy APK (v1, v2, v3):**
-               - Włączono pełny schemat podpisywania aplikacji Android v1 + v2 + v3 dla maksymalnej zgodności z Google Play Protect.
+            2. 🛡️ **Naprawa kompilacji Gradle:**
+               - Przywrócono w 100% poprawną, standardową konfigurację podpisu APK dla Android Gradle Plugin 8+.
                - Zaktualizowano adres aktywnego serwera synchronizacji w aplikacji.
           files: |
             dist-packages/PetCare.apk
