@@ -114,6 +114,10 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   const [isSamplePhotoPickerOpen, setIsSamplePhotoPickerOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAdjustingPhoto, setIsAdjustingPhoto] = useState(false);
+  const [adjustingCroppedUrl, setAdjustingCroppedUrl] = useState<string | null>(null);
+  const [adjustingOriginalUrl, setAdjustingOriginalUrl] = useState<string | null>(null);
+  const [editCroppedUrl, setEditCroppedUrl] = useState<string | null>(null);
+  const [editOriginalUrl, setEditOriginalUrl] = useState<string | null>(null);
 
   // Drag and drop / tile reordering state
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -315,13 +319,19 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalPhoto = editCroppedUrl || editForm.photoUrl || pet.photoUrl;
+    const finalOriginal = editOriginalUrl || editForm.originalPhotoUrl || pet.originalPhotoUrl || pet.photoUrl;
     const updated = {
       ...pet,
       ...editForm,
+      photoUrl: finalPhoto,
+      originalPhotoUrl: finalOriginal,
       weightKg: Number(editForm.weightKg) || pet.weightKg,
     };
     onUpdatePet(updated as Pet);
     setIsEditing(false);
+    setEditCroppedUrl(null);
+    setEditOriginalUrl(null);
   };
 
   const handleAddWeight = (e: React.FormEvent) => {
@@ -382,12 +392,12 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
     reader.onload = (ev) => {
       const url = ev.target?.result as string;
       if (url) {
-        onUpdatePet({
-          ...pet,
-          photoUrl: url,
-        });
+        setAdjustingOriginalUrl(url);
+        setAdjustingCroppedUrl(url);
         if (isEditing) {
-          setEditForm(prev => ({ ...prev, photoUrl: url }));
+          setEditForm(prev => ({ ...prev, photoUrl: url, originalPhotoUrl: url }));
+          setEditOriginalUrl(url);
+          setEditCroppedUrl(url);
         }
         setIsAdjustingPhoto(true);
       }
@@ -477,9 +487,9 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </span>
             </div>
             <InlinePhotoCropper
-              photoUrl={editForm.photoUrl || pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80'}
+              photoUrl={editOriginalUrl || editForm.originalPhotoUrl || editForm.photoUrl || pet.originalPhotoUrl || pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80'}
               onPhotoCropped={(croppedUrl) => {
-                setEditForm(prev => ({ ...prev, photoUrl: croppedUrl }));
+                setEditCroppedUrl(croppedUrl);
               }}
               onOpenSampleGallery={() => setIsSamplePhotoPickerOpen(true)}
             />
@@ -691,6 +701,18 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           onConfirmDelete={(id) => {
             onDeletePet?.(id);
             setIsEditing(false);
+          }}
+        />
+
+        <SamplePhotoPickerModal
+          isOpen={isSamplePhotoPickerOpen}
+          onClose={() => setIsSamplePhotoPickerOpen(false)}
+          initialSpecies={editForm.species || pet.species}
+          currentPhotoUrl={editForm.photoUrl || pet.photoUrl}
+          onSelectPhoto={(url) => {
+            setEditForm(prev => ({ ...prev, photoUrl: url, originalPhotoUrl: url }));
+            setEditOriginalUrl(url);
+            setEditCroppedUrl(url);
           }}
         />
       </div>
@@ -1322,7 +1344,20 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setIsAdjustingPhoto(false)}
+                onClick={() => {
+                  if (adjustingCroppedUrl) {
+                    onUpdatePet({
+                      ...pet,
+                      photoUrl: adjustingCroppedUrl,
+                      originalPhotoUrl: adjustingOriginalUrl || pet.originalPhotoUrl || pet.photoUrl,
+                    });
+                    setToastMessage('Zapisano nowy kadr pupila!');
+                    setTimeout(() => setToastMessage(null), 3000);
+                  }
+                  setIsAdjustingPhoto(false);
+                  setAdjustingCroppedUrl(null);
+                  setAdjustingOriginalUrl(null);
+                }}
                 className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
               >
                 <Check className="w-3.5 h-3.5" />
@@ -1330,9 +1365,9 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </button>
             </div>
             <InlinePhotoCropper
-              photoUrl={pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80'}
+              photoUrl={adjustingOriginalUrl || pet.originalPhotoUrl || pet.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80'}
               onPhotoCropped={(croppedUrl) => {
-                onUpdatePet({ ...pet, photoUrl: croppedUrl });
+                setAdjustingCroppedUrl(croppedUrl);
               }}
               onOpenSampleGallery={() => setIsSamplePhotoPickerOpen(true)}
             />
@@ -1713,10 +1748,9 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
         initialSpecies={pet.species}
         currentPhotoUrl={pet.photoUrl}
         onSelectPhoto={(url) => {
-          onUpdatePet({
-            ...pet,
-            photoUrl: url,
-          });
+          setAdjustingOriginalUrl(url);
+          setAdjustingCroppedUrl(url);
+          setIsAdjustingPhoto(true);
         }}
       />
 

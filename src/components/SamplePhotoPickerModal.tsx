@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { SAMPLE_PET_PHOTOS, SamplePetPhoto } from '../data/samplePetPhotos';
+import { createPortal } from 'react-dom';
+import { SAMPLE_PET_PHOTOS } from '../data/samplePetPhotos';
 import { Species } from '../types/pet';
-import { Sparkles, Check, X, Filter } from 'lucide-react';
+import { Sparkles, Check, X } from 'lucide-react';
 
 interface SamplePhotoPickerModalProps {
   isOpen: boolean;
@@ -37,6 +38,12 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
     ? SAMPLE_PET_PHOTOS
     : SAMPLE_PET_PHOTOS.filter((p) => p.species === selectedCategory);
 
+  const handlePhotoClick = (url: string) => {
+    setSelectedUrl(url);
+    onSelectPhoto(url);
+    onClose();
+  };
+
   const handleConfirm = () => {
     if (selectedUrl) {
       onSelectPhoto(selectedUrl);
@@ -44,34 +51,43 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col border border-slate-100 dark:border-slate-800">
+  const modalNode = (
+    <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center items-center bg-slate-950/80 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn">
+      {/* Click outside to close backdrop */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      {/* Modal Dialog Content */}
+      <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 max-h-[82vh] sm:max-h-[88vh] pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-10">
+        
+        {/* Mobile handle indicator */}
+        <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3 sm:hidden" />
+
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-teal-600 dark:text-teal-400">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
+              <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
                 Galeria przykładowych zdjęć
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Wybierz gotowe, piękne zdjęcie dla swojego pupila
+                Dotknij wybranego zdjęcia, aby od razu je ustawić
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Categories Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto py-2.5 scrollbar-none shrink-0">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat.key;
             return (
@@ -79,7 +95,7 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
                 key={cat.key}
                 type="button"
                 onClick={() => setSelectedCategory(cat.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? 'bg-teal-600 text-white shadow-sm shadow-teal-600/30'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -92,19 +108,19 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
           })}
         </div>
 
-        {/* Photo Grid */}
-        <div className="flex-1 overflow-y-auto pr-1">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {/* Photo Grid - fully scrollable */}
+        <div className="flex-1 overflow-y-auto pr-1 min-h-0 my-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
             {filteredPhotos.map((photo) => {
               const isSelected = selectedUrl === photo.url;
               return (
                 <div
                   key={photo.id}
-                  onClick={() => setSelectedUrl(photo.url)}
-                  className={`group relative rounded-2xl overflow-hidden aspect-square cursor-pointer transition-all border-2 ${
+                  onClick={() => handlePhotoClick(photo.url)}
+                  className={`group relative rounded-2xl overflow-hidden aspect-square cursor-pointer transition-all border-2 active:scale-95 ${
                     isSelected
-                      ? 'border-teal-500 ring-2 ring-teal-500/40 scale-[0.98]'
-                      : 'border-transparent hover:border-teal-300 hover:scale-[1.02]'
+                      ? 'border-teal-500 ring-2 ring-teal-500/40 shadow-md'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-teal-400'
                   }`}
                 >
                   <img
@@ -120,8 +136,8 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
                       </div>
                     </div>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 pt-4">
-                    <p className="text-[10px] font-medium text-white truncate text-center">
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1 pt-3">
+                    <p className="text-[10px] font-bold text-white truncate text-center">
                       {photo.title}
                     </p>
                   </div>
@@ -132,25 +148,27 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
         </div>
 
         {/* Bottom Actions */}
-        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
           >
-            Anuluj
+            Zamknij
           </button>
           <button
             type="button"
             disabled={!selectedUrl}
             onClick={handleConfirm}
-            className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-teal-600/20 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer"
           >
             <Check className="w-4 h-4" />
-            Wybierz to zdjęcie
+            <span>Zatwierdź wybór</span>
           </button>
         </div>
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };

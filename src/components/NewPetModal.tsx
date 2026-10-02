@@ -73,6 +73,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
       color: color.trim() || 'Nie określono',
       isNeutered,
       photoUrl: finalPhoto,
+      originalPhotoUrl: photoUrl,
       allergies: allergies.trim() || undefined,
       vetClinicName: vetClinicName.trim() || undefined,
       vetDoctorName: vetDoctorName.trim() || undefined,

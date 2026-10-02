@@ -23,6 +23,7 @@ export interface Pet {
   color: string;
   isNeutered: boolean;
   photoUrl: string;
+  originalPhotoUrl?: string;
   allergies?: string;
   bloodType?: string;
   specialNotes?: string;

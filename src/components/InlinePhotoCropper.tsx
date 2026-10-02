@@ -26,18 +26,18 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
   title,
   className = '',
 }) => {
-  // We keep an internal source image so that external cropped updates don't reset the source
+  // Keep original source image decoupled from crop exports
   const [sourceImage, setSourceImage] = useState<string>(photoUrl);
-  const lastExportedUrlRef = useRef<string>('');
   const lastPropUrlRef = useRef<string>(photoUrl);
+  const lastExportedUrlRef = useRef<string>('');
 
   const [scale, setScale] = useState(1);
   const [minScale, setMinScale] = useState(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
   const [isMaskCircle, setIsMaskCircle] = useState(true);
-  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 1, height: 1 });
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 300, height: 300 });
+  const [isImageReady, setIsImageReady] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,10 +49,10 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
   const exportTimerRef = useRef<any>(null);
 
   // Preview viewport size (responsive square frame)
-  const FRAME_SIZE = 170; // 170x170 px preview frame
+  const FRAME_SIZE = 180; // 180x180 px preview frame
   const OUTPUT_SIZE = 600; // 600x600 px high-quality exported avatar
 
-  // Check if incoming photoUrl is an external change (not our own export)
+  // Only update internal source if a truly new photo prop is passed from outside
   useEffect(() => {
     if (photoUrl && photoUrl !== lastExportedUrlRef.current && photoUrl !== lastPropUrlRef.current) {
       lastPropUrlRef.current = photoUrl;
@@ -62,8 +62,8 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
 
   // Export cropped canvas helper
   const exportCrop = useCallback(() => {
-    if (!imgElementRef.current || !isLoaded) return;
     const img = imgElementRef.current;
+    if (!img) return;
 
     try {
       const canvas = document.createElement('canvas');
@@ -83,8 +83,10 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
       ctx.rotate((rotation * Math.PI) / 180);
 
       const drawScale = scale * previewToOutputRatio;
-      const drawWidth = img.naturalWidth * drawScale;
-      const drawHeight = img.naturalHeight * drawScale;
+      const naturalW = img.naturalWidth || imageDimensions.width;
+      const naturalH = img.naturalHeight || imageDimensions.height;
+      const drawWidth = naturalW * drawScale;
+      const drawHeight = naturalH * drawScale;
 
       ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
       ctx.restore();
@@ -93,47 +95,40 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
       lastExportedUrlRef.current = croppedUrl;
       onPhotoCropped(croppedUrl);
     } catch {
-      // If cross-origin prevents canvas reading, notify raw source
+      // In case of remote cross-origin taint, return the source image URL
       onPhotoCropped(sourceImage);
     }
-  }, [pan, scale, rotation, onPhotoCropped, sourceImage, isLoaded]);
+  }, [pan, scale, rotation, onPhotoCropped, sourceImage, imageDimensions]);
 
-  // Schedule export helper
-  const scheduleExport = useCallback((delay = 200) => {
+  // Debounced export helper (never blocks or stutters UI drag)
+  const scheduleExport = useCallback((delay = 100) => {
     if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
     exportTimerRef.current = setTimeout(() => {
       exportCrop();
     }, delay);
   }, [exportCrop]);
 
-  // Load image when sourceImage changes
-  useEffect(() => {
-    setIsLoaded(false);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
-      imgElementRef.current = img;
+  const handleImageLoaded = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const w = img.naturalWidth || 300;
+    const h = img.naturalHeight || 300;
+    setImageDimensions({ width: w, height: h });
 
-      const effectiveW = (rotation % 180 === 0) ? img.naturalWidth : img.naturalHeight;
-      const effectiveH = (rotation % 180 === 0) ? img.naturalHeight : img.naturalWidth;
-      const initialCover = Math.max(FRAME_SIZE / effectiveW, FRAME_SIZE / effectiveH);
-      setMinScale(initialCover);
-      setScale(initialCover);
-      setPan({ x: 0, y: 0 });
-      setIsLoaded(true);
+    const effectiveW = (rotation % 180 === 0) ? w : h;
+    const effectiveH = (rotation % 180 === 0) ? h : w;
+    const initialCover = Math.max(FRAME_SIZE / effectiveW, FRAME_SIZE / effectiveH);
+    
+    setMinScale(initialCover);
+    setScale(initialCover);
+    setPan({ x: 0, y: 0 });
+    setIsImageReady(true);
 
-      setTimeout(() => {
-        exportCrop();
-      }, 60);
-    };
-    img.onerror = () => {
-      setIsLoaded(true);
-    };
-    img.src = sourceImage;
-  }, [sourceImage]);
+    setTimeout(() => {
+      exportCrop();
+    }, 60);
+  };
 
-  // Pointer event handlers with PointerCapture (fluid 120fps, never gets stuck)
+  // Fluid Pointer Dragging with PointerCapture
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     try {
@@ -183,7 +178,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
     if (activePointersRef.current.size === 0) {
       setIsDragging(false);
       initialPinchDistRef.current = null;
-      // Trigger canvas export now that dragging has ended
+      // Trigger canvas export now that dragging has completely ended
       scheduleExport(0);
     } else if (activePointersRef.current.size === 1) {
       const remaining = Array.from(activePointersRef.current.values())[0];
@@ -216,10 +211,10 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
 
   const handleReset = () => {
     setRotation(0);
-    if (imgElementRef.current) {
-      const initialCover = Math.max(FRAME_SIZE / imgElementRef.current.naturalWidth, FRAME_SIZE / imgElementRef.current.naturalHeight);
-      setScale(initialCover);
-    }
+    const effectiveW = (rotation % 180 === 0) ? imageDimensions.width : imageDimensions.height;
+    const effectiveH = (rotation % 180 === 0) ? imageDimensions.height : imageDimensions.width;
+    const initialCover = Math.max(FRAME_SIZE / effectiveW, FRAME_SIZE / effectiveH);
+    setScale(initialCover);
     setPan({ x: 0, y: 0 });
     setTimeout(() => scheduleExport(0), 50);
   };
@@ -271,23 +266,26 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
           }`}
           title="Przesuń palcem lub myszą, aby ustawić idealny kadr"
         >
-          {isLoaded && (
-            <img
-              src={sourceImage}
-              alt="Podgląd pupila"
-              draggable={false}
-              style={{
-                width: `${imageSize.width * scale}px`,
-                height: `${imageSize.height * scale}px`,
-                maxWidth: 'none',
-                maxHeight: 'none',
-                transform: `translate3d(${pan.x}px, ${pan.y}px, 0px) rotate(${rotation}deg)`,
-                transformOrigin: 'center center',
-                willChange: 'transform',
-              }}
-              className="absolute pointer-events-none select-none"
-            />
-          )}
+          {/* Always mounted image to avoid any flicker/blink */}
+          <img
+            ref={imgElementRef}
+            src={sourceImage}
+            alt="Podgląd pupila"
+            draggable={false}
+            crossOrigin="anonymous"
+            onLoad={handleImageLoaded}
+            style={{
+              width: `${imageDimensions.width * scale}px`,
+              height: `${imageDimensions.height * scale}px`,
+              maxWidth: 'none',
+              maxHeight: 'none',
+              transform: `translate3d(${pan.x}px, ${pan.y}px, 0px) rotate(${rotation}deg)`,
+              transformOrigin: 'center center',
+              willChange: 'transform',
+              opacity: isImageReady ? 1 : 0,
+            }}
+            className="absolute pointer-events-none select-none transition-opacity duration-150"
+          />
 
           {/* Interactive Rule of Thirds Grid overlay */}
           <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 opacity-25">
