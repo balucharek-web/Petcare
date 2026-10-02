@@ -18,11 +18,24 @@ async function startServer() {
 
   app.use(express.json({ limit: '25mb' }));
 
-  // HTTP Security Headers
+  // Disable fingerprinting
+  app.disable('x-powered-by');
+
+  // Enterprise HTTP Security Headers
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self), microphone=()');
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    }
+    // Content Security Policy permitting Vite, Google APIs, and OpenStreetMap
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:; frame-ancestors 'self';"
+    );
     next();
   });
 
@@ -80,13 +93,16 @@ async function startServer() {
     message: 'Przekroczono limit zapytań skanera AI. Odczekaj chwilę.',
   });
 
-  // Persistent Cloud Sync Storage
+  // Persistent Cloud Sync Storage with Atomic Writes & Backup Protection
   const DATA_FILE = path.resolve(__dirname, 'data', 'cloud_sync_db.json');
+  const BACKUP_FILE = path.resolve(__dirname, 'data', 'cloud_sync_db.json.bak');
+  const TMP_FILE = path.resolve(__dirname, 'data', 'cloud_sync_db.json.tmp');
 
   interface UserSyncRecord {
     email: string;
     passwordHash?: string;
     salt?: string;
+    hashAlgorithm?: 'pbkdf2-sha512' | 'hmac-sha256';
     name: string;
     avatar?: string;
     provider?: 'google' | 'email';
@@ -94,6 +110,7 @@ async function startServer() {
     petCount: number;
     payload?: any;
     token: string;
+    tokenCreatedAt?: number;
     pairCode?: {
       code: string;
       expiresAt: number;
@@ -112,26 +129,108 @@ async function startServer() {
         return JSON.parse(raw);
       }
     } catch (err) {
-      console.error('Error reading cloud_sync_db.json:', err);
+      console.error('Błąd odczytu cloud_sync_db.json, próba przywrócenia z kopii zapasowej:', err);
+      try {
+        if (fs.existsSync(BACKUP_FILE)) {
+          const bak = fs.readFileSync(BACKUP_FILE, 'utf-8');
+          const parsed = JSON.parse(bak);
+          fs.writeFileSync(DATA_FILE, bak, 'utf-8');
+          console.log('Pomyślnie przywrócono bazę danych z cloud_sync_db.json.bak');
+          return parsed;
+        }
+      } catch (bakErr) {
+        console.error('Przywracanie z kopii zapasowej nie powiodło się:', bakErr);
+      }
     }
     return { users: {} };
   }
 
-  function writeSyncDB(db: SyncDB) {
-    try {
-      const dir = path.dirname(DATA_FILE);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+  // Mutex Queue for Atomic DB writes (prevents race conditions and corruption)
+  let isWritingDb = false;
+  const dbWriteQueue: Array<() => void> = [];
+
+  function writeSyncDB(db: SyncDB): Promise<void> {
+    return new Promise((resolve) => {
+      const executeWrite = () => {
+        isWritingDb = true;
+        try {
+          const dir = path.dirname(DATA_FILE);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          const content = JSON.stringify(db, null, 2);
+          // 1. Write to temporary file
+          fs.writeFileSync(TMP_FILE, content, 'utf-8');
+          // 2. Atomic rename (operating system level guarantee)
+          fs.renameSync(TMP_FILE, DATA_FILE);
+          // 3. Mirror to backup file
+          try {
+            fs.copyFileSync(DATA_FILE, BACKUP_FILE);
+          } catch {}
+        } catch (err) {
+          console.error('Błąd atomowego zapisu cloud_sync_db.json:', err);
+        } finally {
+          isWritingDb = false;
+          resolve();
+          if (dbWriteQueue.length > 0) {
+            const next = dbWriteQueue.shift();
+            if (next) next();
+          }
+        }
+      };
+
+      if (isWritingDb) {
+        dbWriteQueue.push(executeWrite);
+      } else {
+        executeWrite();
       }
-      fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf-8');
-    } catch (err) {
-      console.error('Error writing cloud_sync_db.json:', err);
-    }
+    });
   }
 
-  // Password helper
-  function hashPassword(password: string, salt: string): string {
-    return crypto.createHmac('sha256', salt).update(password).digest('hex');
+  // Enterprise PBKDF2 Password Hashing (100,000 iterations, SHA-512, 32-byte salt)
+  function hashPasswordPbkdf2(password: string, salt: string): string {
+    return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  }
+
+  // Timing-safe password verification with automatic legacy algorithm upgrade
+  function verifyPasswordSecurely(
+    password: string,
+    storedHash: string,
+    salt?: string,
+    algorithm?: string
+  ): { isValid: boolean; needsRehash: boolean } {
+    if (!storedHash) return { isValid: false, needsRehash: false };
+
+    // Standard A: PBKDF2-SHA-512 (128 hex characters = 64 bytes)
+    if (algorithm === 'pbkdf2-sha512' || storedHash.length === 128) {
+      const computed = hashPasswordPbkdf2(password, salt || '');
+      const bufA = Buffer.from(computed, 'hex');
+      const bufB = Buffer.from(storedHash, 'hex');
+      if (bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB)) {
+        return { isValid: true, needsRehash: false };
+      }
+      return { isValid: false, needsRehash: false };
+    }
+
+    // Standard B: Legacy HMAC-SHA256 with salt (64 hex characters)
+    if (salt && salt.length > 0) {
+      const legacyHash = crypto.createHmac('sha256', salt).update(password).digest('hex');
+      const bufA = Buffer.from(legacyHash, 'hex');
+      const bufB = Buffer.from(storedHash, 'hex');
+      if (bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB)) {
+        return { isValid: true, needsRehash: true }; // Upgraded on successful login!
+      }
+    }
+
+    // Standard C: Legacy unsalted HMAC-SHA256
+    const legacyUnsalted = crypto.createHmac('sha256', '').update(password).digest('hex');
+    const bufC = Buffer.from(legacyUnsalted, 'hex');
+    const bufStored = Buffer.from(storedHash, 'hex');
+    if (bufC.length === bufStored.length && crypto.timingSafeEqual(bufC, bufStored)) {
+      return { isValid: true, needsRehash: true };
+    }
+
+    return { isValid: false, needsRehash: false };
   }
 
   // Cryptographic token verification for Google OAuth 2.0 / OpenID Connect & Firebase Auth
@@ -301,6 +400,7 @@ async function startServer() {
             avatar: effectiveAvatar,
             provider: 'google',
             token: generatedToken,
+            tokenCreatedAt: Date.now(),
             lastSyncTime: null,
             petCount: 0,
             payload: {
@@ -316,11 +416,12 @@ async function startServer() {
           db.users[normalizedEmail] = user;
         } else {
           user.token = generatedToken;
+          user.tokenCreatedAt = Date.now();
           if (effectiveName) user.name = effectiveName;
           if (effectiveAvatar) user.avatar = effectiveAvatar;
           user.provider = 'google';
         }
-        writeSyncDB(db);
+        await writeSyncDB(db);
 
         return res.json({
           success: true,
@@ -352,17 +453,19 @@ async function startServer() {
           });
         }
 
-        const salt = crypto.randomBytes(16).toString('hex');
-        const passwordHash = hashPassword(password, salt);
+        const salt = crypto.randomBytes(32).toString('hex');
+        const passwordHash = hashPasswordPbkdf2(password, salt);
 
         user = {
           email: normalizedEmail,
           passwordHash,
           salt,
-          name: name || normalizedEmail.split('@')[0],
-          avatar: avatar || '',
+          hashAlgorithm: 'pbkdf2-sha512',
+          name: name ? String(name).slice(0, 100) : normalizedEmail.split('@')[0],
+          avatar: avatar ? String(avatar).slice(0, 500) : '',
           provider: 'email',
           token: generatedToken,
+          tokenCreatedAt: Date.now(),
           lastSyncTime: null,
           petCount: 0,
           payload: {
@@ -376,7 +479,7 @@ async function startServer() {
           }
         };
         db.users[normalizedEmail] = user;
-        writeSyncDB(db);
+        await writeSyncDB(db);
 
         return res.json({
           success: true,
@@ -408,25 +511,32 @@ async function startServer() {
         });
       }
 
-      // Verify password
-      let isValidPassword = false;
-      if (user.salt && user.passwordHash) {
-        const testHash = hashPassword(password, user.salt);
-        isValidPassword = (testHash === user.passwordHash);
-      } else if (user.passwordHash) {
-        // Legacy fallback without salt
-        isValidPassword = (user.passwordHash === hashPassword(password, ''));
-      }
+      // Timing-safe verification with automatic algorithm upgrade
+      const authResult = verifyPasswordSecurely(
+        password,
+        user.passwordHash || '',
+        user.salt,
+        user.hashAlgorithm
+      );
 
-      if (!isValidPassword) {
+      if (!authResult.isValid) {
         return res.status(401).json({ 
           success: false, 
           error: 'Nieprawidłowe hasło dla tego konta.' 
         });
       }
 
+      // Seamlessly upgrade legacy SHA-256 hashes to PBKDF2-SHA512 upon successful login
+      if (authResult.needsRehash) {
+        const newSalt = crypto.randomBytes(32).toString('hex');
+        user.passwordHash = hashPasswordPbkdf2(password, newSalt);
+        user.salt = newSalt;
+        user.hashAlgorithm = 'pbkdf2-sha512';
+      }
+
       user.token = generatedToken;
-      writeSyncDB(db);
+      user.tokenCreatedAt = Date.now();
+      await writeSyncDB(db);
 
       return res.json({
         success: true,
@@ -448,11 +558,11 @@ async function startServer() {
   });
 
   // API Route: Upload PetCare data to Cloud (Authorized only for own data)
-  app.post('/api/cloud-sync/upload', (req, res) => {
+  app.post('/api/cloud-sync/upload', async (req, res) => {
     try {
       const { email, token, payload, petCount } = req.body;
-      if (!email || !payload) {
-        return res.status(400).json({ success: false, error: 'Brak danych do synchronizacji.' });
+      if (!email || !payload || typeof payload !== 'object') {
+        return res.status(400).json({ success: false, error: 'Nieprawidłowe lub brakujące dane do synchronizacji.' });
       }
 
       const normalizedEmail = email.trim().toLowerCase();
@@ -466,11 +576,21 @@ async function startServer() {
         });
       }
 
+      // Check token expiration (max 60 days validity)
+      const tokenAgeMs = Date.now() - (user.tokenCreatedAt || 0);
+      const MAX_TOKEN_AGE = 60 * 24 * 60 * 60 * 1000;
+      if (user.tokenCreatedAt && tokenAgeMs > MAX_TOKEN_AGE) {
+        return res.status(401).json({
+          success: false,
+          error: 'Twoja sesja wygasła ze względów bezpieczeństwa. Zaloguj się ponownie.',
+        });
+      }
+
       const now = new Date().toISOString();
       user.payload = payload;
       user.petCount = typeof petCount === 'number' ? petCount : (payload.pets?.length || 0);
       user.lastSyncTime = now;
-      writeSyncDB(db);
+      await writeSyncDB(db);
 
       return res.json({
         success: true,
@@ -622,7 +742,7 @@ async function startServer() {
   });
 
   // API Route: Generate a 6-digit Quick Pair PIN
-  app.post('/api/cloud-sync/generate-code', (req, res) => {
+  app.post('/api/cloud-sync/generate-code', async (req, res) => {
     try {
       const { email, token } = req.body;
       const normalizedEmail = (email || '').trim().toLowerCase();
@@ -640,7 +760,7 @@ async function startServer() {
         expiresAt: Date.now() + 15 * 60 * 1000, // 15 mins
         attempts: 0,
       };
-      writeSyncDB(db);
+      await writeSyncDB(db);
 
       return res.json({ success: true, code, expiresAt: user.pairCode.expiresAt });
     } catch (err: any) {
@@ -649,7 +769,7 @@ async function startServer() {
   });
 
   // API Route: Pair and Restore using 6-digit PIN on any phone (with brute-force protection)
-  app.post('/api/cloud-sync/pair-code', pairCodeLimiter, (req, res) => {
+  app.post('/api/cloud-sync/pair-code', pairCodeLimiter, async (req, res) => {
     try {
       const { code } = req.body;
       if (!code) {
@@ -666,18 +786,18 @@ async function startServer() {
           u.pairCode.attempts = (u.pairCode.attempts || 0) + 1;
           if (u.pairCode.attempts > 5) {
             delete u.pairCode;
-            writeSyncDB(db);
+            await writeSyncDB(db);
             return res.status(410).json({ success: false, error: 'Przekroczono limit prób dla tego kodu. Wygeneruj nowy kod na pierwszym telefonie.' });
           }
           if (Date.now() > u.pairCode.expiresAt) {
             delete u.pairCode;
-            writeSyncDB(db);
+            await writeSyncDB(db);
             return res.status(410).json({ success: false, error: 'Ten kod parowania wygasł (ważny przez 15 minut). Wygeneruj nowy na pierwszym telefonie.' });
           }
           matchedUser = u;
           // Invalidate single-use code immediately upon successful pair
           delete u.pairCode;
-          writeSyncDB(db);
+          await writeSyncDB(db);
           break;
         }
       }
@@ -704,7 +824,7 @@ async function startServer() {
   });
 
   // API Route: Delete user account and all cloud data (GDPR / RODO Right to Erasure, Art. 17)
-  app.delete('/api/cloud-sync/account', (req, res) => {
+  app.delete('/api/cloud-sync/account', async (req, res) => {
     try {
       const { email, token } = req.body || {};
       if (!email || !token) {
@@ -720,7 +840,7 @@ async function startServer() {
       }
 
       delete db.users[normalizedEmail];
-      writeSyncDB(db);
+      await writeSyncDB(db);
 
       return res.json({ success: true, message: 'Konto i wszystkie dane w chmurze zostały pomyślnie usunięte.' });
     } catch (err: any) {
@@ -737,6 +857,11 @@ async function startServer() {
       if (!imageBase64) {
         return res.status(400).json({ success: false, error: 'Brak danych zdjęcia' });
       }
+
+      // Sanitize prompt text parameters against prompt injection
+      const cleanPetName = typeof petName === 'string' ? petName.replace(/[^\p{L}\p{N}\s._-]/gu, '').slice(0, 50) : 'pacjent';
+      const cleanPetSpecies = typeof petSpecies === 'string' ? petSpecies.replace(/[^\p{L}\p{N}\s._-]/gu, '').slice(0, 50) : 'pies/kot';
+      const cleanWeight = typeof petWeightKg === 'number' || typeof petWeightKg === 'string' ? String(petWeightKg).replace(/[^\d.,]/g, '').slice(0, 10) : '';
 
       const apiKey = process.env.GEMINI_API_KEY;
 
@@ -771,9 +896,9 @@ Twoim głównym zadaniem jest PRECYZYJNE ROZPOZNANIE I ODCZYTANIE NAWET BARDZO T
    - Słaby toner, zagięty lub zmięty papier, cienie od dłoni, żółte sztuczne światło, lekki obrót lub pochylenie kadru.
 
 KONTEKST PACJENTA:
-- Imię: ${petName || 'pacjent'}
-- Gatunek: ${petSpecies || 'pies/kot'}
-- Waga: ${petWeightKg ? `${petWeightKg} kg` : 'nieznana'}
+- Imię: ${cleanPetName}
+- Gatunek: ${cleanPetSpecies}
+- Waga: ${cleanWeight ? `${cleanWeight} kg` : 'nieznana'}
 ${deepDecipherMode ? '- TRYB GŁĘBOKIEGO ROZSZYFROWYWANIA: Włączony. Przeprowadź drobiazgową analizę każdego pociągnięcia długopisu/tuszu.' : ''}
 
 ZASADY TRANSLACJI I ROZPOZNAWANIA WETERYNARYJNEGO:

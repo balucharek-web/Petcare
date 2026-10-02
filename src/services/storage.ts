@@ -30,24 +30,7 @@ const STORAGE_KEYS = {
   DISMISSED_ALERTS: 'petcare_dismissed_alerts_v2',
 };
 
-import { idbGet, idbSet, idbDelete, idbClear, idbGetAll } from './indexedDbService';
-
 const memoryStore: Record<string, string> = {};
-
-// Synchronously prime memoryStore from localStorage immediately for zero-latency initial reads
-if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith('petcare_')) {
-        const val = localStorage.getItem(k);
-        if (val !== null) memoryStore[k] = val;
-      }
-    }
-  } catch (err) {
-    console.warn('Initial localStorage preload note:', err);
-  }
-}
 
 type StorageChangeListener = (key: string) => void;
 const changeListeners: Set<StorageChangeListener> = new Set();
@@ -65,91 +48,67 @@ function notifyStorageChanged(key: string) {
   }
 }
 
-// Asynchronously load and synchronize IndexedDB with memoryStore and localStorage
-let isIdbInitialized = false;
-async function initializeIndexedDbSync() {
-  if (typeof window === 'undefined' || !window.indexedDB) return;
-  try {
-    const idbData = await idbGetAll();
-    let hasNewData = false;
-
-    // 1. Restore data from IndexedDB into memoryStore
-    for (const [key, val] of Object.entries(idbData)) {
-      if (key.startsWith('petcare_') && typeof val === 'string') {
-        if (!memoryStore[key] || memoryStore[key].length < val.length) {
-          memoryStore[key] = val;
-          hasNewData = true;
-          // Best effort sync back to localStorage if it fits
-          try { localStorage.setItem(key, val); } catch {}
-        }
-      }
-    }
-
-    // 2. Migrate existing localStorage keys to IndexedDB (one-time & ongoing seamless migration)
-    for (const key of Object.values(STORAGE_KEYS)) {
-      const localVal = memoryStore[key];
-      if (localVal && !idbData[key]) {
-        await idbSet(key, localVal);
-      }
-    }
-
-    isIdbInitialized = true;
-    if (hasNewData) {
-      notifyStorageChanged(STORAGE_KEYS.PETS);
-    }
-  } catch (err) {
-    console.warn('IndexedDB initialization note:', err);
-  }
-}
-
-// Kick off IndexedDB sync immediately
-if (typeof window !== 'undefined') {
-  initializeIndexedDbSync();
-}
-
 function safeGetItem(key: string): string | null {
-  if (memoryStore[key] !== undefined) {
-    return memoryStore[key];
-  }
   try {
-    const val = localStorage.getItem(key);
-    if (val !== null) {
-      memoryStore[key] = val;
-      return val;
-    }
+    return localStorage.getItem(key);
   } catch {
-    // Suppress quota or security error
+    return memoryStore[key] || null;
   }
-  return null;
 }
 
 function safeSetItem(key: string, value: string): void {
-  // 1. Synchronously update fast memory store
+  // Always update memory store for instantaneous availability and zero-crash guarantee
   memoryStore[key] = value;
 
-  // 2. Best-effort mirror to localStorage (handles QuotaExceededError gracefully without crashing)
   try {
     localStorage.setItem(key, value);
-  } catch (quotaErr) {
-    console.warn(`[Storage] localStorage quota reached for "${key}". High-capacity IndexedDB will preserve data safely.`);
+  } catch (err: any) {
+    console.warn(`[Storage Warning] Błąd zapisu klucza ${key}:`, err?.name || err);
+
+    // Self-healing if LocalStorage quota is exceeded (QuotaExceededError, code 22 or 1014)
+    const isQuotaError = 
+      err?.name === 'QuotaExceededError' || 
+      err?.name === 'NS_ERROR_DOM_QUOTA_REACHED' || 
+      err?.code === 22 || 
+      err?.code === 1014;
+
+    if (isQuotaError) {
+      try {
+        // Step 1: Purge non-essential caches
+        localStorage.removeItem(STORAGE_KEYS.DISMISSED_ALERTS);
+
+        // Step 2: Trim older dose logs beyond 150 items to free space
+        const rawLogs = localStorage.getItem(STORAGE_KEYS.DOSE_LOGS);
+        if (rawLogs) {
+          try {
+            const parsedLogs = JSON.parse(rawLogs);
+            if (Array.isArray(parsedLogs) && parsedLogs.length > 150) {
+              const trimmed = parsedLogs.slice(-150);
+              localStorage.setItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(trimmed));
+            }
+          } catch {}
+        }
+
+        // Step 3: Retry setting the critical item
+        localStorage.setItem(key, value);
+        console.log(`[Storage Self-Healing] Pomyślnie zwolniono miejsce i zapisano klucz ${key}`);
+      } catch (retryErr) {
+        console.warn('[Storage Quota] Nie udało się zapisać do localStorage po czyszczeniu. Dane zachowane w pamięci podręcznej.', retryErr);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('petcare_storage_quota_warning'));
+        }
+      }
+    }
   }
-
-  // 3. Reliably persist to native IndexedDB (hundreds of MB capacity)
-  idbSet(key, value).catch(err => {
-    console.warn(`[Storage] IndexedDB write warning for "${key}":`, err);
-  });
-
   notifyStorageChanged(key);
 }
 
 function safeRemoveItem(key: string): void {
-  delete memoryStore[key];
   try {
     localStorage.removeItem(key);
   } catch {
-    // Suppress error
+    delete memoryStore[key];
   }
-  idbDelete(key).catch(() => {});
   notifyStorageChanged(key);
 }
 
@@ -535,72 +494,22 @@ export const storage = {
   importAllData(jsonStr: string): boolean {
     try {
       let parsed = JSON.parse(jsonStr);
-      if (!parsed || typeof parsed !== 'object') return false;
-
-      // Unpack nested payloads
-      if (parsed.payload && typeof parsed.payload === 'object') {
-        parsed = { ...parsed, ...parsed.payload };
-      }
-      if (parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
-        parsed = { ...parsed, ...parsed.data };
-      }
-      if (parsed.petCare && typeof parsed.petCare === 'object') {
-        parsed = { ...parsed, ...parsed.petCare };
-      }
-
-      let importedPets: Pet[] = [];
-
-      // 1. Root array of pets: [ {...}, {...} ]
-      if (Array.isArray(parsed)) {
-        importedPets = (parsed as any[]).filter(p => p && typeof p === 'object' && (p.name || p.species));
-      } 
-      // 2. Standard { pets: [...] }
-      else if (Array.isArray(parsed.pets)) {
-        importedPets = (parsed.pets as any[]).filter(p => p && typeof p === 'object' && (p.name || p.species));
-      }
-      // 3. Single pet copy: { pet: { name: '...', ... } }
-      else if (parsed.pet && typeof parsed.pet === 'object' && parsed.pet.name) {
-        importedPets = [parsed.pet as Pet];
-      }
-      // 4. Single pet root object: { id: '...', name: '...', species: '...' }
-      else if (parsed.name && (parsed.species || parsed.birthDate || parsed.id || parsed.breed)) {
-        const petObj: Pet = {
-          id: parsed.id || `pet-${Date.now()}`,
-          name: parsed.name,
-          species: parsed.species || 'dog',
-          breed: parsed.breed || 'Mieszaniec',
-          gender: parsed.gender || 'male',
-          birthDate: parsed.birthDate || '2023-01-01',
-          weightKg: typeof parsed.weightKg === 'number' ? parsed.weightKg : 10,
-          chipNumber: parsed.chipNumber || '',
-          color: parsed.color || '',
-          photoUrl: parsed.photoUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
-          ...parsed,
-        };
-        importedPets = [petObj];
-      }
-      // 5. Dictionary / record of pets: { "pet-1": { name: '...' } }
-      else {
-        const candidateValues = Object.values(parsed).filter(
-          (v: any) => v && typeof v === 'object' && v.name && (v.species || v.breed || v.weightKg)
-        );
-        if (candidateValues.length > 0) {
-          importedPets = candidateValues as Pet[];
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.payload && typeof parsed.payload === 'object') {
+          parsed = { ...parsed, ...parsed.payload };
+        } else if (parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
+          parsed = { ...parsed, ...parsed.data };
         }
       }
 
-      if (importedPets.length > 0) {
-        // Ensure all pets have required IDs and names
-        importedPets = importedPets.map((p, idx) => ({
-          ...p,
-          id: p.id || `pet-${Date.now()}-${idx}`,
-          species: p.species || 'dog',
-          name: p.name || 'Pupil',
-        }));
-        this.savePets(importedPets);
-        this.setActivePetId(importedPets[0].id);
+      // If root is directly an array of pets
+      if (Array.isArray(parsed)) {
+        this.savePets(parsed);
+        if (parsed.length > 0) this.setActivePetId(parsed[0].id);
+        return true;
       }
 
+      if (Array.isArray(parsed.pets)) this.savePets(parsed.pets);
       if (Array.isArray(parsed.vaccinations)) this.saveVaccinations(parsed.vaccinations);
       if (Array.isArray(parsed.exams)) this.saveExams(parsed.exams);
       if (Array.isArray(parsed.conditions)) this.saveConditions(parsed.conditions);
@@ -612,10 +521,11 @@ export const storage = {
       }
       if (parsed.dashboardConfig) this.saveDashboardConfig(parsed.dashboardConfig);
       if (Array.isArray(parsed.doseLogs)) safeSetItem(STORAGE_KEYS.DOSE_LOGS, JSON.stringify(parsed.doseLogs));
-
-      return importedPets.length > 0 || (Array.isArray(parsed.vaccinations) && parsed.vaccinations.length > 0);
-    } catch (err) {
-      console.error('Błąd importu danych w importAllData:', err);
+      if (parsed.pets?.length > 0) {
+        this.setActivePetId(parsed.pets[0].id);
+      }
+      return true;
+    } catch {
       return false;
     }
   },
@@ -632,7 +542,6 @@ export const storage = {
     safeRemoveItem(STORAGE_KEYS.EXPENSES);
     safeRemoveItem(STORAGE_KEYS.PETSITTER);
     safeRemoveItem(STORAGE_KEYS.DASHBOARD_CONFIG);
-    idbClear().catch(() => {});
     safeSetItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
   },
 
