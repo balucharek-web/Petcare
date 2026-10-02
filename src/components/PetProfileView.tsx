@@ -422,6 +422,19 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
     return `${years} lat, ${months} mies.`;
   };
 
+  const formatBirthday = (dateStr?: string) => {
+    if (!dateStr) return 'Brak daty';
+    try {
+      const d = new Date(dateStr);
+      const day = d.getDate();
+      const months = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+      const month = months[d.getMonth()] || '';
+      return `${day} ${month} (${d.getFullYear()})`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   if (isEditing) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 animate-fadeIn pb-32 mb-24 transition-colors">
@@ -1479,11 +1492,12 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   type="button"
                   onClick={onOpenAgeCalculator}
                   className="p-2.5 rounded-2xl bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 border border-teal-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
+                  title="Kliknij, aby otworzyć szczegóły urodzin i kalkulator wieku pupila"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block">Lata ludzkie</span>
+                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block">Urodziny pupila</span>
                     <span className="text-xs font-bold text-teal-950 truncate block">
-                      {quickHumanAge ? `${quickHumanAge.humanAge} l. (${quickHumanAge.lifeStage.stageName.split(' ')[0]})` : 'Kalkulator wieku'}
+                      {pet.birthDate ? formatBirthday(pet.birthDate) : 'Ustaw datę'}
                     </span>
                   </div>
                   <span className="text-sm shrink-0">🎂</span>
