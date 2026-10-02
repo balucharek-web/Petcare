@@ -554,6 +554,17 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                 </div>
               </div>
 
+              {/* Lock Screen Support Info */}
+              <div className="p-3 bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 rounded-2xl flex items-start gap-2.5">
+                <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 shrink-0">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div className="text-xs text-teal-950 dark:text-teal-200 leading-relaxed">
+                  <span className="font-bold block text-teal-900 dark:text-teal-100">Ekran blokady włączony (Android)</span>
+                  Powiadomienia PetCare mają najwyższy priorytet (Heads-Up) i widoczność publiczną – wyświetlają się bezpośrednio na zablokowanym ekranie telefonu, z wibracją i dźwiękiem.
+                </div>
+              </div>
+
               {/* Test Push Notification Button */}
               <div className="pt-2">
                 <button
