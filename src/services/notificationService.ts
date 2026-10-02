@@ -129,6 +129,9 @@ export async function sendInstantNotification(title: string, body: string, idOff
             title,
             body,
             channelId: 'petcare_alerts',
+            smallIcon: 'ic_stat_petcare_paw',
+            iconColor: '#0D9488',
+            largeIcon: 'ic_launcher',
             schedule: { at: new Date(Date.now() + 200), allowWhileIdle: true },
           },
         ],
@@ -231,6 +234,9 @@ export async function syncAllScheduledNotifications(): Promise<number> {
                 title: `💊 Czas na lek dla: ${petName}`,
                 body: `${med.name} • ${doseDesc} • ${labelDesc}`,
                 channelId: 'petcare_alerts',
+                smallIcon: 'ic_stat_petcare_paw',
+                iconColor: '#0D9488',
+                largeIcon: 'ic_launcher',
                 schedule: { 
                   at: scheduledTime,
                   allowWhileIdle: true 
@@ -263,6 +269,9 @@ export async function syncAllScheduledNotifications(): Promise<number> {
               title: `💉 Zbliża się szczepienie: ${petName}`,
               body: `Szczepienie "${vac.name}" traci ważność za 3 dni (${vac.validUntil}).`,
               channelId: 'petcare_alerts',
+              smallIcon: 'ic_stat_petcare_paw',
+              iconColor: '#0D9488',
+              largeIcon: 'ic_launcher',
               schedule: { at: reminder3Days, allowWhileIdle: true },
             });
           }
@@ -276,6 +285,9 @@ export async function syncAllScheduledNotifications(): Promise<number> {
               title: `⚠️ Termin szczepienia dzisiaj: ${petName}`,
               body: `Dziś upływa termin ważności szczepienia "${vac.name}".`,
               channelId: 'petcare_alerts',
+              smallIcon: 'ic_stat_petcare_paw',
+              iconColor: '#0D9488',
+              largeIcon: 'ic_launcher',
               schedule: { at: reminderDueDate, allowWhileIdle: true },
             });
           }
@@ -305,6 +317,9 @@ export async function syncAllScheduledNotifications(): Promise<number> {
               title: `🩺 Wizyta weterynaryjna jutro: ${petName}`,
               body: `${visit.clinic || 'Lecznica'} (${visitDateStr}) • Powód: ${visit.reason || 'Kontrola'}`,
               channelId: 'petcare_alerts',
+              smallIcon: 'ic_stat_petcare_paw',
+              iconColor: '#0D9488',
+              largeIcon: 'ic_launcher',
               schedule: { at: reminderDate, allowWhileIdle: true },
             });
           }

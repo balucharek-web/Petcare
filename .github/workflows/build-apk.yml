@@ -88,20 +88,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.44.0' }}
-          name: "PetCare v2.44.0 - Mobilna Karta Weterynaryjna & Poprawka Powiadomień"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.45.0' }}
+          name: "PetCare v2.45.0 - Ikona powiadomień łapki, bezpośredni Raport PDF i czyste UI"
           body: |
-            ### 🐾 PetCare v2.44.0 - Mobilna Karta Pupila & Niezawodne Powiadomienia!
+            ### 🐾 PetCare v2.45.0 - Nowa Ikona Powiadomień & Bezpośredni Raport PDF!
 
-            1. 📱 **Karta dla Weterynarza dopasowana do ekranu telefonu:**
-               - Zastąpiono uciążliwą, uciętą tabelę nowoczesnymi, czytelnymi kartami mobilnymi (100% szerokości ekranu, zero przewijania poziomego).
-               - Dodano przełącznik: `Widok mobilny (Karty)` oraz `Arkusz A4 (Podgląd druku)`.
-               - Przycisk **„Pobierz PDF”** natychmiast generuje oficjalny, pełny dokument A4 ze wszystkimi danymi, tabelami i miejscem na pieczęć weterynarza.
+            1. 🐾 **Dedykowana ikona powiadomień na pasku Androida:**
+               - Dodano dedykowaną, monochromatyczną ikonę łapki (`ic_stat_petcare_paw`) z turkusowym akcentem (`#0D9488`).
+               - Powiadomienia w systemie Android i na ekranie blokady mają teraz profesjonalną, czytelną ikonę aplikacji PetCare.
 
-            2. 🔔 **Natychmiastowe testowanie i automatyczne uprawnienia powiadomień:**
-               - Dodano przycisk **„Przetestuj powiadomienie na telefonie”** w zakładce leków pupila – pozwala od razu zweryfikować działanie powiadomień w systemie Android.
-               - Automatyczne żądanie uprawnień do powiadomień przy otwarciu aplikacji (obsługa Android 13/14 `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, `USE_EXACT_ALARM`).
-               - Pełne wsparcie dla wybudzania `WAKE_LOCK` i działania w trybie uśpienia baterii `allowWhileIdle`.
+            2. 📄 **Książeczka PDF pod zdjęciem zwierzaka:**
+               - Przycisk **„Książeczka PDF”** pod zdjęciem pupila otwiera teraz bezpośrednio oficjalny Raport Medyczny i Książeczkę PDF (dokładnie tak samo jak opcja w menu głównym).
+               - Możliwość natychmiastowego pobrania pliku PDF, wydruku lub udostępnienia.
+
+            3. 🧹 **Czysty interfejs apteczki:**
+               - Usunięto tymczasowy przycisk powiadomień testowych z zakładki Leki.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

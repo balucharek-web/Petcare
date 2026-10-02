@@ -49,7 +49,6 @@ import { storage } from '../services/storage';
 import { ScanViewerModal } from './ScanViewerModal';
 import { calculatePetHumanAge } from './AgeCalculatorModal';
 import { TodayQuickActionsWidget } from './TodayQuickActionsWidget';
-import { HealthBookletModal } from './HealthBookletModal';
 import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
 
 interface PetProfileViewProps {
@@ -109,7 +108,6 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   const [newWeight, setNewWeight] = useState('');
   const [newWeightNotes, setNewWeightNotes] = useState('');
   const [previewBookletScan, setPreviewBookletScan] = useState<{ url: string; title: string; date?: string } | null>(null);
-  const [isHealthBookletOpen, setIsHealthBookletOpen] = useState(false);
   const [isSamplePhotoPickerOpen, setIsSamplePhotoPickerOpen] = useState(false);
 
   // Drag and drop / tile reordering state
@@ -1287,11 +1285,11 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsHealthBookletOpen(true)}
-                  title="Otwórz oficjalną książeczkę zdrowia pupila gotową do druku lub eksportu do PDF"
+                  onClick={onOpenMedicalReport}
+                  title="Otwórz oficjalny raport medyczny i książeczkę PDF pupila"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition border border-teal-200 shadow-xs cursor-pointer active:scale-95"
                 >
-                  <Printer className="w-3.5 h-3.5 text-teal-600" />
+                  <FileText className="w-3.5 h-3.5 text-teal-600" />
                   <span>Książeczka PDF</span>
                 </button>
 
@@ -1577,14 +1575,6 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           title={previewBookletScan.title}
           date={previewBookletScan.date}
           onClose={() => setPreviewBookletScan(null)}
-        />
-      )}
-
-      {isHealthBookletOpen && (
-        <HealthBookletModal
-          isOpen={isHealthBookletOpen}
-          onClose={() => setIsHealthBookletOpen(false)}
-          pet={pet}
         />
       )}
 
