@@ -895,44 +895,34 @@ async function startServer() {
       const effectiveMime = mimeMatch ? mimeMatch[1] : (mimeType || 'image/jpeg');
       const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
 
-      const prompt = `Jesteś najwyższej klasy weterynaryjnym ekspertem OCR, transkrypcji i analizy dokumentów medycznych, recept, kart wypisowych oraz opakowań leków.
-Twoim głównym zadaniem jest PRECYZYJNE ROZPOZNANIE I ODCZYTANIE NAWET BARDZO TRUDNYCH MATERIAŁÓW:
-1. PISMA RĘCZNEGO LEKARZY WETERYNARII:
-   - Szybkie, pochyłe bazgroły, zniekształcone litery, połączone znaki kursywy,
-   - Odręczne zalecenia na kartce, recepty lekarskie, odręczne wpisy w książeczce zdrowia.
-2. BLADEGO, ZNISZCZONEGO LUB NIEDODRUKOWANEGO TEKSTU:
-   - Wydruki na papierze termicznym z lecznicy (wyblakły fioletowy/szary tusz, zatarte fragmenty),
-   - Drukarki igłowe z brakującymi igłami/punktami,
-   - Słaby toner, zagięty lub zmięty papier, cienie od dłoni, żółte sztuczne światło, lekki obrót lub pochylenie kadru.
+      const prompt = `Jesteś najwyższej klasy weterynaryjnym ekspertem OCR, transkrypcji wizyt, recept i analizy dokumentacji zwierząt.
+Twoim nadrzędnym zadaniem jest INTELIGENTNE I BEZBŁĘDNE ROZPOZNANIE DOKUMENTU W KAŻDYCH WARUNKACH:
+- Odręcznych zapisków i bazgrołów lekarza (np. "2 x 1/2 tabl", "co 12h", "na czczo"),
+- Słabego oświetlenia, cieni, żółtego światła, zagięć papieru czy przedmiotów trzymających kartkę (np. brelok, klucze),
+- Każdego typu dokumentu: Karta informacyjna wizyty, wypis, zalecenia lekarskie, recepta, wyniki krwi/moczu/USG, etykiety leków.
 
-KONTEKST PACJENTA:
+KONTEKST PACJENTA W APLIKACJI:
 - Imię: ${cleanPetName}
 - Gatunek: ${cleanPetSpecies}
 - Waga: ${cleanWeight ? `${cleanWeight} kg` : 'nieznana'}
-${deepDecipherMode ? '- TRYB GŁĘBOKIEGO ROZSZYFROWYWANIA: Włączony. Przeprowadź drobiazgową analizę każdego pociągnięcia długopisu/tuszu.' : ''}
 
-ZASADY TRANSLACJI I ROZPOZNAWANIA WETERYNARYJNEGO:
-- Wykorzystaj wiedzę o skrótach medycznych:
-  * "Rp." (Recipe - weź/przepisano)
-  * "D.S." lub "S." (Da Signa - oznacz dawkowanie)
-  * "tabl.", "tab.", "kaps.", "inj.", "s.c.", "p.o.", "i.m.", "zawiesina", "krople", "maść", "syrop"
-  * "1x1", "2x1", "1x dz.", "2x dz.", "co 12h", "co 24h", "co 8h", "1/2 tab.", "1/4 tab.", "0.5 tabl."
-  * "rano i wieczorem", "z posiłkiem", "na czczo", "przez X dni".
-- Wykorzystaj znajomość leków weterynaryjnych:
-  * Endokrynologia i tarczyca: Forthyron (200 ug, 400 ug, 800 ug - lewotyroksyna sodowa na niedoczynność tarczycy), Euthyrox, Letrox, Vetoryl (Trilostan - Cushing), Felimazole, Apelka, Thyronorm (Tiamazol)
-  * Przeciwbólowe/NLPZ: Onsior, Metacam (Meloksykam), Cimalgex, Previcox, Rimadyl, Trocoxil, Cortavet, Librela, Solensia
-  * Antybiotyki: Synulox, Kesium, Clavaseptin, Amotaks, Marbocyl, Enrobioflox, Baytril, Synergal
-  * Dermatologia/Alergie: Apoquel (5.4mg, 16mg), Cytopoint, Atopica, Cortavance, Dexafort
-  * Kardiologia i Nerki: Vetmedin, Cardalis, Cardisure, Benakor, Fortekor, Semintra, Pronefra, RenalVet, Prilactone
-  * Przeciwpasożytnicze: Bravecto, NexGard, Simparica, Credelio, Milpro, Milprazon, Drontal, Dehinel, NexGard Spectra
-  * Gastrologia i Wątroba: Cerenia, Flora Defense, Hepato Force, Hepatiale, Zentonil, Venter, Ranigast, Ursofalk
-  * Sterydy i inne: Encorton, Prednicortone, Gabapentyna, Pexion.
-  Dopasuj nawet częściowo nieczytelne słowa (np. "Sy...ux 250" -> "Synulox 250 mg", "FORTHYRON 800" -> "FORTHYRON 800 mg", "Apoq... 5.4" -> "Apoquel 5.4 mg").
-
-- KLUCZOWA ZASADA: Wydruki "Karta informacyjna wizyty", "Zastosowane leki", "Zalecenia", "Lekarz prowadzący", badania krwi oraz odręczne dopiski (np. "2 * 1/2 tabl.") to w 100% PRAWIDŁOWA DOKUMENTACJA WETERYNARYJNA (isValidMedicalDocument: true).
-- Wypisz dokładnie zastosowane leki, dawkę (np. "1/2 tabletki 2 x dziennie"), zalecenia lekarskie (np. podawać co 12h na czczo przed posiłkiem) i godziny podania.
-
-- Wygeneruj sugerowane konkretne godziny podania (np. 2x dziennie -> ["08:00", "20:00"]; 1x rano -> ["08:00"]).
+ZASADY ANALIZY:
+1. JEŚLI NA ZDJĘCIU JEST DOKUMENT WETERYNARYJNY (karta wizyty, zalecenia, recepta, wyniki):
+   - ZAWSZE ustaw "isValidMedicalDocument": true!
+2. WYKRYJ LEKI:
+   - Pełna nazwa (np. "FORTHYRON 800 mg (Lewotyroksyna sodowa)"),
+   - Dokładna dawka z druku oraz z ręcznych dopisków lekarza (np. "1/2 tabletki 2 x dziennie"),
+   - Szczegółowe instrukcje (np. "Podawać co 12 h o stałych porach, ok. pół godziny przed posiłkiem na czczo"),
+   - Czy lek przewlekły (np. na tarczycę/Forthyron -> isChronic: true),
+   - Godziny podania (np. 2x dziennie -> ["08:00", "20:00"]).
+3. WYKRYJ DANE WIZYTY I DIAGNOZĘ:
+   - Rozpoznanie/diagnoza (np. "Niedoczynność tarczycy"),
+   - Zalecenia kliniczne (np. objawy przedawkowania, stałe pory, leczenie do końca życia),
+   - Kontrola (np. "Kontrola hormonów tarczycy we krwi po 4-6 tygodniach, 4-6h po porannej dawce na czczo"),
+   - Dane lekarza (np. Mirosława Lewicka, tel. 0605 632 588, Mikołów),
+   - Data wizyty (np. 12/03/2026).
+4. WYKRYJ DANE ZWIERZĘCIA Z NAGŁÓWKA:
+   - Imię pacjenta, gatunek, rasa, wiek, maść, płeć jeśli są na dokumencie.
 
 Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
 {
@@ -942,6 +932,27 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
   "summary": string,
   "confidence": "high" | "medium" | "estimated",
   "detectedRawText": string,
+  "diagnosis": string,
+  "visitInfo": {
+    "date": string,
+    "clinicName": string,
+    "doctorName": string,
+    "doctorPhone": string,
+    "city": string
+  },
+  "detectedPet": {
+    "name": string,
+    "species": string,
+    "breed": string,
+    "age": string,
+    "gender": string,
+    "color": string
+  },
+  "recommendations": string[],
+  "nextCheckup": {
+    "description": string,
+    "timeframeWeeks": string
+  },
   "medications": [
     {
       "name": string,
@@ -1021,16 +1032,24 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
         });
       }
 
-      // Ensure fields exist
-      if (typeof parsed.isValidMedicalDocument !== 'boolean') {
-        parsed.isValidMedicalDocument = Array.isArray(parsed.medications) && parsed.medications.length > 0;
+      // Auto-validate medical document flag if meaningful medical content exists
+      const hasMeds = Array.isArray(parsed.medications) && parsed.medications.length > 0;
+      const hasExams = Array.isArray(parsed.examParameters) && parsed.examParameters.length > 0;
+      const hasDiagnosis = typeof parsed.diagnosis === 'string' && parsed.diagnosis.trim().length > 0;
+      const hasNotes = typeof parsed.doctorNotes === 'string' && parsed.doctorNotes.trim().length > 10;
+      const hasRecs = Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0;
+      const hasVisit = parsed.visitInfo && (parsed.visitInfo.doctorName || parsed.visitInfo.date);
+
+      if (hasMeds || hasExams || hasDiagnosis || hasNotes || hasRecs || hasVisit) {
+        parsed.isValidMedicalDocument = true;
+        if (!parsed.type || parsed.type === 'invalid') {
+          parsed.type = hasMeds ? 'medication' : hasExams ? 'exam_blood' : 'visit_recommendation';
+        }
       }
-      if (!Array.isArray(parsed.medications)) {
-        parsed.medications = [];
-      }
-      if (!Array.isArray(parsed.examParameters)) {
-        parsed.examParameters = [];
-      }
+
+      if (!Array.isArray(parsed.medications)) parsed.medications = [];
+      if (!Array.isArray(parsed.examParameters)) parsed.examParameters = [];
+      if (!Array.isArray(parsed.recommendations)) parsed.recommendations = [];
 
       return res.json({
         success: true,

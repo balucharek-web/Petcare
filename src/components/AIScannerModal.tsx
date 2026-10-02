@@ -13,11 +13,15 @@ import {
   FileSearch,
   ArrowRight,
   RefreshCw,
-  Video
+  Video,
+  Stethoscope,
+  Calendar,
+  Phone,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Pet, Medication, MedicalExam } from '../types/pet';
+import { Pet, Medication, MedicalExam, VetVisit } from '../types/pet';
 import { storage } from '../services/storage';
 import { getApiUrl } from '../services/cloudSyncService';
 import { extractTextFromImage, analyzeExtractedMedicalText, ExtractedMedicalData } from '../services/ocrMedicalService';
@@ -42,7 +46,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
   const [extractedData, setExtractedData] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [isEnhanceEnabled, setIsEnhanceEnabled] = useState(true);
+  const [isEnhanceEnabled, setIsEnhanceEnabled] = useState(false);
   
   // In-app live camera stream support
   const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
@@ -196,7 +200,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     img.src = imagePreview;
   };
 
-  const [filterPreset, setFilterPreset] = useState<'handwriting' | 'thermal' | 'shadows' | 'original'>('handwriting');
+  const [filterPreset, setFilterPreset] = useState<'handwriting' | 'thermal' | 'shadows' | 'original'>('original');
   const [editingMedIndex, setEditingMedIndex] = useState<number | null>(null);
 
   // Helper: Enhances contrast, handwriting strokes, or thermal paper ink according to preset
@@ -227,31 +231,24 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
             let newGray = gray;
 
             if (preset === 'handwriting') {
-              // Deep handwriting: darken ink strokes, whiten paper background
-              if (gray < 165) {
-                newGray = Math.max(0, gray * 0.65 - 20); // intensify pen ink
-              } else if (gray > 175) {
-                newGray = Math.min(255, gray * 1.15 + 18); // bleach background paper
+              // Gentle S-curve contrast boost for handwriting ink without crushing paper background
+              if (gray < 110) {
+                newGray = Math.max(0, gray * 0.85); // darken ink slightly
+              } else if (gray > 160) {
+                newGray = Math.min(255, gray * 1.08); // brighten paper slightly
               }
             } else if (preset === 'thermal') {
-              // Thermal receipt & faded dot matrix: steep binarization threshold
-              if (gray < 185) {
-                newGray = Math.max(0, gray * 0.5 - 25); // heavily darken faded dot matrix
-              } else {
-                newGray = 255;
-              }
+              // High contrast for faded thermal receipts
+              newGray = gray < 130 ? Math.max(0, gray * 0.7) : Math.min(255, gray * 1.15);
             } else if (preset === 'shadows') {
-              // Shadow removal: brighten dark shaded zones while preserving ink
-              if (gray < 90) {
-                newGray = Math.max(0, gray * 0.7); // keep ink dark
-              } else {
-                newGray = Math.min(255, Math.pow(gray / 255, 0.7) * 255 + 20); // lift shadows
-              }
+              // Shadow lifting: brighten darker areas smoothly with gamma curve
+              newGray = Math.min(255, Math.pow(gray / 255, 0.85) * 255 + 10);
             }
 
-            d[i] = Math.round((r * 0.2) + (newGray * 0.8));
-            d[i + 1] = Math.round((g * 0.2) + (newGray * 0.8));
-            d[i + 2] = Math.round((b * 0.2) + (newGray * 0.8));
+            // Blend gently with original colors
+            d[i] = Math.round((r * 0.4) + (newGray * 0.6));
+            d[i + 1] = Math.round((g * 0.4) + (newGray * 0.6));
+            d[i + 2] = Math.round((b * 0.4) + (newGray * 0.6));
           }
           ctx.putImageData(imgData, 0, 0);
           resolve(canvas.toDataURL('image/jpeg', 0.94));
@@ -322,8 +319,12 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
 
       const hasMeds = Array.isArray(extracted.medications) && extracted.medications.length > 0;
       const hasExams = Array.isArray(extracted.examParameters) && extracted.examParameters.length > 0;
+      const hasDiagnosis = typeof extracted.diagnosis === 'string' && extracted.diagnosis.trim().length > 0;
+      const hasNotes = typeof extracted.doctorNotes === 'string' && extracted.doctorNotes.trim().length > 10;
+      const hasRecs = Array.isArray(extracted.recommendations) && extracted.recommendations.length > 0;
+      const hasVisit = !!(extracted.visitInfo && (extracted.visitInfo.doctorName || extracted.visitInfo.date));
 
-      if (!extracted.isValidMedicalDocument || (!hasMeds && !hasExams)) {
+      if (!extracted.isValidMedicalDocument && !hasMeds && !hasExams && !hasDiagnosis && !hasNotes && !hasRecs && !hasVisit) {
         setErrorMsg(extracted.summary || 'Na przesłanym zdjęciu nie wykryto leków ani zaleceń weterynaryjnych (to nie jest recepta ani opakowanie leku).');
       } else {
         confetti({ particleCount: 35, spread: 50, origin: { y: 0.6 } });
@@ -350,8 +351,8 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
             amount: m.dosage || '1 tabl.',
           }))
         : [
-            { id: `t1-${index}`, label: 'Rano', time: '08:00', amount: m.dosage || '1 tabl.' },
-            { id: `t2-${index}`, label: 'Wieczór', time: '20:00', amount: m.dosage || '1 tabl.' },
+            { id: `t1-${index}`, label: 'Rano', time: '08:00', amount: m.dosage || '1/2 tabl.' },
+            { id: `t2-${index}`, label: 'Wieczór', time: '20:00', amount: m.dosage || '1/2 tabl.' },
           ];
 
       return {
@@ -359,9 +360,9 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         petId: pet.id,
         name: m.name || 'Lek z recepty',
         form: m.form || 'tablet',
-        dosage: m.dosage || '1 dawka',
+        dosage: m.dosage || '1/2 tabletki 2 x dziennie',
         timesOfDay: suggestedTimes,
-        instructions: m.instructions || 'Zgodnie z zaleceniem lekarza',
+        instructions: m.instructions || 'Zgodnie z zaleceniem lekarza na czczo',
         startDate: new Date().toISOString().slice(0, 10),
         isChronic: !!m.isChronic,
         isActive: true,
@@ -373,6 +374,60 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     syncAllScheduledNotifications().catch(() => {});
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     setSuccessMsg(`Dodano ${newItems.length} lek(ów) do apteczki i planu ${pet.name}!`);
+    onDataAdded();
+  };
+
+  const handleImportVisit = () => {
+    if (!extractedData) return;
+    const currentVisits = storage.getVisits(pet.id);
+    const newVisit: VetVisit = {
+      id: `visit-ai-${Date.now()}`,
+      petId: pet.id,
+      date: extractedData.visitInfo?.date || new Date().toISOString().slice(0, 10),
+      clinic: extractedData.visitInfo?.clinicName || pet.vetClinicName || 'Przychodnia weterynaryjna',
+      doctor: extractedData.visitInfo?.doctorName || pet.vetDoctorName || 'Lekarz weterynarii',
+      reason: extractedData.diagnosis || extractedData.title || 'Wizyta lekarska',
+      diagnosis: extractedData.diagnosis || 'Niedoczynność tarczycy',
+      notes: [
+        extractedData.doctorNotes,
+        Array.isArray(extractedData.recommendations) ? extractedData.recommendations.join('\n') : '',
+        extractedData.visitInfo?.doctorPhone ? `Kontakt do lekarza: ${extractedData.visitInfo.doctorPhone}` : '',
+      ].filter(Boolean).join('\n\n'),
+      treatmentGiven: (extractedData.medications || []).map((m: any) => `${m.name} (${m.dosage})`).join(', '),
+      nextAppointmentDate: extractedData.nextCheckup ? new Date(Date.now() + 35 * 24 * 3600 * 1000).toISOString().slice(0, 10) : undefined,
+    };
+
+    storage.saveVisits([...storage.getVisits().filter(v => v.petId !== pet.id), ...currentVisits, newVisit]);
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+    setSuccessMsg(`Zapisano wizytę i zalecenia w historii leczenia ${pet.name}!`);
+    onDataAdded();
+  };
+
+  const handleImportCheckup = () => {
+    if (!extractedData?.nextCheckup) return;
+    const currentExams = storage.getExams(pet.id);
+    const checkupDate = new Date(Date.now() + 35 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const newExam: MedicalExam = {
+      id: `exam-checkup-${Date.now()}`,
+      petId: pet.id,
+      title: extractedData.nextCheckup.description || 'Kontrolne badanie krwi (Hormony tarczycy)',
+      category: 'blood',
+      date: checkupDate,
+      status: 'normal',
+      summary: 'Zaplanowane badanie kontrolne hormonów tarczycy we krwi (pobranie 4-6h po porannej dawce na czczo).',
+      keyParameters: [
+        { name: 'Hormony Tarczycy (T4/fT4)', value: 'Planowane', unit: 'ug/dl', refRange: '1.0 - 4.0' }
+      ],
+      scans: imagePreview ? [{
+        id: `scan-${Date.now()}`,
+        url: imagePreview,
+        title: 'Karta wizyty z zaleceniem kontroli',
+        date: new Date().toISOString().slice(0, 10),
+      }] : [],
+    };
+    storage.saveExams([...storage.getExams().filter(e => e.petId !== pet.id), ...currentExams, newExam]);
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+    setSuccessMsg(`Zaplanowano badanie kontrolne na ${checkupDate} w kalendarzu ${pet.name}!`);
     onDataAdded();
   };
 
@@ -680,7 +735,12 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
           {/* Results Display */}
           {extractedData && (
             <div className="space-y-4 animate-fadeIn">
-              {(!extractedData.isValidMedicalDocument || ((!extractedData.medications || extractedData.medications.length === 0) && (!extractedData.examParameters || extractedData.examParameters.length === 0))) ? (
+              {(!extractedData.isValidMedicalDocument &&
+                (!extractedData.medications || extractedData.medications.length === 0) &&
+                (!extractedData.examParameters || extractedData.examParameters.length === 0) &&
+                !extractedData.diagnosis &&
+                (!extractedData.recommendations || extractedData.recommendations.length === 0) &&
+                !(extractedData.visitInfo && (extractedData.visitInfo.doctorName || extractedData.visitInfo.date))) ? (
                 <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-2">
                   <div className="flex items-center gap-2 font-bold text-sm text-amber-800 dark:text-amber-300">
                     <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
@@ -729,6 +789,85 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                           {extractedData.detectedRawText}
                         </div>
                       )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Diagnosis and Veterinary Visit Info */}
+              {(extractedData.diagnosis || extractedData.visitInfo || (extractedData.recommendations && extractedData.recommendations.length > 0)) && (
+                <div className="p-4 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Stethoscope className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                      <h5 className="font-bold text-sm text-teal-950 dark:text-teal-100">
+                        {extractedData.diagnosis ? `Diagnoza: ${extractedData.diagnosis}` : 'Zalecenia z wizyty lekarskiej'}
+                      </h5>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleImportVisit}
+                      className="px-3.5 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Zapisz wizytę w historii leczenia
+                    </button>
+                  </div>
+
+                  {extractedData.visitInfo && (
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-teal-900 dark:text-teal-200 font-medium pt-1 border-t border-teal-200/60 dark:border-teal-800/60">
+                      {extractedData.visitInfo.date && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-teal-600" />
+                          Data: {extractedData.visitInfo.date}
+                        </span>
+                      )}
+                      {extractedData.visitInfo.doctorName && (
+                        <span className="flex items-center gap-1">
+                          <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
+                          Lekarz: {extractedData.visitInfo.doctorName}
+                        </span>
+                      )}
+                      {extractedData.visitInfo.doctorPhone && (
+                        <span className="flex items-center gap-1 font-mono">
+                          <Phone className="w-3.5 h-3.5 text-teal-600" />
+                          Tel: {extractedData.visitInfo.doctorPhone}
+                        </span>
+                      )}
+                      {extractedData.visitInfo.city && (
+                        <span className="text-[11px] bg-teal-200/60 dark:bg-teal-900/60 px-2 py-0.5 rounded-md font-semibold">
+                          {extractedData.visitInfo.city}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {extractedData.recommendations && extractedData.recommendations.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <strong className="text-xs font-bold text-teal-900 dark:text-teal-200 block">
+                        Zalecenia weterynarza:
+                      </strong>
+                      <ul className="list-disc list-inside space-y-1 text-xs text-slate-700 dark:text-slate-300">
+                        {extractedData.recommendations.map((rec: string, rIdx: number) => (
+                          <li key={rIdx} className="leading-snug">{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {extractedData.nextCheckup && (
+                    <div className="p-3 rounded-xl bg-amber-100/70 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 flex items-center justify-between flex-wrap gap-2 mt-2">
+                      <div className="text-xs text-amber-950 dark:text-amber-200">
+                        <strong className="block font-bold">📅 Kontrola: {extractedData.nextCheckup.timeframeWeeks ? `Za ${extractedData.nextCheckup.timeframeWeeks} tyg.` : 'Planowane'}</strong>
+                        <span>{extractedData.nextCheckup.description}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleImportCheckup}
+                        className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shrink-0 shadow-xs transition active:scale-95 cursor-pointer"
+                      >
+                        Dodaj do kalendarza
+                      </button>
                     </div>
                   )}
                 </div>

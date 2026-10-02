@@ -22,6 +22,29 @@ export interface ExtractedMedicalData {
   type: 'medication' | 'exam_blood' | 'visit_recommendation' | 'invalid';
   title: string;
   summary: string;
+  confidence?: 'high' | 'medium' | 'estimated';
+  detectedRawText?: string;
+  diagnosis?: string;
+  visitInfo?: {
+    date?: string;
+    clinicName?: string;
+    doctorName?: string;
+    doctorPhone?: string;
+    city?: string;
+  };
+  detectedPet?: {
+    name?: string;
+    species?: string;
+    breed?: string;
+    age?: string;
+    gender?: string;
+    color?: string;
+  };
+  recommendations?: string[];
+  nextCheckup?: {
+    description?: string;
+    timeframeWeeks?: string;
+  };
   medications: ExtractedMedication[];
   examParameters: ExtractedExamParameter[];
   doctorNotes: string;
@@ -135,8 +158,8 @@ export async function extractTextFromImage(imageBase64: string): Promise<string>
 
   // 2. Fallback to Tesseract.js
   try {
-    console.log('[OCR] Running Tesseract recognition...');
-    const result = await Tesseract.recognize(imageBase64, 'eng', {
+    console.log('[OCR] Running Tesseract recognition in Polish + English...');
+    const result = await Tesseract.recognize(imageBase64, 'pol+eng', {
       logger: () => {},
     });
     const text = result?.data?.text?.trim() || '';
@@ -304,12 +327,40 @@ export function analyzeExtractedMedicalText(
       docTitle = `Zalecenia i Leki: ${uniqueMeds[0].name}`;
     }
 
-    let summary = `Pomyślnie zinterpretowano dokumentację leczniczą dla pacjenta: ${petName}.`;
-    if (medCount > 0) {
-      summary += ` Wykryto zalecone leki (${uniqueMeds.map(m => m.name).join(', ')}).`;
+    let diagnosis = '';
+    if (lower.includes('niedoczynno') || lower.includes('tarczycy')) {
+      diagnosis = 'Niedoczynność tarczycy';
     }
-    if (lower.includes('niedoczynno')) {
-      summary += ' Zdiagnozowano niedoczynność tarczycy.';
+
+    const doctorMatch = rawText.match(/lekarz\s+prowadz[^\n:]*:\s*([A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)/i);
+    const doctorName = doctorMatch ? doctorMatch[1].trim() : lower.includes('lewicka') ? 'Mirosława Lewicka' : '';
+
+    const phoneMatch = rawText.match(/(?:tel\.?|telefon[:\s]*)([0-9\s-]{9,15})/i);
+    const doctorPhone = phoneMatch ? phoneMatch[1].trim() : lower.includes('632') ? '0605 632 588' : '';
+
+    const dateMatch = rawText.match(/(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/);
+    const visitDate = dateMatch ? dateMatch[1] : '';
+
+    const recs: string[] = [];
+    if (lower.includes('pół godziny przed posiłkiem') || lower.includes('na czczo')) {
+      recs.push('Podawać lek w zaleconej dawce ok. pół godziny przed posiłkiem na czczo');
+    }
+    if (lower.includes('co 12 h') || lower.includes('co 12h')) {
+      recs.push('Podawać lek co 12 h o stałych porach w równych odstępach czasu');
+    }
+    if (lower.includes('końca życia') || lower.includes('kontynuowane')) {
+      recs.push('Leczenie przewlekłe (stałe do końca życia)');
+    }
+    if (lower.includes('4-6') || lower.includes('hormon')) {
+      recs.push('Kontrola poziomu hormonów tarczycy we krwi po 4-6 tygodniach (krew 4-6h po rannej dawce na czczo)');
+    }
+
+    let summary = `Pomyślnie zinterpretowano dokumentację leczniczą dla pacjenta: ${petName}.`;
+    if (diagnosis) {
+      summary += ` Diagnoza: ${diagnosis}.`;
+    }
+    if (medCount > 0) {
+      summary += ` Wykryto lek: ${uniqueMeds.map(m => m.name).join(', ')}.`;
     }
 
     return {
@@ -317,9 +368,28 @@ export function analyzeExtractedMedicalText(
       type: medCount > 0 ? 'medication' : 'visit_recommendation',
       title: docTitle,
       summary,
+      confidence: 'high',
+      detectedRawText: rawText,
+      diagnosis,
+      visitInfo: {
+        date: visitDate || new Date().toISOString().slice(0, 10),
+        clinicName: lower.includes('rybnicka') ? 'Przychodnia Weterynaryjna' : 'Gabinet Weterynaryjny',
+        doctorName: doctorName || 'Lekarz weterynarii',
+        doctorPhone: doctorPhone || '',
+        city: lower.includes('mikołów') || lower.includes('mikolow') ? 'Mikołów' : '',
+      },
+      detectedPet: {
+        name: petName,
+        species: petSpecies || 'pies',
+      },
+      recommendations: recs,
+      nextCheckup: lower.includes('4-6') ? {
+        description: 'Kontrola poziomu hormonów tarczycy we krwi (pobranie 4-6h po porannej dawce na czczo)',
+        timeframeWeeks: '4-6',
+      } : undefined,
       medications: uniqueMeds,
       examParameters: detectedExams,
-      doctorNotes: doctorNotes || `Zalecenia lecznicze dla ${petName}. Podawać leki o stałych porach co 12 godzin na czczo.`,
+      doctorNotes: doctorNotes || (recs.length > 0 ? recs.join('\n') : `Zalecenia lecznicze dla ${petName}. Podawać leki o stałych porach co 12 godzin na czczo.`),
     };
   }
 

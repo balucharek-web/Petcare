@@ -88,19 +88,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.46.0' }}
-          name: "PetCare v2.46.0 - Poprawka formularza edycji zwierzaka i stabilizacja logowania Google"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.46.1' }}
+          name: "PetCare v2.46.1 - Inteligentny skaner kart wizyt, pisma ręcznego i zaleceń lekarskich"
           body: |
-            ### 🐾 PetCare v2.46.0 - Aktualizacja i poprawki
+            ### 🐾 PetCare v2.46.1 - Zaawansowany Skaner Wizyt i Recept
 
-            1. ✏️ **Wygodny formularz edycji zwierzaka:**
-               - Przycisk **„Zapisz zmiany”** jest teraz przyklejony pływającym paskiem powyżej dolnego menu nawigacji (`sticky`), więc nigdy się pod nim nie chowa.
-               - Dodano dodatkowy przycisk szybkiego zapisu i anulowania w nagłówku formularza edycji.
-               - Dodano duży margines bezpieczeństwa na dole ekranu.
+            1. 🔍 **Inteligentny Skaner AI bez zniekształceń:**
+               - Usunięto destrukcyjne czarno-białe filtry progowe, które niszczyły zdjęcia robione w pokojowym/słabszym świetle.
+               - Skaner automatycznie analizuje oryginalne zdjęcie aparatu, rozpoznając trudne pismo ręczne lekarzy (np. `2 x 1/2 tabl`), zalecenia, dawkowanie i pieczątki.
+               - Dodano dedykowaną kartę **Diagnozy i Zaleceń** (np. Niedoczynność tarczycy) z możliwością natychmiastowego zapisania wizyty w historii leczenia.
+               - Automatyczne planowanie badań kontrolnych w kalendarzu (np. kontrola hormonów tarczycy za 4-6 tyg.).
+               - Bezpośredni import leków do apteczki i harmonogramu powiadomień.
 
-            2. 🔐 **Optymalizacja logowania kontem Google:**
-               - Zintegrowano obsługę Google Identity Services (GIS) z automatycznym fallbackiem.
-               - Płynna autoryzacja i ochrona przed błędami autoryzacji domen w środowiskach chmurowych.
+            2. 🛡️ **Podpis cyfrowy APK (v1, v2, v3):**
+               - Włączono pełny schemat podpisywania aplikacji Android v1 + v2 + v3 dla maksymalnej zgodności z Google Play Protect.
+               - Zaktualizowano adres aktywnego serwera synchronizacji w aplikacji.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

@@ -7,8 +7,8 @@ android {
         applicationId "pl.petcare.asystent"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 25
-        versionName "2.46.0"
+        versionCode 26
+        versionName "2.46.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -25,6 +25,7 @@ android {
                 keyPassword 'petcare123'
                 v1SigningEnabled true
                 v2SigningEnabled true
+                v3SigningEnabled true
             }
         }
     }

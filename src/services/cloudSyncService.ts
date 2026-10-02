@@ -12,7 +12,20 @@ import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-const REMOTE_BACKEND_URL = (import.meta as any).env?.VITE_APP_URL || (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('capacitor:') && !window.location.origin.startsWith('file:') && window.location.origin.includes('.run.app') ? window.location.origin : 'https://ais-pre-ikwyyen5v5xsycfajtbpir-559140193543.europe-west3.run.app');
+const getCustomBackendUrl = (): string | null => {
+  try {
+    return localStorage.getItem('petcare_custom_backend_url');
+  } catch {
+    return null;
+  }
+};
+
+const REMOTE_BACKEND_URL = 
+  getCustomBackendUrl() ||
+  (import.meta as any).env?.VITE_APP_URL || 
+  (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('capacitor:') && !window.location.origin.startsWith('file:') && window.location.origin.includes('.run.app') 
+    ? window.location.origin 
+    : 'https://ais-pre-dvjckalu5rcfsg3eceu76n-797954052342.europe-west2.run.app');
 
 export interface CloudUser {
   email: string;
