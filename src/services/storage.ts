@@ -116,7 +116,13 @@ function safeRemoveItem(key: string): void {
   notifyStorageChanged(key);
 }
 
-const DEFAULT_INITIAL_PETS: Pet[] = [
+const DEFAULT_INITIAL_PETS: Pet[] = [];
+const DEFAULT_INITIAL_VACCINATIONS: Vaccination[] = [];
+const DEFAULT_INITIAL_EXAMS: MedicalExam[] = [];
+const DEFAULT_INITIAL_MEDS: Medication[] = [];
+
+// Optional sample data loaded ONLY if user explicitly clicks "Wczytaj profil przykładowy"
+const SAMPLE_DEMO_PETS: Pet[] = [
   {
     id: 'pet-1',
     name: 'Baster',
@@ -145,7 +151,7 @@ const DEFAULT_INITIAL_PETS: Pet[] = [
   }
 ];
 
-const DEFAULT_INITIAL_VACCINATIONS: Vaccination[] = [
+const SAMPLE_DEMO_VACCINATIONS: Vaccination[] = [
   {
     id: 'vac-1',
     petId: 'pet-1',
@@ -170,7 +176,7 @@ const DEFAULT_INITIAL_VACCINATIONS: Vaccination[] = [
   }
 ];
 
-const DEFAULT_INITIAL_EXAMS: MedicalExam[] = [
+const SAMPLE_DEMO_EXAMS: MedicalExam[] = [
   {
     id: 'exam-1',
     petId: 'pet-1',
@@ -230,7 +236,7 @@ const DEFAULT_INITIAL_EXAMS: MedicalExam[] = [
   }
 ];
 
-const DEFAULT_INITIAL_MEDS: Medication[] = [
+const SAMPLE_DEMO_MEDS: Medication[] = [
   {
     id: 'med-1',
     petId: 'pet-1',
@@ -250,17 +256,17 @@ const DEFAULT_INITIAL_MEDS: Medication[] = [
   }
 ];
 
-// Initialization check ensuring initial test pet is seeded for preview
+// Clean initialization: starts completely clean without test pets on fresh launch
 function ensureCleanInitialization() {
   if (typeof window === 'undefined') return;
   try {
     const existing = safeGetItem(STORAGE_KEYS.PETS);
-    if (!existing || existing === '[]') {
-      safeSetItem(STORAGE_KEYS.PETS, JSON.stringify(DEFAULT_INITIAL_PETS));
-      safeSetItem(STORAGE_KEYS.ACTIVE_PET_ID, DEFAULT_INITIAL_PETS[0].id);
-      safeSetItem(STORAGE_KEYS.VACCINATIONS, JSON.stringify(DEFAULT_INITIAL_VACCINATIONS));
-      safeSetItem(STORAGE_KEYS.EXAMS, JSON.stringify(DEFAULT_INITIAL_EXAMS));
-      safeSetItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(DEFAULT_INITIAL_MEDS));
+    if (!existing) {
+      safeSetItem(STORAGE_KEYS.PETS, JSON.stringify([]));
+      safeSetItem(STORAGE_KEYS.ACTIVE_PET_ID, '');
+      safeSetItem(STORAGE_KEYS.VACCINATIONS, JSON.stringify([]));
+      safeSetItem(STORAGE_KEYS.EXAMS, JSON.stringify([]));
+      safeSetItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify([]));
     }
   } catch (e) {
     console.warn('Storage initialization note:', e);
@@ -749,12 +755,12 @@ export const storage = {
   },
 
   seedSampleData(): void {
-    this.savePets(DEFAULT_INITIAL_PETS);
-    this.saveVaccinations(DEFAULT_INITIAL_VACCINATIONS);
-    this.saveExams(DEFAULT_INITIAL_EXAMS);
-    this.saveMedications(DEFAULT_INITIAL_MEDS);
-    if (DEFAULT_INITIAL_PETS[0]) {
-      this.setActivePetId(DEFAULT_INITIAL_PETS[0].id);
+    this.savePets(SAMPLE_DEMO_PETS);
+    this.saveVaccinations(SAMPLE_DEMO_VACCINATIONS);
+    this.saveExams(SAMPLE_DEMO_EXAMS);
+    this.saveMedications(SAMPLE_DEMO_MEDS);
+    if (SAMPLE_DEMO_PETS[0]) {
+      this.setActivePetId(SAMPLE_DEMO_PETS[0].id);
     }
   },
 
