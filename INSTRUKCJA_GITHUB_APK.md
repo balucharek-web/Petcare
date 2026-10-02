@@ -9,11 +9,11 @@ Plik instalacyjny APK jest automatycznie budowany i publikowany przez GitHub Act
 1. **Strona najnowszego wydania (Releases):**  
    👉 **[Przejdź do wydań PetCare na GitHub](https://github.com/balucharek-web/Petcare/releases)**
 
-2. **Bezpośredni link do pliku APK (v2.36.0 - Podpisany produkcyjnie):**  
-   👉 **[Pobierz PetCare.apk (v2.36.0)](https://github.com/balucharek-web/Petcare/releases/download/v2.36.0/PetCare.apk)**
+2. **Bezpośredni link do najnowszego pliku APK:**  
+   👉 **[Pobierz najnowszy PetCare.apk](https://github.com/balucharek-web/Petcare/releases/latest/download/PetCare.apk)**
 
-3. **Pakiet Google Play (.AAB) oraz wersja Debug:**  
-   Dostępne w załącznikach na [stronie wydania v2.36.0](https://github.com/balucharek-web/Petcare/releases/tag/v2.36.0)
+3. **Wydanie v2.47.0:**  
+   👉 **[Wydanie v2.47.0 ze wszystkimi plikami (.APK, .AAB)](https://github.com/balucharek-web/Petcare/releases/tag/v2.47.0)**
 
 4. **Status budowania na żywo (GitHub Actions):**  
    👉 **[Zobacz postęp kompilacji APK w Actions](https://github.com/balucharek-web/Petcare/actions)**
