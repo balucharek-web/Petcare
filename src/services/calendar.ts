@@ -256,3 +256,56 @@ export function buildVetVisitCalendarEvent(
     alarmMinutesBefore: 60, // 1 hour before
   };
 }
+
+/**
+ * Helper to build calendar payload for Parasite & Tick Protection
+ */
+export function buildParasiteCalendarEvent(
+  petName: string,
+  productName: string,
+  type: 'tick_flea' | 'deworming' | 'heartworm',
+  validUntil: string,
+  form: string
+): CalendarEventPayload {
+  const typeLabel = 
+    type === 'tick_flea' ? 'Ochrona przed kleszczami i pchłami' :
+    type === 'deworming' ? 'Odrobaczanie wewnętrzne' : 'Ochrona przed nicieniami / pasożytami';
+  
+  const icon = type === 'tick_flea' ? '🛡️' : '🪱';
+
+  return {
+    title: `${icon} ${petName}: ${typeLabel} - ${productName}`,
+    description: `Przypomnienie o ponownym podaniu preparatu dla: ${petName}\nPreparat: ${productName} (forma: ${form})\nRodzaj: ${typeLabel}\nKoniec poprzedniej dawki: ${validUntil}\n\nPetCare Parasite Protection Hub.`,
+    startDate: `${validUntil}T09:00:00`,
+    endDate: `${validUntil}T09:30:00`,
+    isAllDay: true,
+    alarmMinutesBefore: 1440, // 1 day before
+  };
+}
+
+/**
+ * Helper to build calendar payload for Custom In-App Event
+ */
+export function buildCustomCalendarEvent(
+  petName: string,
+  title: string,
+  date: string,
+  time?: string,
+  category?: string,
+  notes?: string
+): CalendarEventPayload {
+  const timeStr = time || '10:00';
+  const startIso = `${date}T${timeStr}:00`;
+  const [h, m] = timeStr.split(':').map(Number);
+  const endHours = String(h + 1).padStart(2, '0');
+  const endIso = `${date}T${endHours}:${String(m).padStart(2, '0')}:00`;
+
+  return {
+    title: `📅 ${petName}: ${title}`,
+    description: `Wydarzenie dla: ${petName}\nKategoria: ${category || 'Wydarzenie ogólne'}\nNotatki: ${notes || '-'}\n\nZapisano w kalendarzu PetCare.`,
+    startDate: startIso,
+    endDate: endIso,
+    isAllDay: !time,
+    alarmMinutesBefore: 60,
+  };
+}

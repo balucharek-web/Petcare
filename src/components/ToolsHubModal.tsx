@@ -43,6 +43,7 @@ interface ToolsHubModalProps {
   onOpenFamilySharing?: () => void;
   onOpenPrivacyPolicy?: () => void;
   onOpenHomeScreenWidget?: () => void;
+  onOpenParasiteProtection?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -67,6 +68,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenFamilySharing,
   onOpenPrivacyPolicy,
   onOpenHomeScreenWidget,
+  onOpenParasiteProtection,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
@@ -116,6 +118,15 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
       color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
       badge: 'RODO / Play',
       action: onOpenPrivacyPolicy,
+    },
+    {
+      id: 'parasite-protection',
+      label: 'Kleszcze & Odrobaczanie (Tarcza)',
+      desc: 'Śledzenie ważności obroży Foresto, tabletek Bravecto, kropli i sezonowy radar kleszczowy',
+      icon: ShieldCheck,
+      color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      badge: 'Profilaktyka',
+      action: onOpenParasiteProtection,
     },
     {
       id: 'age-calc',

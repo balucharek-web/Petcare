@@ -88,27 +88,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.39.0' }}
-          name: "PetCare v2.39.0 - Zabezpieczenia Enterprise PBKDF2, Atomowa Baza i Samonaprawa Quoty"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.40.0' }}
+          name: "PetCare v2.40.0 - Własny Interaktywny Kalendarz, Synchronizacja z Kalendarzem Google & Asystent Kleszczy"
           body: |
-            ### 🐾 PetCare v2.39.0 - Wydanie Bezpieczeństwa i Niezawodności Enterprise!
+            ### 🐾 PetCare v2.40.0 - Własny Kalendarz Miesięczny, Google Calendar Sync & Asystent Ochrony Przed Kleszczami!
 
-            1. 🛡️ **Kryptograficzne Haszowanie Haseł PBKDF2-SHA-512:**
-               - 100 000 iteracji, 32-bajtowa unikalna sól, weryfikacja w stałym czasie `crypto.timingSafeEqual` odporna na ataki timingowe.
-               - Automatyczna, bezstratna migracja starszych kont w chmurze do standardu PBKDF2.
+            1. 📅 **Dedykowany Interaktywny Kalendarz Miesięczny w Aplikacji:**
+               - Wizualna siatka miesięcy z polskim układem dni tygodnia (Pn-Nd) i wskaźnikami dzisiejszego dnia.
+               - Kolorowe kropki wydarzeń: 🟣 Szczepienia, 🟢 Leki, 🔵 Wizyty lekarskie, 🟠 Badania, 🛡️ Kleszcze i odrobaczanie, 🟡 Własne wydarzenia.
+               - Widok agendy wybranego dnia z możliwością planowania własnych terminów (groomer, ważenie, higiena, spacery).
 
-            2. 💾 **Atomowa Baza Danych z Kolejką Mutex i Samonaprawą (.bak):**
-               - Eliminacja wyścigów danych (race condition) przy równoległym zapisie.
-               - Zapis do pliku tymczasowego i atomowa zamiana nazw oraz automatyczna kopia lustrzana `cloud_sync_db.json.bak`.
+            2. 🔄 **Synchronizacja z Kalendarzem Google (Google Calendar Sync) & Plik .ICS:**
+               - 1-klik dodaje dowolne wydarzenie lub lek bezpośrednio do aplikacji Kalendarza Google lub Kalendarza na telefonie.
+               - Zbiorczy eksport całego harmonogramu zdrowia pupila do pliku `.ics` dla Androida.
 
-            3. ⚡ **Odporność na Przepełnienie Pamięci Przeglądarki (Quota Guard):**
-               - Samonaprawa przy wyczerpaniu limitu pamięci podręcznej i bufor w pamięci RAM gwarantujący zero crashy.
+            3. 🛡️ **Inteligentny Asystent Odrobaczania & Kleszczy (Parasite Protection Hub):**
+               - Wizualna tarcza bezpieczeństwa pupila ze statusem działania preparatu i licznikiem pozostałych dni ochrony.
+               - Baza preparatów weterynaryjnych (Foresto, Bravecto, Simparica, NexGard, Advantix, Fypryst, Milprazon, Drontal, Dehinel itp.) z automatycznym wyliczaniem czasu działania.
+               - Sezonowy radar aktywności kleszczy w Europie Środkowej z alertami przed babeszjozą i boreliozą.
 
-            4. 🔒 **Ścisłe Nagłówki HTTP Security (CSP, HSTS, Permissions-Policy):**
-               - Pełna ochrona przed atakami XSS, clickjacking i podszywaniem się.
-
-            5. 🔑 **Jednolity Trwały Podpis APK (Płynne Aktualizacje):**
-               - Plik `PetCare.apk` podpisany stałym kluczem produkcyjnym `release.keystore`. Instalacja kolejnych wydań jako prosta aktualizacja bez konfliktów pakietów.
+            4. 🔑 **Trwały Podpis APK & Płynna Aktualizacja:**
+               - Plik `PetCare.apk` podpisany jednolitym oficjalnym kluczem produkcyjnym (aktualizacja wchodzi gładko jako „Aktualizuj”).
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

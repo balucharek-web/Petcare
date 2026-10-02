@@ -66,6 +66,7 @@ import { HealthTimelineModal } from './components/HealthTimelineModal';
 import { FamilySharingModal } from './components/FamilySharingModal';
 import { CommercialPrivacyModal } from './components/CommercialPrivacyModal';
 import { HomeScreenWidgetModal } from './components/HomeScreenWidgetModal';
+import { ParasiteProtectionModal } from './components/ParasiteProtectionModal';
 import { syncWidgetWithLatestData } from './services/nativeWidget';
 
 export default function App() {
@@ -105,6 +106,7 @@ export default function App() {
   const [isFamilySharingOpen, setIsFamilySharingOpen] = useState(false);
   const [isCommercialPrivacyOpen, setIsCommercialPrivacyOpen] = useState(false);
   const [isHomeScreenWidgetModalOpen, setIsHomeScreenWidgetModalOpen] = useState(false);
+  const [isParasiteProtectionOpen, setIsParasiteProtectionOpen] = useState(false);
   const [isQRTransferOpen, setIsQRTransferOpen] = useState(false);
   const [qrInitialMode, setQrInitialMode] = useState<'send' | 'receive'>('send');
   const [restoreToast, setRestoreToast] = useState<string | null>(null);
@@ -632,6 +634,7 @@ export default function App() {
               onOpenHealthTimeline={() => setIsHealthTimelineOpen(true)}
               onOpenFamilySharing={() => setIsFamilySharingOpen(true)}
               onOpenHomeScreenWidgetModal={() => setIsHomeScreenWidgetModalOpen(true)}
+              onOpenParasiteProtection={() => setIsParasiteProtectionOpen(true)}
             />
           )}
 
@@ -676,6 +679,7 @@ export default function App() {
               medications={medications}
               exams={exams}
               visits={visits}
+              onOpenParasiteProtection={() => setIsParasiteProtectionOpen(true)}
             />
           )}
         </main>
@@ -847,6 +851,10 @@ export default function App() {
             setIsToolsHubOpen(false);
             setIsHomeScreenWidgetModalOpen(true);
           }}
+          onOpenParasiteProtection={() => {
+            setIsToolsHubOpen(false);
+            setIsParasiteProtectionOpen(true);
+          }}
           onOpenSettings={() => {
             // Can be opened from HeaderNav
             setIsToolsHubOpen(false);
@@ -960,6 +968,16 @@ export default function App() {
           onClose={() => setIsHomeScreenWidgetModalOpen(false)}
           activePet={activePet}
           pendingMedicationsCount={activeMedsCount}
+        />
+      )}
+
+      {/* Feature 14: Asystent Kleszczy & Odrobaczania (Tarcza Ochronna) */}
+      {isParasiteProtectionOpen && activePet && (
+        <ParasiteProtectionModal
+          isOpen={isParasiteProtectionOpen}
+          onClose={() => setIsParasiteProtectionOpen(false)}
+          pet={activePet}
+          onProtectionUpdated={reloadData}
         />
       )}
     </div>

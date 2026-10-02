@@ -253,3 +253,42 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   order: DEFAULT_WIDGET_ORDER,
 };
 
+// ==========================================
+// Parasite & Tick Protection Types
+// ==========================================
+
+export type ParasiteType = 'tick_flea' | 'deworming' | 'heartworm';
+export type ParasiteForm = 'tablet' | 'collar' | 'spot_on' | 'paste' | 'spray' | 'other';
+
+export interface ParasiteProtection {
+  id: string;
+  petId: string;
+  type: ParasiteType;
+  productName: string; // np. Bravecto, Foresto, Simparica, Milprazon
+  form: ParasiteForm;
+  dateAdministered: string; // YYYY-MM-DD
+  durationDays: number; // np. 84 (12 tyg), 240 (8 mies), 30 (1 mies), 90 (3 mies)
+  validUntil: string; // YYYY-MM-DD
+  batchNumber?: string;
+  vetClinic?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+// ==========================================
+// In-App Calendar Custom Events
+// ==========================================
+
+export type CustomEventCategory = 'groomer' | 'weight' | 'hygiene' | 'walk_trip' | 'other';
+
+export interface CalendarCustomEvent {
+  id: string;
+  petId: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  category: CustomEventCategory;
+  notes?: string;
+  completed?: boolean;
+  createdAt: string;
+}

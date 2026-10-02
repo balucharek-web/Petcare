@@ -77,6 +77,7 @@ interface PetProfileViewProps {
   onOpenHealthTimeline?: () => void;
   onOpenFamilySharing?: () => void;
   onOpenHomeScreenWidgetModal?: () => void;
+  onOpenParasiteProtection?: () => void;
 }
 
 export const PetProfileView: React.FC<PetProfileViewProps> = ({
@@ -102,6 +103,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   onOpenHealthTimeline,
   onOpenFamilySharing,
   onOpenHomeScreenWidgetModal,
+  onOpenParasiteProtection,
 }) => {
   const [copiedChip, setCopiedChip] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -666,7 +668,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => onNavigateToTab('medications')}
@@ -690,6 +692,20 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 </div>
                 <span className="text-base">💉</span>
               </button>
+
+              {onOpenParasiteProtection && (
+                <button
+                  type="button"
+                  onClick={onOpenParasiteProtection}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-teal-50/80 hover:bg-teal-100/80 text-teal-950 transition text-left cursor-pointer border border-teal-200/50"
+                >
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-emerald-600">Kleszcze & Pasożyty</span>
+                    <p className="font-bold text-xs">Tarcza ochronna</p>
+                  </div>
+                  <span className="text-base">🛡️</span>
+                </button>
+              )}
             </div>
           </div>
         );

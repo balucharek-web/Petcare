@@ -11,7 +11,9 @@ import {
   DashboardConfig,
   DEFAULT_DASHBOARD_CONFIG,
   DEFAULT_WIDGET_ORDER,
-  DashboardWidgetKey
+  DashboardWidgetKey,
+  ParasiteProtection,
+  CalendarCustomEvent
 } from '../types/pet';
 
 const STORAGE_KEYS = {
@@ -28,6 +30,8 @@ const STORAGE_KEYS = {
   DASHBOARD_CONFIG: 'petcare_dashboard_config_v2',
   CLEAN_INITIALIZED: 'petcare_clean_initialized_v2',
   DISMISSED_ALERTS: 'petcare_dismissed_alerts_v2',
+  PARASITES: 'petcare_parasites_v2',
+  CUSTOM_CALENDAR_EVENTS: 'petcare_custom_calendar_events_v2',
 };
 
 const memoryStore: Record<string, string> = {};
@@ -467,6 +471,72 @@ export const storage = {
     safeSetItem(STORAGE_KEYS.DASHBOARD_CONFIG, JSON.stringify(config));
   },
 
+  // Parasite & Tick Protections
+  getParasites(petId?: string): ParasiteProtection[] {
+    const raw = safeGetItem(STORAGE_KEYS.PARASITES);
+    if (!raw) return [];
+    try {
+      const items: ParasiteProtection[] = JSON.parse(raw);
+      if (!Array.isArray(items)) return [];
+      return petId ? items.filter(p => p.petId === petId) : items;
+    } catch {
+      return [];
+    }
+  },
+
+  saveParasite(item: ParasiteProtection): void {
+    const all = this.getParasites();
+    const idx = all.findIndex(p => p.id === item.id);
+    if (idx >= 0) {
+      all[idx] = item;
+    } else {
+      all.unshift(item);
+    }
+    safeSetItem(STORAGE_KEYS.PARASITES, JSON.stringify(all));
+  },
+
+  saveParasites(items: ParasiteProtection[]): void {
+    safeSetItem(STORAGE_KEYS.PARASITES, JSON.stringify(items));
+  },
+
+  deleteParasite(id: string): void {
+    const all = this.getParasites().filter(p => p.id !== id);
+    safeSetItem(STORAGE_KEYS.PARASITES, JSON.stringify(all));
+  },
+
+  // Custom In-App Calendar Events
+  getCustomCalendarEvents(petId?: string): CalendarCustomEvent[] {
+    const raw = safeGetItem(STORAGE_KEYS.CUSTOM_CALENDAR_EVENTS);
+    if (!raw) return [];
+    try {
+      const items: CalendarCustomEvent[] = JSON.parse(raw);
+      if (!Array.isArray(items)) return [];
+      return petId ? items.filter(e => e.petId === petId) : items;
+    } catch {
+      return [];
+    }
+  },
+
+  saveCustomCalendarEvent(event: CalendarCustomEvent): void {
+    const all = this.getCustomCalendarEvents();
+    const idx = all.findIndex(e => e.id === event.id);
+    if (idx >= 0) {
+      all[idx] = event;
+    } else {
+      all.unshift(event);
+    }
+    safeSetItem(STORAGE_KEYS.CUSTOM_CALENDAR_EVENTS, JSON.stringify(all));
+  },
+
+  saveCustomCalendarEvents(events: CalendarCustomEvent[]): void {
+    safeSetItem(STORAGE_KEYS.CUSTOM_CALENDAR_EVENTS, JSON.stringify(events));
+  },
+
+  deleteCustomCalendarEvent(id: string): void {
+    const all = this.getCustomCalendarEvents().filter(e => e.id !== id);
+    safeSetItem(STORAGE_KEYS.CUSTOM_CALENDAR_EVENTS, JSON.stringify(all));
+  },
+
   // Full backup & restore
   exportAllData(): string {
     const rawPetsitter = safeGetItem(STORAGE_KEYS.PETSITTER);
@@ -475,7 +545,7 @@ export const storage = {
       try { petsitterData = JSON.parse(rawPetsitter); } catch {}
     }
     const data = {
-      version: '2.1',
+      version: '2.2',
       exportedAt: new Date().toISOString(),
       pets: this.getPets(),
       vaccinations: this.getVaccinations(),
@@ -485,6 +555,8 @@ export const storage = {
       medications: this.getMedications(),
       doseLogs: this.getDoseLogs(),
       expenses: this.getExpenses(),
+      parasites: this.getParasites(),
+      calendarEvents: this.getCustomCalendarEvents(),
       petsitter: petsitterData,
       dashboardConfig: this.getDashboardConfig(),
     };
@@ -516,6 +588,8 @@ export const storage = {
       if (Array.isArray(parsed.visits)) this.saveVisits(parsed.visits);
       if (Array.isArray(parsed.medications)) this.saveMedications(parsed.medications);
       if (Array.isArray(parsed.expenses)) this.saveExpenses(parsed.expenses);
+      if (Array.isArray(parsed.parasites)) this.saveParasites(parsed.parasites);
+      if (Array.isArray(parsed.calendarEvents)) this.saveCustomCalendarEvents(parsed.calendarEvents);
       if (parsed.petsitter && typeof parsed.petsitter === 'object') {
         safeSetItem(STORAGE_KEYS.PETSITTER, JSON.stringify(parsed.petsitter));
       }
@@ -540,6 +614,8 @@ export const storage = {
     safeRemoveItem(STORAGE_KEYS.MEDICATIONS);
     safeRemoveItem(STORAGE_KEYS.DOSE_LOGS);
     safeRemoveItem(STORAGE_KEYS.EXPENSES);
+    safeRemoveItem(STORAGE_KEYS.PARASITES);
+    safeRemoveItem(STORAGE_KEYS.CUSTOM_CALENDAR_EVENTS);
     safeRemoveItem(STORAGE_KEYS.PETSITTER);
     safeRemoveItem(STORAGE_KEYS.DASHBOARD_CONFIG);
     safeSetItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
