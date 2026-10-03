@@ -64,7 +64,7 @@ jobs:
       - name: Kompilacja pakietów APK (Release & Debug) oraz AAB (Google Play Bundle)
         run: |
           cd android
-          ./gradlew assembleRelease assembleDebug bundleRelease --no-daemon
+          ./gradlew assembleRelease assembleDebug bundleRelease --no-daemon --stacktrace || (sleep 5 && ./gradlew assembleRelease assembleDebug bundleRelease --no-daemon --stacktrace)
           mkdir -p ../dist-packages
           find app/build/outputs/apk/release -type f -name "*.apk" -not -name "*unsigned*" -exec cp {} ../dist-packages/PetCare.apk \;
           find app/build/outputs/apk/release -type f -name "*.apk" -not -name "*unsigned*" -exec cp {} ../dist-packages/PetCare-release.apk \;
