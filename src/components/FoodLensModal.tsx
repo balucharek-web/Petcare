@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Camera as CameraIcon, 
   Sparkles, 
@@ -15,7 +15,8 @@ import {
   Check,
   Loader2,
   RefreshCw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Video
 } from 'lucide-react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Pet } from '../types/pet';
@@ -66,7 +67,68 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
     analyticalText?: string;
   } | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Live in-app camera state
+  const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Dedicated separate file inputs for Camera and Gallery
+  const fileInputCameraRef = useRef<HTMLInputElement>(null);
+  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      stopLiveCamera();
+    };
+  }, []);
+
+  const stopLiveCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsLiveCameraOpen(false);
+  };
+
+  const startLiveCamera = async () => {
+    setErrorMsg(null);
+    haptics.tap();
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Aparat na żywo nie jest obsługiwany w tej przeglądarce.');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setIsLiveCameraOpen(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 100);
+    } catch (err: any) {
+      console.warn('Live camera error, falling back to system camera:', err);
+      handleTakePhoto();
+    }
+  };
+
+  const captureLiveCameraSnapshot = async () => {
+    if (!videoRef.current) return;
+    haptics.tap();
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth || 1280;
+    canvas.height = videoRef.current.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    stopLiveCamera();
+    setImagePreview(dataUrl);
+    await processImageWithAI(dataUrl);
+  };
 
   // Pet's known allergies
   const petAllergies = (pet.allergies || '').toLowerCase();
@@ -231,9 +293,10 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
     }
   };
 
-  // 1. Take photo via Native Camera (@capacitor/camera)
+  // 1. Take photo via Native Camera (@capacitor/camera) with capture="environment" fallback
   const handleTakePhoto = async () => {
     setErrorMsg(null);
+    haptics.tap();
     try {
       const photo = await Camera.getPhoto({
         quality: 90,
@@ -246,17 +309,47 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
         const compressed = await compressImage(photo.dataUrl, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
         setImagePreview(compressed.dataUrl);
         await processImageWithAI(compressed.dataUrl);
+        return;
       }
     } catch (err: any) {
-      console.warn('Native camera cancelled or failed, falling back to file input:', err);
-      fileInputRef.current?.click();
+      console.warn('Native camera cancelled or failed, falling back to camera input:', err);
+      // Fallback explicitly instructs Android OS to launch the Camera application
+      fileInputCameraRef.current?.click();
     }
   };
 
-  // 2. File input handler (Web or gallery)
+  // 2. Pick photo from Gallery via @capacitor/camera with standard file picker fallback
+  const handlePickFromGallery = async () => {
+    setErrorMsg(null);
+    haptics.tap();
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Photos,
+      });
+
+      if (photo?.dataUrl) {
+        const compressed = await compressImage(photo.dataUrl, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+        setImagePreview(compressed.dataUrl);
+        await processImageWithAI(compressed.dataUrl);
+        return;
+      }
+    } catch (err: any) {
+      console.warn('Native gallery picker cancelled or failed, falling back to gallery input:', err);
+      // Fallback opens the Android photo gallery / file manager
+      fileInputGalleryRef.current?.click();
+    }
+  };
+
+  // 3. File input handler (Web, camera fallback or gallery fallback)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Reset input value so re-selecting same file triggers change
+    e.target.value = '';
 
     setErrorMsg(null);
     try {
@@ -380,8 +473,61 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               </div>
             )}
 
-            {/* Camera and Gallery Action Buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Live Camera Viewfinder if active */}
+            {isLiveCameraOpen && (
+              <div className="relative rounded-2xl overflow-hidden bg-black aspect-video flex flex-col items-center justify-center border-2 border-teal-500 shadow-xl animate-fadeIn">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 border-2 border-dashed border-teal-400/50 rounded-2xl pointer-events-none m-3 flex items-center justify-center">
+                  <span className="bg-black/60 text-white text-[11px] font-semibold px-3 py-1 rounded-full backdrop-blur-xs">
+                    Skieruj aparat na skład karmy
+                  </span>
+                </div>
+                <div className="absolute bottom-3 flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={captureLiveCameraSnapshot}
+                    className="px-5 py-2.5 rounded-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-xs shadow-lg transition active:scale-95 cursor-pointer flex items-center gap-2"
+                  >
+                    <CameraIcon className="w-4 h-4" />
+                    <span>Uchwyć kadr</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stopLiveCamera}
+                    className="p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white text-xs transition cursor-pointer"
+                    title="Zamknij wizjer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Hidden fallback HTML inputs for Camera and Gallery */}
+            <input
+              ref={fileInputCameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <input
+              ref={fileInputGalleryRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+
+            {/* Camera, Live View and Gallery Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={handleTakePhoto}
@@ -389,26 +535,28 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                 className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition cursor-pointer active:scale-98 disabled:opacity-50"
               >
                 <CameraIcon className="w-4 h-4" />
-                <span>Zrób zdjęcie aparatem</span>
+                <span>Zrób zdjęcie (Aparat)</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={startLiveCamera}
+                disabled={isAnalyzing || isLiveCameraOpen}
+                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition cursor-pointer active:scale-98 disabled:opacity-50"
+              >
+                <Video className="w-4 h-4 text-emerald-300" />
+                <span>Wizjer na żywo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePickFromGallery}
                 disabled={isAnalyzing}
                 className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 font-bold text-xs transition cursor-pointer active:scale-98 disabled:opacity-50"
               >
                 <ImageIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                 <span>Wybierz z galerii</span>
               </button>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
             </div>
 
             {/* Textarea for manual ingredients paste */}

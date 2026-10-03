@@ -88,18 +88,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.56.0' }}
-          name: "PetCare v2.56.0 - Pełna integracja Skanera Karmy z Gemini AI i ulepszenia obu skanerów"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.57.0' }}
+          name: "PetCare v2.57.0 - Niezależny aparat, wizjer na żywo i wybór z galerii w Skanerze Karmy"
           body: |
-            ### 🐾 PetCare v2.56.0 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.57.0 - Nowości i usprawnienia
 
-            1. 🥩 **Skaner Karmy & Alergenów (Food Lens AI) połączony z Gemini AI:**
-               - Naprawiono i wdrożono endpoint `/api/analyze-pet-document` oraz `/api/analyze-food`.
-               - Skaner karmy potrafi teraz odczytać ze zdjęcia aparatu telefonu pełną etykietę karmy, procent mięsa, witaminy, skład analityczny oraz automatycznie wykryć alergeny specyficzne dla Twojego pupila.
-               - Dodano bezpośrednią obsługę natywnego aparatu oraz wyboru z galerii zdjęć.
-
-            2. 📋 **Skaner Medyczny AI (Wizyty, Leki i Badania):**
-               - Zoptymalizowano działanie z modelami Gemini 3.8 Flash z ulepszoną tolerancją na trudne oświetlenie i pismo odręczne.
+            1. 📸 **Dedykowany aparat i wybór z galerii w Skanerze Karmy:**
+               - Rozdzielono obsługę aparatu i galerii na odrębne natywne mechanizmy z flagą `capture="environment"`.
+               - Przycisk **„Zrób zdjęcie (Aparat)”** otwiera bezpośrednio aparat fotograficzny w telefonie.
+               - Przycisk **„Wybierz z galerii”** otwiera album zdjęć i pliki.
+               - Dodano trzecią opcję: **„Wizjer na żywo”** do kadrowania karmy bezpośrednio wewnątrz aplikacji.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
