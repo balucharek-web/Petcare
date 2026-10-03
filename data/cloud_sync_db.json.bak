@@ -1,0 +1,23 @@
+{
+  "users": {
+    "test_healthcheck@petcare.app": {
+      "email": "test_healthcheck@petcare.app",
+      "name": "Tester",
+      "avatar": "",
+      "provider": "google",
+      "token": "tok_afce92a55ce43334942c0aab7e64667b1cf7e39e859808ec",
+      "tokenCreatedAt": 1791031633791,
+      "lastSyncTime": null,
+      "petCount": 0,
+      "payload": {
+        "version": "2.5.0",
+        "pets": [],
+        "vaccinations": [],
+        "medications": [],
+        "exams": [],
+        "conditions": [],
+        "visits": []
+      }
+    }
+  }
+}

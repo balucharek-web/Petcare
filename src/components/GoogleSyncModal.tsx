@@ -50,7 +50,9 @@ import {
   getAccessToken as getDriveAccessToken,
   getStoredSyncMetadata,
   SyncMetadata,
-  subscribeToSyncUpdates
+  subscribeToSyncUpdates,
+  findDriveBackupFile,
+  DriveBackupFile
 } from '../services/googleDriveSync';
 
 interface GoogleSyncModalProps {
@@ -83,6 +85,8 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [session, setSession] = useState<CloudSession>(getStoredSession());
   const [showPinTab, setShowPinTab] = useState(false);
   const [driveMeta, setDriveMeta] = useState<SyncMetadata>(getStoredSyncMetadata());
+  const [driveFileInfo, setDriveFileInfo] = useState<DriveBackupFile | null>(null);
+  const [isCheckingDrive, setIsCheckingDrive] = useState(false);
 
   // QR Code Pairing & Camera Scanner
   const [qrSyncResult, setQrSyncResult] = useState<QRSyncResult | null>(null);
@@ -100,6 +104,18 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [showUnauthorizedDomainHelp, setShowUnauthorizedDomainHelp] = useState(false);
   const [previewEmailInput, setPreviewEmailInput] = useState('michalakmarcin941@gmail.com');
 
+  const checkRemoteDrive = async () => {
+    try {
+      setIsCheckingDrive(true);
+      const file = await findDriveBackupFile();
+      setDriveFileInfo(file);
+    } catch (e) {
+      console.warn('Drive check note:', e);
+    } finally {
+      setIsCheckingDrive(false);
+    }
+  };
+
   useEffect(() => {
     setSession(getStoredSession());
     setDriveMeta(getStoredSyncMetadata());
@@ -114,6 +130,12 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       unsubDrive();
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && session.user) {
+      checkRemoteDrive();
+    }
+  }, [isOpen, session.user?.email]);
 
   if (!isOpen) return null;
 
@@ -262,6 +284,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
         type: 'success',
         message: `Pomyślnie zapisano ${res.petCount} zwierzaków na Twoim prywatnym Dysku Google (plik petcare_app_data.json)!`
       });
+      await checkRemoteDrive();
     } catch (err: any) {
       setFeedback({
         type: 'error',
@@ -283,12 +306,15 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
       if (res.petCount > 0) {
         setFeedback({
           type: 'success',
-          message: `Pobrano dane z Twojego Dysku Google! Przywrócono ${res.petCount} zwierzaków wraz z historią medyczną.`
+          message: `✅ Pobrano dane z Twojego Dysku Google! Pomyślnie przywrócono ${res.petCount} ${res.petCount === 1 ? 'zwierzaka' : 'zwierzaki'} wraz z historią medyczną.`
         });
+        try {
+          confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
+        } catch {}
       } else {
         setFeedback({
           type: 'info',
-          message: 'Pobieranie zakończone. Jeśli masz plik kopii z wcześniejszej wersji, sprawdź czy na Dysku Google plik nie znajduje się w koszu.'
+          message: 'Na Twoim koncie nie znaleziono jeszcze zapisanych zwierzaków w chmurze.'
         });
       }
       if (onDataRestored) {
@@ -297,10 +323,11 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: err.message || 'Nie znaleziono pliku kopii na Twoim Dysku Google.'
+        message: err.message || 'Nie znaleziono pliku kopii na Twoim Dysku Google. Upewnij się, że logujesz się na właściwe konto.'
       });
     } finally {
       setIsLoading(false);
+      checkRemoteDrive();
     }
   };
 
@@ -588,6 +615,44 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     Plik: petcare_app_data.json
                   </span>
                 </div>
+
+                {/* Drive File Status Info */}
+                {driveFileInfo ? (
+                  <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <div className="font-bold">Kopia odnaleziona na Dysku Google!</div>
+                        <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
+                          {driveFileInfo.name} • {new Date(driveFileInfo.modifiedTime).toLocaleString('pl-PL')}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={checkRemoteDrive}
+                      disabled={isCheckingDrive}
+                      className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg text-emerald-700 dark:text-emerald-300 transition-colors"
+                      title="Odśwież stan pliku"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                ) : isCheckingDrive ? (
+                  <div className="p-2.5 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-xs text-slate-500 flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                    <span>Wyszukiwanie kopii na Twoim Dysku Google...</span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                    <span>Nie odnaleziono jeszcze pliku na Dysku Google.</span>
+                    <button
+                      onClick={checkRemoteDrive}
+                      className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline"
+                    >
+                      Sprawdź Dysk
+                    </button>
+                  </div>
+                )}
 
                 <button
                   onClick={handleManualUpload}

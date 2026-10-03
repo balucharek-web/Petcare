@@ -88,20 +88,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.47.1' }}
-          name: "PetCare v2.47.1 - Naprawa płynnego przewijania kafelków palcem na telefonie"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.50.0' }}
+          name: "PetCare v2.50.0 - Niezawodne przywracanie i automatyczna kopia zapasowa na Dysku Google"
           body: |
-            ### 🐾 PetCare v2.47.1 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.50.0 - Nowości i usprawnienia
 
-            1. 📱 **Naprawa płynnego przewijania kafelków palcem:**
-               - Usunięto konflikt atrybutu `draggable` blokujący dotykowe przewijanie ekranu po kafelkach modułów.
-               - Aktywacja trybu przestawiania kafelków następuje wyłącznie po kliknięciu „Przestawiaj kafelki”.
-               - Optymalizacja stylów `touch-action: pan-y manipulation` i akceleracji sprzętowej przewijania.
+            1. ☁️ **Niezawodne przywracanie kopii zapasowej z Dysku Google:**
+               - Zoptymalizowano zapytania Google Drive API do przestrzeni `spaces=drive` dla pełnej zgodności z uprawnieniami `drive.file`.
+               - Dwuetapowy, bezpieczny proces zapisu i aktualizacji danych (2-Step Standard API).
+               - Automatyczne wyszukiwanie i odzyskiwanie kopii zapasowej pupila po nowej instalacji aplikacji na telefonie lub po zmianie urządzenia.
+               - Automatyczna obsługa obu formatów nazw plików (`petcare_app_data.json` oraz `petcare_sync_data.json`).
 
-            2. 🖼️ **Wbudowane kadrowanie zdjęć w okienku podglądu:**
-               - Zoptymalizowane kadrów zdjęć pupila bez zacięć.
+            2. 🔄 **Cicha synchronizacja w tle:**
+               - Każda zmiana wprowadzona w aplikacji (nowe leki, szczepienia, wizyty weterynaryjne) jest automatycznie archiwizowana w tle na Dysku Google i w chmurze.
 
-            3. 🗑️ **Zarządzanie profilami i kaskadowe usuwanie danych.**
+            3. 📲 **Karta statusu kopii zapasowej na żywo:**
+               - W oknie „Konto Google” widoczna jest data i godzina ostatniej kopii oraz przycisk natychmiastowego przywrócenia danych.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

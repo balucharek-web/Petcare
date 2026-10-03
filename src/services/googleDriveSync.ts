@@ -177,7 +177,17 @@ export const googleSignOut = async (): Promise<void> => {
 export const getAccessToken = async (userEmail?: string): Promise<string | null> => {
   if (cachedAccessToken) return cachedAccessToken;
 
-  const email = userEmail || getStoredSyncMetadata().userEmail;
+  let email = userEmail || getStoredSyncMetadata().userEmail;
+  if (!email) {
+    try {
+      const sessionRaw = localStorage.getItem('petcare_google_cloud_session');
+      if (sessionRaw) {
+        const parsed = JSON.parse(sessionRaw);
+        email = parsed?.user?.email;
+      }
+    } catch {}
+  }
+
   if (email && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
     try {
       const nativeToken = await fetchNativeDriveToken(email);
@@ -200,7 +210,7 @@ export interface DriveBackupFile {
   size?: string;
 }
 
-// Find all candidate PetCare backup files on Google Drive (drive & appDataFolder)
+// Find all candidate PetCare backup files on Google Drive (drive space first, then appDataFolder)
 export async function findAllDriveBackupFiles(token?: string): Promise<DriveBackupFile[]> {
   const authToken = token || await getAccessToken();
   if (!authToken) return [];
@@ -208,16 +218,17 @@ export async function findAllDriveBackupFiles(token?: string): Promise<DriveBack
   const foundFiles: DriveBackupFile[] = [];
   const seenIds = new Set<string>();
 
+  // Use targeted, syntax-safe queries on spaces=drive first (which is always permitted by drive.file scope)
   const queries = [
-    // 1. Direct name patterns
-    "(name = 'petcare_app_data.json' or name = 'petcare_sync_data.json' or name contains 'petcare' or name contains 'PetCare' or name contains 'pet_care' or name contains 'kopia' or name contains 'pupil' or name contains 'zwierzak' or name contains 'backup') and trashed = false",
-    // 2. Generic json files
-    "mimeType = 'application/json' and trashed = false"
+    "name = 'petcare_app_data.json' and trashed = false",
+    "name = 'petcare_sync_data.json' and trashed = false",
+    "name contains 'petcare' and trashed = false",
+    "name contains 'PetCare' and trashed = false"
   ];
 
   for (const q of queries) {
     try {
-      const url = `https://www.googleapis.com/drive/v3/files?spaces=drive,appDataFolder&q=${encodeURIComponent(q)}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc&pageSize=15`;
+      const url = `https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(q)}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc&pageSize=10`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
@@ -230,7 +241,7 @@ export async function findAllDriveBackupFiles(token?: string): Promise<DriveBack
               seenIds.add(f.id);
               foundFiles.push({
                 id: f.id,
-                name: f.name || 'petcare_backup.json',
+                name: f.name || 'petcare_app_data.json',
                 modifiedTime: f.modifiedTime || new Date().toISOString(),
                 size: f.size,
               });
@@ -242,10 +253,36 @@ export async function findAllDriveBackupFiles(token?: string): Promise<DriveBack
       console.warn('Google Drive search attempt note:', e);
     }
 
-    // If query 1 found candidate files, no need to crawl all JSONs
-    if (foundFiles.length > 0 && q === queries[0]) {
+    // If exact filename was found, stop querying broader patterns
+    if (foundFiles.length > 0 && (q.includes('petcare_app_data.json') || q.includes('petcare_sync_data.json'))) {
       break;
     }
+  }
+
+  // If nothing found in spaces=drive, also try spaces=appDataFolder in case earlier version wrote there
+  if (foundFiles.length === 0) {
+    try {
+      const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${encodeURIComponent("name = 'petcare_app_data.json' and trashed = false")}&fields=files(id,name,modifiedTime,size)`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.files && Array.isArray(data.files)) {
+          for (const f of data.files) {
+            if (!seenIds.has(f.id)) {
+              seenIds.add(f.id);
+              foundFiles.push({
+                id: f.id,
+                name: f.name || 'petcare_app_data.json',
+                modifiedTime: f.modifiedTime || new Date().toISOString(),
+                size: f.size,
+              });
+            }
+          }
+        }
+      }
+    } catch {}
   }
 
   return foundFiles;
@@ -262,8 +299,19 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
   let token = await getAccessToken();
   if (!token) {
     const meta = getStoredSyncMetadata();
-    if (meta.userEmail && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
-      token = await fetchNativeDriveToken(meta.userEmail);
+    let email = meta.userEmail;
+    if (!email) {
+      try {
+        const sessionRaw = localStorage.getItem('petcare_google_cloud_session');
+        if (sessionRaw) {
+          const parsed = JSON.parse(sessionRaw);
+          email = parsed?.user?.email;
+        }
+      } catch {}
+    }
+
+    if (email && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
+      token = await fetchNativeDriveToken(email);
       if (token) cachedAccessToken = token;
     }
   }
@@ -288,61 +336,81 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
   }
 
   const jsonContent = storage.exportAllData();
-  const existingFile = await findDriveBackupFile(token);
-  let fileId = existingFile?.id;
+  const existingFiles = await findAllDriveBackupFiles(token);
+  let fileId = existingFiles.length > 0 ? existingFiles[0].id : null;
+  let uploadSuccess = false;
 
   if (fileId) {
-    // Update existing file content on Google Drive
-    const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonContent,
-    });
+    // Attempt updating existing file on Google Drive
+    try {
+      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonContent,
+      });
 
-    if (!res.ok) {
-      if (!silent) updateSyncMetadata({ lastSyncStatus: 'error' });
-      throw new Error(`Nie udało się zapisać zmian na Dysku Google (${res.status})`);
+      if (res.ok) {
+        uploadSuccess = true;
+      } else if (res.status === 404) {
+        // File was deleted on Drive by user - reset fileId to create a fresh one below
+        fileId = null;
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[Google Drive] PATCH failed (${res.status}): ${errText}`);
+      }
+    } catch (patchErr) {
+      console.warn('[Google Drive] PATCH network exception:', patchErr);
+      fileId = null;
     }
-  } else {
-    // Create new file with multipart upload on Google Drive
-    const metadata = {
-      name: DRIVE_BACKUP_FILENAME,
-      mimeType: 'application/json',
-      description: 'Prywatna baza danych aplikacji PetCare (zwierzaki, szczepienia, leki, wizyty)',
-    };
+  }
 
-    const boundary = '-------PetCareMultipartBoundary' + Math.random().toString(36).substring(2);
-    const delimiter = `\r\n--${boundary}\r\n`;
-    const closeDelimiter = `\r\n--${boundary}--`;
+  if (!uploadSuccess || !fileId) {
+    // Robust 2-step file creation: 1. Metadata -> 2. Media Upload
+    try {
+      const createMetaRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: JSON.stringify({
+          name: DRIVE_BACKUP_FILENAME,
+          mimeType: 'application/json',
+          description: 'Prywatna baza danych aplikacji PetCare (zwierzaki, szczepienia, leki, wizyty)',
+        }),
+      });
 
-    const multipartRequestBody =
-      delimiter +
-      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-      JSON.stringify(metadata) +
-      delimiter +
-      'Content-Type: application/json\r\n\r\n' +
-      jsonContent +
-      closeDelimiter;
+      if (!createMetaRes.ok) {
+        const errText = await createMetaRes.text().catch(() => '');
+        throw new Error(`Nie udało się utworzyć pliku na Dysku Google (${createMetaRes.status}): ${errText}`);
+      }
 
-    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': `multipart/related; boundary=${boundary}`,
-      },
-      body: multipartRequestBody,
-    });
+      const createdFile = await createMetaRes.json();
+      fileId = createdFile.id;
 
-    if (!res.ok) {
+      // Upload JSON content into the newly created file
+      const uploadMediaRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonContent,
+      });
+
+      if (!uploadMediaRes.ok) {
+        const errText = await uploadMediaRes.text().catch(() => '');
+        throw new Error(`Nie udało się zapisać danych w pliku (${uploadMediaRes.status}): ${errText}`);
+      }
+
+      uploadSuccess = true;
+    } catch (createErr: any) {
       if (!silent) updateSyncMetadata({ lastSyncStatus: 'error' });
-      throw new Error(`Nie udało się utworzyć pliku na Dysku Google (${res.status})`);
+      throw createErr;
     }
-
-    const resData = await res.json();
-    fileId = resData.id;
   }
 
   const now = new Date().toISOString();
@@ -362,8 +430,19 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
   let token = tokenOverride || await getAccessToken();
   if (!token) {
     const meta = getStoredSyncMetadata();
-    if (meta.userEmail && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
-      token = await fetchNativeDriveToken(meta.userEmail);
+    let email = meta.userEmail;
+    if (!email) {
+      try {
+        const sessionRaw = localStorage.getItem('petcare_google_cloud_session');
+        if (sessionRaw) {
+          const parsed = JSON.parse(sessionRaw);
+          email = parsed?.user?.email;
+        }
+      } catch {}
+    }
+
+    if (email && (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android')) {
+      token = await fetchNativeDriveToken(email);
       if (token) cachedAccessToken = token;
     }
   }
@@ -378,7 +457,7 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
   }
 
   if (!token) {
-    throw new Error('Brak autoryzacji Dysku Google. Zaloguj się, aby pobrać kopię.');
+    throw new Error('Brak autoryzacji Dysku Google. Zaloguj się ponownie swoim kontem Google.');
   }
 
   updateSyncMetadata({ lastSyncStatus: 'syncing' });
@@ -386,12 +465,13 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
   const candidateFiles = await findAllDriveBackupFiles(token);
   if (candidateFiles.length === 0) {
     updateSyncMetadata({ lastSyncStatus: 'idle' });
-    throw new Error('Na Twoim Dysku Google nie znaleziono jeszcze zapisanego pliku kopii PetCare.');
+    throw new Error('Na Twoim Dysku Google nie znaleziono pliku kopii PetCare (petcare_app_data.json). Upewnij się, że logujesz się na to samo konto Google, na którym utworzono kopię.');
   }
 
   let restored = false;
   let restoredFileId = '';
   let restoredPetCount = 0;
+  let lastTimestamp = candidateFiles[0].modifiedTime || new Date().toISOString();
 
   for (const file of candidateFiles) {
     try {
@@ -409,6 +489,7 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
         restored = true;
         restoredFileId = file.id;
         restoredPetCount = currentPets.length;
+        if (file.modifiedTime) lastTimestamp = file.modifiedTime;
         break;
       }
     } catch (e) {
@@ -418,13 +499,13 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
 
   if (!restored) {
     updateSyncMetadata({ lastSyncStatus: 'error' });
-    throw new Error('Plik na Dysku Google nie zawierał danych zwierzaka lub ma nieobsługiwany format.');
+    throw new Error('Plik na Twoim Dysku Google nie zawierał prawidłowych danych zwierzaków.');
   }
 
   const now = new Date().toISOString();
   updateSyncMetadata({
     fileId: restoredFileId,
-    lastSyncTime: now,
+    lastSyncTime: lastTimestamp || now,
     lastSyncStatus: 'success',
     petCount: restoredPetCount,
   });
@@ -432,7 +513,7 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
   return {
     success: true,
     petCount: restoredPetCount,
-    timestamp: now,
+    timestamp: lastTimestamp || now,
   };
 };
 
@@ -468,6 +549,7 @@ export async function autoRestoreFromDriveIfEmpty(token?: string): Promise<{ res
     return { restored: false, petCount: 0 };
   }
 }
+
 
 // Debounced auto-save to Google Drive on every data modification
 let autoSaveTimer: any = null;

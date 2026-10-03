@@ -114,14 +114,14 @@ export interface DriveFileInfo {
   size?: string;
 }
 
-const DRIVE_FILE_NAME = 'petcare_sync_data.json';
+const DRIVE_FILE_NAME = 'petcare_app_data.json';
 
 /**
  * Searches for existing petcare data file in user's Google Drive
  */
 export async function findDriveSyncFile(token: string): Promise<DriveFileInfo | null> {
-  const query = encodeURIComponent(`name = '${DRIVE_FILE_NAME}' and trashed = false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size)&spaces=drive`;
+  const query = encodeURIComponent("(name = 'petcare_app_data.json' or name = 'petcare_sync_data.json') and trashed = false");
+  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size)&spaces=drive&orderBy=modifiedTime desc`;
   
   const response = await fetch(url, {
     method: 'GET',

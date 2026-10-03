@@ -1,4 +1,4 @@
-import { storage } from './storage';
+import { storage, subscribeToStorageChanges } from './storage';
 import { 
   googleSignOut as googleDriveSignOut, 
   uploadPetDataToDrive, 
@@ -12,6 +12,8 @@ import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
+const CURRENT_APP_PRODUCTION_URL = 'https://ais-pre-f6cewd2dnhe2dmydn7j76d-204842852838.europe-west2.run.app';
+
 const getCustomBackendUrl = (): string | null => {
   try {
     return localStorage.getItem('petcare_custom_backend_url');
@@ -23,9 +25,15 @@ const getCustomBackendUrl = (): string | null => {
 const REMOTE_BACKEND_URL = 
   getCustomBackendUrl() ||
   (import.meta as any).env?.VITE_APP_URL || 
-  (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('capacitor:') && !window.location.origin.startsWith('file:') && window.location.origin.includes('.run.app') 
+  (typeof window !== 'undefined' && 
+   window.location.origin && 
+   !window.location.origin.startsWith('capacitor:') && 
+   !window.location.origin.startsWith('file:') && 
+   !window.location.origin.startsWith('android-') &&
+   window.location.origin !== 'null' &&
+   window.location.origin.includes('.run.app') 
     ? window.location.origin 
-    : 'https://ais-pre-dvjckalu5rcfsg3eceu76n-797954052342.europe-west2.run.app');
+    : CURRENT_APP_PRODUCTION_URL);
 
 export interface CloudUser {
   email: string;
@@ -91,7 +99,7 @@ export function ensureGuestSession(displayName?: string): CloudSession {
   });
 }
 
-// Check if an existing cloud backup exists on user's Google Drive
+// Check if an existing cloud backup exists on user's Google Drive or in PetCare Cloud Sync
 export async function checkCloudBackup(email: string, token?: string): Promise<{ exists: boolean; petCount: number; lastSyncTime: string | null; payload?: any }> {
   try {
     const driveFile = await findDriveBackupFile(token);
@@ -103,6 +111,26 @@ export async function checkCloudBackup(email: string, token?: string): Promise<{
       };
     }
   } catch {}
+
+  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  const currentToken = token || getStoredSession().authToken;
+  if (cleanEmail && currentToken) {
+    try {
+      const data = await safeApiCall('/api/cloud-sync/download', {
+        email: cleanEmail,
+        token: currentToken,
+      });
+      if (data?.payload && Array.isArray(data.payload.pets) && data.payload.pets.length > 0) {
+        return {
+          exists: true,
+          petCount: data.payload.pets.length,
+          lastSyncTime: data.lastSyncTime || null,
+          payload: data.payload,
+        };
+      }
+    } catch {}
+  }
+
   return { exists: false, petCount: 0, lastSyncTime: null };
 }
 
@@ -742,4 +770,36 @@ export async function deleteCloudAccount(): Promise<boolean> {
 
   return true;
 }
+
+// Debounced auto-save to Cloud Sync on any data change in storage
+let autoCloudSyncTimer: any = null;
+export function scheduleAutoCloudSync(): void {
+  if (autoCloudSyncTimer) clearTimeout(autoCloudSyncTimer);
+  autoCloudSyncTimer = setTimeout(async () => {
+    try {
+      const session = getStoredSession();
+      if (!session.user || !session.autoSync) return;
+      await uploadToCloud();
+    } catch (e) {
+      console.warn('Cichy automatyczny zapis w chmurze:', e);
+    }
+  }, 3000);
+}
+
+try {
+  subscribeToStorageChanges((key) => {
+    if (
+      key.includes('metadata') || 
+      key.includes('sync') || 
+      key.includes('alerts') || 
+      key.includes('theme') || 
+      key.includes('token') ||
+      key.includes('custom_backend')
+    ) {
+      return;
+    }
+    scheduleAutoCloudSync();
+  });
+} catch {}
+
 
