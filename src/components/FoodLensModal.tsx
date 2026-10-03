@@ -228,22 +228,40 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
     haptics.tap();
 
     try {
-      const apiUrl = getApiUrl('/api/analyze-pet-document');
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: base64Image,
-          mimeType: 'image/jpeg',
-          petName: pet.name,
-          petSpecies: pet.species,
-          petAllergies: pet.allergies || '',
-        }),
-      });
+      const candidates = [
+        getApiUrl('/api/analyze-pet-document'),
+        'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/analyze-pet-document',
+        'https://ais-dev-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/analyze-pet-document',
+      ];
+      const uniqueUrls = Array.from(new Set(candidates));
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => null);
-        throw new Error(errJson?.error || `Błąd serwera (${res.status}) podczas analizy karmy`);
+      let res: Response | null = null;
+      let lastFetchError: any = null;
+
+      for (const url of uniqueUrls) {
+        try {
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageBase64: base64Image,
+              mimeType: 'image/jpeg',
+              petName: pet.name,
+              petSpecies: pet.species,
+              petAllergies: pet.allergies || '',
+            }),
+          });
+          if (r.ok) {
+            res = r;
+            break;
+          }
+        } catch (fErr) {
+          lastFetchError = fErr;
+        }
+      }
+
+      if (!res) {
+        throw new Error(lastFetchError?.message || 'Brak połączenia z serwerem analizy karmy AI.');
       }
 
       const data = await res.json();

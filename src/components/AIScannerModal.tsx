@@ -275,33 +275,45 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         ? await enhanceImageWithPreset(imagePreview, filterPreset)
         : imagePreview;
 
-      const apiUrl = getApiUrl('/api/scan-medical');
+      const candidates = [
+        getApiUrl('/api/scan-medical'),
+        'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/scan-medical',
+        'https://ais-dev-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/scan-medical',
+      ];
+      const uniqueUrls = Array.from(new Set(candidates));
       let extracted: ExtractedMedicalData | null = null;
 
       // 1. Attempt server AI call with 45s timeout for complex handwriting
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        for (const apiUrl of uniqueUrls) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-        const res = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            imageBase64: imageToSend,
-            petName: pet.name,
-            petSpecies: pet.species,
-            petWeightKg: pet.weightKg,
-            deepDecipherMode,
-          }),
-        });
-        clearTimeout(timeoutId);
+            const res = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              signal: controller.signal,
+              body: JSON.stringify({
+                imageBase64: imageToSend,
+                petName: pet.name,
+                petSpecies: pet.species,
+                petWeightKg: pet.weightKg,
+                deepDecipherMode,
+              }),
+            });
+            clearTimeout(timeoutId);
 
-        const contentType = res.headers.get('content-type') || '';
-        if (res.ok && contentType.includes('application/json')) {
-          const data = await res.json();
-          if (data?.success && data?.extracted) {
-            extracted = data.extracted;
+            const contentType = res.headers.get('content-type') || '';
+            if (res.ok && contentType.includes('application/json')) {
+              const data = await res.json();
+              if (data?.success && data?.extracted) {
+                extracted = data.extracted;
+                break;
+              }
+            }
+          } catch {
+            // Try next candidate URL
           }
         }
       } catch (networkOrAuthErr) {

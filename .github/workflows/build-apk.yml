@@ -88,16 +88,17 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.57.0' }}
-          name: "PetCare v2.57.0 - Niezależny aparat, wizjer na żywo i wybór z galerii w Skanerze Karmy"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.58.0' }}
+          name: "PetCare v2.58.0 - Naprawa błędu Failed to fetch w Skanerze Karmy i Skanerze Medycznym"
           body: |
-            ### 🐾 PetCare v2.57.0 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.58.0 - Nowości i usprawnienia
 
-            1. 📸 **Dedykowany aparat i wybór z galerii w Skanerze Karmy:**
-               - Rozdzielono obsługę aparatu i galerii na odrębne natywne mechanizmy z flagą `capture="environment"`.
-               - Przycisk **„Zrób zdjęcie (Aparat)”** otwiera bezpośrednio aparat fotograficzny w telefonie.
-               - Przycisk **„Wybierz z galerii”** otwiera album zdjęć i pliki.
-               - Dodano trzecią opcję: **„Wizjer na żywo”** do kadrowania karmy bezpośrednio wewnątrz aplikacji.
+            1. 🌐 **Naprawa adresu backendu AI w aplikacji mobilnej (usunięcie Failed to fetch):**
+               - Zaktualizowano adres serwera produkcyjnego Cloud Run dla aplikacji mobilnej APK.
+               - Dodano odporne kaskadowe połączenie awaryjne z serwerem Gemini AI, eliminujące problem `Failed to fetch`.
+
+            2. 🥩 **Skaner Karmy & Alergenów (Food Lens AI):**
+               - Zdjęcia z aparatu, wizjera na żywo i galerii łączą się bezpośrednio z aktywnym silnikiem Gemini 3.8 Flash.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
