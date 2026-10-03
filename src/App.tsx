@@ -43,6 +43,7 @@ import {
   downloadFromCloud,
   CloudSession 
 } from './services/cloudSyncService';
+import { syncLatestDriveData } from './services/googleDriveSync';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { syncAllScheduledNotifications, requestNotificationPermission } from './services/notificationService';
 import { QRTransferModal } from './components/QRTransferModal';
@@ -123,27 +124,45 @@ export default function App() {
     syncWidgetWithLatestData();
   }, [pets, activePetId]);
 
-  // Auto-download and restore from Google Drive if user has 0 pets or only default demo pet on device
+  // Inteligentna synchronizacja dwukierunkowa z Dyskiem Google przy starcie i wznowieniu aplikacji
   useEffect(() => {
     let isMounted = true;
-    const isOnlyDemoOrEmpty = pets.length === 0 || 
-      (pets.length === 1 && (pets[0].id === 'pet-1' || pets[0].id === 'pet-bono-sample'));
 
-    if (session.user?.email && isOnlyDemoOrEmpty) {
-      downloadFromCloud().then((res) => {
-        if (isMounted && res.petCount > 0) {
+    const performSmartSync = async () => {
+      try {
+        const res = await syncLatestDriveData(true);
+        if (!isMounted) return;
+        if (res.action === 'downloaded') {
           reloadData();
-          setRestoreToast(`Pobrano Twojego pupila (${res.petCount}) z Dysku Google!`);
-          setTimeout(() => setRestoreToast(null), 5000);
+          setRestoreToast(res.message || `Zaktualizowano dane z Dysku Google!`);
+          setTimeout(() => {
+            if (isMounted) setRestoreToast(null);
+          }, 4500);
         }
-      }).catch((err) => {
-        console.warn('Silent auto-download from Drive on startup:', err);
-      });
-    }
+      } catch (e) {
+        console.warn('Smart drive sync notice:', e);
+      }
+    };
+
+    // Uruchom przy starcie
+    performSmartSync();
+
+    // Uruchom przy powrocie do aplikacji (np. po włączeniu ekranu telefonu lub przełączeniu aplikacji)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        performSmartSync();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
     return () => {
       isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
     };
-  }, [session.user?.email, pets.length]);
+  }, [session.user?.email]);
 
   // Theme Mode: Light / Dark
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {

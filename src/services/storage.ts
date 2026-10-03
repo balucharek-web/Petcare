@@ -32,6 +32,7 @@ const STORAGE_KEYS = {
   DISMISSED_ALERTS: 'petcare_dismissed_alerts_v2',
   PARASITES: 'petcare_parasites_v2',
   CUSTOM_CALENDAR_EVENTS: 'petcare_custom_calendar_events_v2',
+  LAST_LOCAL_MODIFIED: 'petcare_last_local_modified_v2',
 };
 
 const memoryStore: Record<string, string> = {};
@@ -46,6 +47,19 @@ export function subscribeToStorageChanges(fn: StorageChangeListener): () => void
 
 function notifyStorageChanged(key: string) {
   if (key.startsWith('petcare_')) {
+    if (
+      key !== STORAGE_KEYS.LAST_LOCAL_MODIFIED &&
+      key !== STORAGE_KEYS.DISMISSED_ALERTS &&
+      !key.includes('metadata') &&
+      !key.includes('theme') &&
+      !key.includes('token')
+    ) {
+      try {
+        const now = new Date().toISOString();
+        memoryStore[STORAGE_KEYS.LAST_LOCAL_MODIFIED] = now;
+        localStorage.setItem(STORAGE_KEYS.LAST_LOCAL_MODIFIED, now);
+      } catch {}
+    }
     changeListeners.forEach(fn => {
       try { fn(key); } catch {}
     });
@@ -731,10 +745,20 @@ export const storage = {
       if (parsed.pets?.length > 0) {
         this.setActivePetId(parsed.pets[0].id);
       }
+      this.setLastLocalModified(parsed.exportedAt || new Date().toISOString());
       return true;
     } catch {
       return false;
     }
+  },
+
+  getLastLocalModified(): string {
+    return safeGetItem(STORAGE_KEYS.LAST_LOCAL_MODIFIED) || new Date().toISOString();
+  },
+
+  setLastLocalModified(iso?: string): void {
+    const val = iso || new Date().toISOString();
+    safeSetItem(STORAGE_KEYS.LAST_LOCAL_MODIFIED, val);
   },
 
   clearAllData(): void {

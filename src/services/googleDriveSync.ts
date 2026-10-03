@@ -824,3 +824,96 @@ try {
   });
 } catch {}
 
+/**
+ * Inteligentna, dwukierunkowa synchronizacja przy uruchomieniu aplikacji lub powrocie:
+ * 1. Sprawdza czy użytkownik jest połączony z kontem Google.
+ * 2. Pobiera metadane najnowszego pliku kopii z Dysku Google.
+ * 3. Jeśli na telefonie jest 0 pupili (lub tylko demo), a w chmurze jest kopia -> pobiera i przywraca.
+ * 4. Jeśli na telefonie są pupile, a na Dysku jest plik:
+ *    - Porównuje datę modyfikacji pliku na Dysku z ostatnim czasem zapisu w telefonie.
+ *    - Jeśli plik na Dysku jest wyraźnie nowszy (> 15s różnicy) niż lokalna modyfikacja:
+ *      oznacza to, że dane zaktualizowano z innego telefonu -> pobiera i uaktualnia bazę.
+ *    - Jeśli dane w telefonie są nowsze -> wysyła aktualną kopię na Dysk Google.
+ *    - Jeśli dane są w pełni zgodne -> zwraca { action: 'in_sync' }.
+ */
+export async function syncLatestDriveData(silent = true): Promise<{
+  action: 'downloaded' | 'uploaded' | 'in_sync' | 'skipped';
+  petCount: number;
+  petNames?: string[];
+  message?: string;
+}> {
+  try {
+    const token = await getAccessToken();
+    if (!token) {
+      return { action: 'skipped', petCount: storage.getPets().length };
+    }
+
+    const localPets = storage.getPets();
+    const isOnlyDemoOrEmpty = localPets.length === 0 || 
+      (localPets.length === 1 && (localPets[0].id === 'pet-1' || localPets[0].id === 'pet-bono-sample'));
+
+    const driveFile = await findDriveBackupFile(token);
+
+    // Przypadek 1: Brak pliku na Dysku
+    if (!driveFile) {
+      if (!isOnlyDemoOrEmpty && localPets.length > 0) {
+        await uploadPetDataToDrive(true);
+        return { action: 'uploaded', petCount: localPets.length, petNames: localPets.map(p => p.name) };
+      }
+      return { action: 'in_sync', petCount: localPets.length };
+    }
+
+    // Przypadek 2: Plik na Dysku jest pusty
+    if (driveFile.isEmpty || (driveFile.petCount ?? 0) === 0) {
+      if (!isOnlyDemoOrEmpty && localPets.length > 0) {
+        await uploadPetDataToDrive(true);
+        return { action: 'uploaded', petCount: localPets.length, petNames: localPets.map(p => p.name) };
+      }
+      return { action: 'in_sync', petCount: 0 };
+    }
+
+    // Przypadek 3: Telefon jest pusty, a na Dysku są zwierzaki -> pobierz automatycznie
+    if (isOnlyDemoOrEmpty && (driveFile.petCount ?? 0) > 0) {
+      const res = await downloadPetDataFromDrive(token);
+      return {
+        action: 'downloaded',
+        petCount: res.petCount,
+        petNames: driveFile.petNames,
+        message: `Pobrano dane Twojego pupila (${driveFile.petNames?.join(', ') || res.petCount}) z Dysku Google`
+      };
+    }
+
+    // Przypadek 4: Zarówno telefon, jak i Dysk mają dane -> porównanie czasu
+    const syncMeta = getStoredSyncMetadata();
+    const lastSyncTimeMs = syncMeta.lastSyncTime ? new Date(syncMeta.lastSyncTime).getTime() : 0;
+    const remoteModifiedMs = driveFile.modifiedTime ? new Date(driveFile.modifiedTime).getTime() : 0;
+    const localModifiedMs = new Date(storage.getLastLocalModified()).getTime();
+
+    // Jeśli plik na Dysku został zmodyfikowany po naszym ostatnim znanym zapisie/syncu o ponad 15 sekund:
+    if (remoteModifiedMs > Math.max(lastSyncTimeMs, localModifiedMs) + 15000) {
+      const res = await downloadPetDataFromDrive(token);
+      return {
+        action: 'downloaded',
+        petCount: res.petCount,
+        petNames: driveFile.petNames,
+        message: `Zaktualizowano dane z Dysku Google (${driveFile.petNames?.join(', ') || res.petCount})`
+      };
+    }
+
+    // Jeśli lokalne dane zostały zmodyfikowane po ostatniej synchronizacji (np. offline na tym telefonie):
+    if (localModifiedMs > lastSyncTimeMs + 5000 && localPets.length > 0) {
+      await uploadPetDataToDrive(true);
+      return { action: 'uploaded', petCount: localPets.length, petNames: localPets.map(p => p.name) };
+    }
+
+    return { 
+      action: 'in_sync', 
+      petCount: localPets.length, 
+      petNames: localPets.map(p => p.name) 
+    };
+  } catch (err: any) {
+    if (!silent) console.warn('Błąd inteligentnej synchronizacji Dysku Google:', err);
+    return { action: 'skipped', petCount: storage.getPets().length };
+  }
+}
+

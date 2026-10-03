@@ -625,40 +625,167 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                 </div>
 
                 {/* Drive File Status Info */}
-                {driveFileInfo ? (
-                  driveFileInfo.isEmpty || driveFileInfo.petCount === 0 ? (
-                    <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Cloud className="w-4 h-4 text-blue-600 shrink-0" />
-                        <div>
-                          <div className="font-bold">
-                            Dysk Google połączony (Brak zwierzaków w kopii)
-                          </div>
-                          <div className="text-[11px] text-blue-700/80 dark:text-blue-300">
-                            Folder petcare_kopiazapasowa jest gotowy. Nie dodałeś jeszcze pupila — utwórz profil w aplikacji, a dane zapiszą się na Dysku.
+                {(() => {
+                  const localPets = storage.getPets();
+                  const localPetCount = localPets.length;
+                  const remotePetCount = driveFileInfo?.petCount ?? 0;
+                  const remotePetNames = driveFileInfo?.petNames ?? [];
+                  const isOnlyDemoOrEmpty = localPetCount === 0 || 
+                    (localPetCount === 1 && (localPets[0].id === 'pet-1' || localPets[0].id === 'pet-bono-sample'));
+
+                  // Remote and local are in sync (e.g. after adding a pet and it was saved)
+                  const isDataSynchronized = !isOnlyDemoOrEmpty && remotePetCount > 0 && (
+                    localPetCount === remotePetCount &&
+                    localPets.every(lp => remotePetNames.length === 0 || remotePetNames.includes(lp.name))
+                  );
+
+                  // Device is empty/fresh and has a cloud backup ready to restore
+                  const isNewDeviceWithBackup = isOnlyDemoOrEmpty && remotePetCount > 0;
+
+                  // Cloud copy was updated on another device (modifiedTime is clearly newer)
+                  const localLastModMs = new Date(storage.getLastLocalModified()).getTime();
+                  const remoteLastModMs = driveFileInfo?.modifiedTime ? new Date(driveFileInfo.modifiedTime).getTime() : 0;
+                  const isRemoteNewer = !isOnlyDemoOrEmpty && remotePetCount > 0 && !isDataSynchronized && remoteLastModMs > localLastModMs + 15000;
+
+                  if (isCheckingDrive) {
+                    return (
+                      <div className="p-2.5 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-xs text-slate-500 flex items-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                        <span>Sprawdzanie stanu kopii na Twoim Dysku Google...</span>
+                      </div>
+                    );
+                  }
+
+                  if (!driveFileInfo) {
+                    return (
+                      <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                        <span>Nie odnaleziono jeszcze pliku na Dysku Google.</span>
+                        <button
+                          onClick={checkRemoteDrive}
+                          className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
+                        >
+                          Sprawdź Dysk
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (driveFileInfo.isEmpty || remotePetCount === 0) {
+                    return (
+                      <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Cloud className="w-4 h-4 text-blue-600 shrink-0" />
+                          <div>
+                            <div className="font-bold">
+                              Dysk Google połączony (Folder gotowy)
+                            </div>
+                            <div className="text-[11px] text-blue-700/80 dark:text-blue-300">
+                              Folder petcare_kopiazapasowa jest przygotowany na Twoim Dysku. Kliknij poniżej, aby utworzyć pierwszą kopię.
+                            </div>
                           </div>
                         </div>
+                        <button
+                          onClick={checkRemoteDrive}
+                          disabled={isCheckingDrive}
+                          className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg text-blue-700 dark:text-blue-300 transition-colors cursor-pointer"
+                          title="Odśwież stan pliku"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
+                        </button>
                       </div>
-                      <button
-                        onClick={checkRemoteDrive}
-                        disabled={isCheckingDrive}
-                        className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg text-blue-700 dark:text-blue-300 transition-colors"
-                        title="Odśwież stan pliku"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
-                      </button>
-                    </div>
-                  ) : (
+                    );
+                  }
+
+                  // STAN 1: Wszystko w 100% zsynchronizowane i aktualne
+                  if (isDataSynchronized) {
+                    return (
+                      <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <div>
+                            <div className="font-bold flex items-center gap-1.5">
+                              <span>Wszystkie dane są aktualne i zsynchronizowane</span>
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            </div>
+                            <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
+                              Twój pupil ({remotePetNames.join(', ') || localPets.map(p => p.name).join(', ')}) jest bezpiecznie zachowany na Dysku • {new Date(driveFileInfo.modifiedTime).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={checkRemoteDrive}
+                          disabled={isCheckingDrive}
+                          className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
+                          title="Odśwież stan pliku"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // STAN 2: Świeża instalacja / czysty telefon, a na Dysku czeka kopia pupila
+                  if (isNewDeviceWithBackup) {
+                    return (
+                      <div className="p-3.5 bg-gradient-to-r from-teal-50 to-sky-50 dark:from-teal-950/60 dark:to-sky-950/60 border border-teal-300 dark:border-teal-700 rounded-xl text-xs text-teal-900 dark:text-teal-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <Sparkles className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0 animate-bounce" />
+                          <div>
+                            <div className="font-bold text-sm">
+                              Odnaleziono Twoją kopię zapasową!
+                            </div>
+                            <div className="text-[11px] text-teal-700 dark:text-teal-300 mt-0.5">
+                              Na Dysku czeka {remotePetCount} {remotePetCount === 1 ? 'pupil' : 'pupili'}: <strong>{remotePetNames.join(', ')}</strong>. Możesz go przywrócić jednym kliknięciem poniżej.
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={checkRemoteDrive}
+                          disabled={isCheckingDrive}
+                          className="p-1.5 hover:bg-teal-100 dark:hover:bg-teal-900/60 rounded-lg text-teal-700 dark:text-teal-300 transition-colors cursor-pointer"
+                          title="Odśwież stan pliku"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // STAN 3: Wykryto nowszą wersję w chmurze (np. dodaną z innego telefonu)
+                  if (isRemoteNewer) {
+                    return (
+                      <div className="p-3 bg-sky-50/80 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 rounded-xl text-xs text-sky-900 dark:text-sky-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <RefreshCw className="w-4 h-4 text-sky-600 shrink-0 animate-spin" />
+                          <div>
+                            <div className="font-bold">
+                              Wykryto nowsze dane na Dysku Google
+                            </div>
+                            <div className="text-[11px] text-sky-700/80 dark:text-sky-300">
+                              Zaktualizowano na innym urządzeniu ({new Date(driveFileInfo.modifiedTime).toLocaleString('pl-PL')}) • Pupile: {remotePetNames.join(', ') || remotePetCount}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={checkRemoteDrive}
+                          disabled={isCheckingDrive}
+                          className="p-1.5 hover:bg-sky-100 dark:hover:bg-sky-900/60 rounded-lg text-sky-700 dark:text-sky-300 transition-colors cursor-pointer"
+                          title="Odśwież stan pliku"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // Stan domyślny / inny
+                  return (
                     <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                         <div>
                           <div className="font-bold">
-                            {driveFileInfo.petCount 
-                              ? `Kopia odnaleziona: ${driveFileInfo.petCount} ${driveFileInfo.petCount === 1 ? 'zwierzak' : 'zwierzaki'} (${driveFileInfo.petNames?.join(', ') || 'dane'})`
-                              : (driveFileInfo.inDedicatedFolder
-                                ? 'Kopia odnaleziona w folderze petcare_kopiazapasowa!'
-                                : 'Kopia odnaleziona na Dysku Google!')}
+                            Kopia na Dysku: {remotePetCount} {remotePetCount === 1 ? 'pupil' : 'pupili'} ({remotePetNames.join(', ') || 'dane'})
                           </div>
                           <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
                             {driveFileInfo.name} • {new Date(driveFileInfo.modifiedTime).toLocaleString('pl-PL')}
@@ -668,55 +795,82 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                       <button
                         onClick={checkRemoteDrive}
                         disabled={isCheckingDrive}
-                        className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg text-emerald-700 dark:text-emerald-300 transition-colors"
+                        className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
                         title="Odśwież stan pliku"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
-                  )
-                ) : isCheckingDrive ? (
-                  <div className="p-2.5 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-xs text-slate-500 flex items-center gap-2">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-600" />
-                    <span>Wyszukiwanie kopii na Twoim Dysku Google...</span>
-                  </div>
-                ) : (
-                  <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
-                    <span>Nie odnaleziono jeszcze pliku na Dysku Google.</span>
-                    <button
-                      onClick={checkRemoteDrive}
-                      className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline"
-                    >
-                      Sprawdź Dysk
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
 
-                <button
-                  onClick={handleManualUpload}
-                  disabled={isLoading}
-                  className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 cursor-pointer text-sm"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  <span>{isLoading ? 'Zapisywanie...' : '💾 Zapisz dane na Twoim Dysku Google'}</span>
-                </button>
+                {/* PRZYCISKI AKCJI */}
+                {(() => {
+                  const localPets = storage.getPets();
+                  const localPetCount = localPets.length;
+                  const remotePetCount = driveFileInfo?.petCount ?? 0;
+                  const remotePetNames = driveFileInfo?.petNames ?? [];
+                  const isOnlyDemoOrEmpty = localPetCount === 0 || 
+                    (localPetCount === 1 && (localPets[0].id === 'pet-1' || localPets[0].id === 'pet-bono-sample'));
 
-                {driveFileInfo && !driveFileInfo.isEmpty && (driveFileInfo.petCount ?? 1) > 0 ? (
-                  <button
-                    onClick={() => setShowRestoreConfirm(true)}
-                    disabled={isLoading}
-                    className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-bold rounded-2xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer text-xs sm:text-sm"
-                  >
-                    <CloudDownload className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                    <span>
-                      📥 Pobierz dane z Dysku Google ({driveFileInfo.petCount ? `Przywróć ${driveFileInfo.petCount === 1 ? '1 zwierzaka' : `${driveFileInfo.petCount} zwierzaki`}` : 'Przywróć zwierzaki'})
-                    </span>
-                  </button>
-                ) : (
-                  <div className="py-2.5 px-3 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-center text-xs text-slate-500 dark:text-slate-400">
-                    💡 Brak zwierzaków w kopii w chmurze — po dodaniu pupila w aplikacji kliknij „Zapisz dane”, aby zachować kopię na Dysku.
-                  </div>
-                )}
+                  const isDataSynchronized = !isOnlyDemoOrEmpty && remotePetCount > 0 && (
+                    localPetCount === remotePetCount &&
+                    localPets.every(lp => remotePetNames.length === 0 || remotePetNames.includes(lp.name))
+                  );
+
+                  const isNewDeviceWithBackup = isOnlyDemoOrEmpty && remotePetCount > 0;
+
+                  // Gdy jesteśmy na nowym urządzeniu i na dysku czeka kopia:
+                  // Przycisk "Przywróć" jest głównym, wyeksponowanym przyciskiem!
+                  if (isNewDeviceWithBackup) {
+                    return (
+                      <div className="space-y-2 pt-1">
+                        <button
+                          onClick={() => setShowRestoreConfirm(true)}
+                          disabled={isLoading}
+                          className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-md flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 cursor-pointer text-sm"
+                        >
+                          <CloudDownload className="w-5 h-5 text-teal-100" />
+                          <span>
+                            📥 Przywróć dane z Dysku ({remotePetNames.join(', ') || `${remotePetCount} pupili`})
+                          </span>
+                        </button>
+                        <button
+                          onClick={handleManualUpload}
+                          disabled={isLoading}
+                          className="w-full py-2 px-3 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <span>Lub rozpocznij od nowa i zapisz obecny stan</span>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // Gdy dane są zgodne (normalna praca w aplikacji):
+                  return (
+                    <div className="space-y-2 pt-1">
+                      <button
+                        onClick={handleManualUpload}
+                        disabled={isLoading}
+                        className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 cursor-pointer text-sm"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        <span>{isLoading ? 'Zapisywanie...' : '💾 Wymuś zapis kopii na Dysku Google'}</span>
+                      </button>
+
+                      {driveFileInfo && !driveFileInfo.isEmpty && remotePetCount > 0 && (
+                        <button
+                          onClick={() => setShowRestoreConfirm(true)}
+                          disabled={isLoading}
+                          className="w-full py-2.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shadow-2xs"
+                        >
+                          <CloudDownload className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Pobierz ponownie z chmury (odśwież z Dysku)</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Multi-Device Transfer via QR CODE */}
