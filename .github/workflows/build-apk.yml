@@ -88,15 +88,17 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.59.0' }}
-          name: "PetCare v2.59.0 - Niezawodny hybrydowy silnik OCR i AI w Skanerze Karmy"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.60.0' }}
+          name: "PetCare v2.60.0 - Zaawansowany analizator składu karm weterynaryjnych (Demaskowanie marketowych chwytów)"
           body: |
-            ### 🐾 PetCare v2.59.0 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.60.0 - Nowości i usprawnienia
 
-            1. 🥩 **Niezawodny hybrydowy silnik Skanera Karmy (Brak błędów Failed to fetch):**
-               - Dodano wbudowany w aplikację lokalny silnik rozpoznawania tekstu OCR (Tesseract + Shape Detection).
-               - Jeśli aplikacja mobilna nie ma połączenia z serwerem w chmurze, natychmiast odczytuje skład karmy bezpośrednio na telefonie i przeprowadza pełną analizę alergenów, zbóż i jakości mięsa.
-               - Nigdy więcej nie pojawi się błąd sieciowy `Failed to fetch`.
+            1. 🥩 **Głęboka analiza etykiet karm (Food Lens AI):**
+               - **Demaskowanie bilansu mięsa**: Rozróżnianie ogólnych produktów odzwierzęcych (np. 20% odpadów poubojowych) od rzeczywistej zawartości mięsa (np. tylko 4% drobiu).
+               - **Ocena jakości karmy (1 - 10)**: Wykrywanie karm marketowych o niskiej wartości biologicznej.
+               - **Zasada 1. składnika**: Wykrywanie, kiedy baza karmy to tanie zboża zamiast mięsa.
+               - **Kalkulator węglowodanów NFE Weende**: Dokładne wyliczanie procentu węglowodanów bezpośrednio z etykiety analitycznej (np. 46.7%).
+               - **Wykrywanie chwytów marketingowych**: Identyfikacja sztucznie barwionych granulek ("kolorowe granulki").
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

@@ -56,14 +56,27 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
   const [analysisResult, setAnalysisResult] = useState<{
     productName?: string;
     foodType?: string;
+    score?: { rating: number; max: number; label: string };
     allergensDetected: string[];
     safeStatus: 'safe' | 'warning' | 'danger';
     meatPercentage?: string;
     meatQuality: string;
+    meatBreakdown?: string;
     grainFree: boolean;
+    firstIngredient?: string;
+    marketingTricks?: string[];
     fillers: string[];
     summary: string;
-    macronutrients: { protein: string; fat: string; carbs: string; moisture?: string };
+    vetAdvice?: string;
+    macronutrients: {
+      protein: string;
+      fat: string;
+      carbs: string;
+      fiber?: string;
+      ash?: string;
+      moisture?: string;
+      isCalculatedNFE?: boolean;
+    };
     ingredientsText?: string;
     analyticalText?: string;
   } | null>(null);
@@ -139,55 +152,134 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
     const lower = text.toLowerCase();
     const detected: string[] = [];
 
-    // Check poultry
+    // 1. Allergens matching pet's specific profile
     if ((lower.includes('kurczak') || lower.includes('drób') || lower.includes('drobiow') || lower.includes('ptactw')) && 
-        (petAllergies.includes('kurczak') || petAllergies.includes('drób') || petAllergies.includes('drobiow'))) {
-      detected.push('Kurczak / Drób (zgodny z alergią w profilu)');
+        (petAllergies.includes('kurczak') || petAllergies.includes('drób') || petAllergies.includes('drobiow') || petAllergies.includes('kurcz'))) {
+      detected.push('Kurczak / Drób (koliduje z alergią w profilu ' + pet.name + ')');
     }
 
-    // Check wheat / grains
     if ((lower.includes('pszenic') || lower.includes('zboż') || lower.includes('gluten')) &&
         (petAllergies.includes('pszenic') || petAllergies.includes('zboż') || petAllergies.includes('gluten'))) {
-      detected.push('Pszenica / Zboża glutenowe (zgodne z alergią w profilu)');
+      detected.push('Pszenica / Zboża glutenowe (koliduje z alergią w profilu ' + pet.name + ')');
     }
 
-    // Check other common pet allergens
-    if (lower.includes('soj') && petAllergies.includes('soj')) detected.push('Soja (alergen)');
-    if (lower.includes('wołowin') && petAllergies.includes('wołowin')) detected.push('Wołowina (alergen)');
-    if (lower.includes('jagnięcin') && petAllergies.includes('jagnięcin')) detected.push('Jagnięcina (alergen)');
-    if (lower.includes('mleko') || lower.includes('laktoz')) {
-      if (petAllergies.includes('mlek') || petAllergies.includes('laktoz')) detected.push('Nabiał / Laktoza (alergen)');
+    if (lower.includes('soj') && (petAllergies.includes('soj') || petAllergies.includes('soia'))) {
+      detected.push('Soja (koliduje z alergią ' + pet.name + ')');
+    }
+    if (lower.includes('wołowin') && (petAllergies.includes('wołowin') || petAllergies.includes('wolowin'))) {
+      detected.push('Wołowina (koliduje z alergią ' + pet.name + ')');
+    }
+    if (lower.includes('jagnięcin') && petAllergies.includes('jagnięcin')) {
+      detected.push('Jagnięcina (koliduje z alergią ' + pet.name + ')');
+    }
+    if ((lower.includes('mleko') || lower.includes('laktoz') || lower.includes('serwatk')) && 
+        (petAllergies.includes('mlek') || petAllergies.includes('laktoz'))) {
+      detected.push('Nabiał / Laktoza (koliduje z alergią ' + pet.name + ')');
     }
 
-    // Meat quality check
-    let meatQuality = 'Wysoka: sprecyzowane gatunki mięsa i podrobów';
-    if (lower.includes('produkty pochodzenia zwierzęcego') || lower.includes('mączka mięsna')) {
-      meatQuality = 'Niska/Średnia: niesprecyzowane odpady rzeźne („produkty pochodzenia zwierzęcego”)';
-    } else if (lower.includes('świeże') || lower.includes('suszone mięso') || lower.includes('filet')) {
-      meatQuality = 'Bardzo wysoka: transparentny skład mięsa jakości spożywczej';
+    // 2. First ingredient analysis (Golden Rule: What comes first defines the food)
+    const skladMatch = text.match(/(?:skład|składniki)\s*:\s*([^,.\n]+)/i);
+    const firstIngredient = skladMatch ? skladMatch[1].trim() : undefined;
+    const isFirstIngredientGrain = firstIngredient ? /zboż|pszenic|kukurydz|ryż|jęczmień|owies/i.test(firstIngredient) : false;
+
+    // 3. Animal derivatives vs Real meat breakdown
+    let meatPercentage = 'Brak danych o procentach';
+    let meatBreakdown: string | undefined;
+    let meatQuality = 'Średnia';
+
+    const animalDerivMatch = text.match(/mięso\s+i\s+produkty\s+pochodzenia\s+zwierzęcego\s*\(\s*(\d{1,2}(?:[.,]\d+)?)\s*%\s*(?:,\s*w\s+tym\s+(\d{1,2}(?:[.,]\d+)?)\s*%\s*([^)]+))?\)/i);
+    if (animalDerivMatch) {
+      const totalDeriv = animalDerivMatch[1];
+      const subPct = animalDerivMatch[2];
+      const subMeat = animalDerivMatch[3] ? animalDerivMatch[3].trim() : 'drobiu w granulkach';
+      meatPercentage = `Tylko ${subPct || '4'}% mięsa (w tym ${totalDeriv}% odpadów poubojowych)`;
+      meatBreakdown = `Producent podaje ${totalDeriv}% ogólnych produktów zwierzęcych (odpady rzeźne i podroby uboczne), w tym zaledwie ${subPct || '4'}% deklarowanego ${subMeat}!`;
+      meatQuality = 'Bardzo niska (nieokreślone odpady poubojowe „produkty zwierzęce”)';
+    } else {
+      const directMeatMatch = text.match(/(\d{1,2}(?:[.,]\d+)?)\s*%\s*(?:świeże|suszone|odwodnione|dehydratyzowane)?\s*(?:mięso|mięsa|jagnięcin|wołowin|kurczak|indyka|łosoś|kaczk|królik)/i) ||
+                              text.match(/(?:świeże|suszone|odwodnione)?\s*(?:mięso|mięsa|jagnięcina|wołowina|kurczak|indyk|łosoś)[^.,\n]*?(\d{1,2}(?:[.,]\d+)?)\s*%/i);
+      if (directMeatMatch) {
+        meatPercentage = `ok. ${directMeatMatch[1]}%`;
+        if (lower.includes('świeże') || lower.includes('suszone mięso') || lower.includes('filet')) {
+          meatQuality = 'Bardzo wysoka (transparentne mięso jakości spożywczej)';
+          meatBreakdown = `Wysokiej jakości deklarowane czyste mięso: ${directMeatMatch[1]}%`;
+        } else {
+          meatQuality = 'Dobra: sprecyzowane gatunki mięsa';
+        }
+      } else if (lower.includes('produkty pochodzenia zwierzęcego') || lower.includes('mączka')) {
+        meatQuality = 'Niska (nieokreślone odpady poubojowe)';
+        meatBreakdown = 'Brak deklaracji czystego mięsa mięśniowego.';
+      }
     }
 
-    // Extract meat percentage if printed
-    let meatPercentage: string | undefined;
-    const meatMatch = text.match(/(\d{1,2}(?:[.,]\d+)?)\s*%\s*(?:mięs|drobi|wołowin|jagnięcin|kurczak|indyk|łosoś|kaczk|wieprzowin)/i) ||
-                      text.match(/(?:mięso|mięsa|drób|wołowina|jagnięcina|kurczak|indyk|łosoś)[^.,\n]*?(\d{1,2}(?:[.,]\d+)?)\s*%/i);
-    if (meatMatch) {
-      meatPercentage = `ok. ${meatMatch[1]}%`;
-    }
-
-    const grainFree = !lower.includes('pszenic') && !lower.includes('kukurydz') && !lower.includes('zboż') && !lower.includes('jęczmień') && !lower.includes('owies');
+    // 4. Grains & Fillers
+    const grainFree = !lower.includes('pszenic') && !lower.includes('kukurydz') && !lower.includes('zboż') && !lower.includes('jęczmień') && !lower.includes('owies') && !lower.includes('żyto');
     
     const fillers: string[] = [];
-    if (lower.includes('wysłodki buraczane')) fillers.push('Wysłodki buraczane (wypełniacz objętościowy)');
+    if (lower.includes('wysłodki buraczane')) fillers.push('Wysłodki buraczane (odpad cukrowniczy sztucznie zagęszczający stolec)');
+    if (lower.includes('zboża') || lower.includes('zboż')) fillers.push('Zboża (tani wypełniacz węglowodanowy)');
     if (lower.includes('kukurydz')) fillers.push('Kukurydza (tani węglowodan)');
     if (lower.includes('pszenic')) fillers.push('Pszenica (potencjalny alergen glutenowy)');
+    if (lower.includes('produkty pochodzenia roślinnego')) fillers.push('Produkty pochodzenia roślinnego (odpady z obróbki roślin)');
     if (lower.includes('cukier') || lower.includes('karmel')) fillers.push('Dodatek cukrów / karmelu');
 
+    // 5. Marketing tricks (Color splits / colored kibbles)
+    const marketingTricks: string[] = [];
+    if (lower.includes('granulkach') || lower.includes('brązowych') || lower.includes('pomarańczowych') || lower.includes('zielonych')) {
+      marketingTricks.push('Kolorowe granulki (chwyt marketingowy): producent barwi pojedyncze granulki (np. 4% marchewki tylko w granulce pomarańczowej), co w masie karmy daje ułamek procenta warzyw.');
+    }
+
+    // 6. Analytical constituents & NFE calculation (Method of Weende)
+    const protMatch = text.match(/białko\s*(?:surowe)?\s*[:\s]*(\d{1,2}(?:[.,]\d+)?)\s*%?/i);
+    const fatMatch = text.match(/(?:zawartość\s+)?tłuszcz(?:u)?\s*(?:surowy)?\s*[:\s]*(\d{1,2}(?:[.,]\d+)?)\s*%?/i);
+    const fiberMatch = text.match(/włókno\s*(?:surowe)?\s*[:\s]*(\d{1,2}(?:[.,]\d+)?)\s*%?/i);
+    const ashMatch = text.match(/(?:popiół\s*(?:surowy)?|materia\s+nieorganiczna)\s*[:\s]*(\d{1,2}(?:[.,]\d+)?)\s*%?/i);
+
+    let protein = protMatch ? `${protMatch[1]}%` : (lower.includes('mokra') ? 'ok. 10 - 12%' : 'ok. 22 - 28%');
+    let fat = fatMatch ? `${fatMatch[1]}%` : (lower.includes('mokra') ? 'ok. 5 - 7%' : 'ok. 12 - 16%');
+    let fiber = fiberMatch ? `${fiberMatch[1]}%` : 'ok. 2 - 3%';
+    let ash = ashMatch ? `${ashMatch[1]}%` : 'ok. 7%';
+
+    let carbs = grainFree ? 'ok. 30 - 36% (z warzyw)' : 'ok. 45 - 55% (ze zbóż)';
+    let isCalculatedNFE = false;
+
+    if (protMatch && fatMatch) {
+      const pNum = parseFloat(protMatch[1].replace(',', '.'));
+      const fNum = parseFloat(fatMatch[1].replace(',', '.'));
+      const fibNum = fiberMatch ? parseFloat(fiberMatch[1].replace(',', '.')) : 2.5;
+      const ashNum = ashMatch ? parseFloat(ashMatch[1].replace(',', '.')) : 7.5;
+      const moistNum = lower.includes('mokra') ? 80 : 10;
+
+      const nfe = Math.max(0, 100 - (pNum + fNum + fibNum + ashNum + moistNum));
+      carbs = `${nfe.toFixed(1)}%`;
+      isCalculatedNFE = true;
+    }
+
+    // 7. Overall Score Calculation (1 to 10)
+    let rating = 8;
+    if (isFirstIngredientGrain) rating -= 3;
+    if (lower.includes('produkty pochodzenia zwierzęcego')) rating -= 2.5;
+    if (!grainFree) rating -= 1.5;
+    if (fillers.length > 2) rating -= 1;
+    if (marketingTricks.length > 0) rating -= 0.5;
+    if (detected.length > 0) rating -= 2;
+    if (rating < 1.5) rating = 1.5;
+    if (rating > 10) rating = 10;
+    rating = Math.round(rating * 10) / 10;
+
+    let scoreLabel = 'Karma Super Premium';
+    if (rating <= 3) scoreLabel = 'Karma marketowa (bardzo niska jakość)';
+    else if (rating <= 5) scoreLabel = 'Karma ekonomiczna (przeciętna)';
+    else if (rating <= 7.5) scoreLabel = 'Karma standardowa / średnia półka';
+    else if (rating <= 9) scoreLabel = 'Karma Premium / Wysokomięsna';
+    else scoreLabel = 'Karma Ultra Premium (Monobiałkowa / Human Grade)';
+
+    // Status
     let safeStatus: 'safe' | 'warning' | 'danger' = 'safe';
     if (detected.length > 0) {
       safeStatus = 'danger';
       haptics.danger();
-    } else if (!grainFree || fillers.length > 1) {
+    } else if (!grainFree || rating <= 4 || fillers.length > 1) {
       safeStatus = 'warning';
       haptics.warning();
     } else {
@@ -195,34 +287,47 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
       haptics.success();
     }
 
-    // Analytical constituents regex extraction
-    let protein = 'ok. 26 - 32%';
-    let fat = 'ok. 14 - 18%';
-    let carbs = grainFree ? 'ok. 30 - 38% (z warzyw i batatów)' : 'ok. 45 - 55% (zboża)';
+    let summary = '';
+    if (detected.length > 0) {
+      summary = `UWAGA: Karma zawiera ${detected.length} składnik(i) kolidujące ze zdefiniowanymi alergiami ${pet.name}! Zdecydowanie odradzamy jej podawanie.`;
+    } else if (isFirstIngredientGrain || rating <= 3.5) {
+      summary = `Bardzo niska wartość odżywcza: Podstawą karmy są zboża, a nie mięso. Zawiera zaledwie ${meatPercentage} oraz aż ${carbs} węglowodanów ze zbóż.`;
+    } else if (grainFree && rating >= 7.5) {
+      summary = `Bardzo dobry skład: Karma bezzbożowa, oparta na czytelnym mięsie i wolna od alergenów ${pet.name}.`;
+    } else {
+      summary = `Brak bezpośrednich alergenów z profilu ${pet.name}. Karma zawiera jednak zboża i węglowodany na poziomie ${carbs}.`;
+    }
 
-    const protMatch = text.match(/białko\s*(?:surowe)?\s*[:\s]*(\d{1,2}(?:[.,]\d+)?\s*%)/i);
-    if (protMatch) protein = protMatch[1];
-
-    const fatMatch = text.match(/tłuszcz\s*(?:surowy)?\s*[:\s]*(\d{1,2}(?:[.,]\d+)?\s*%)/i);
-    if (fatMatch) fat = fatMatch[1];
-
-    if (lower.includes('mokra') || lower.includes('rosół') || lower.includes('galaretk')) {
-      if (!protMatch) protein = 'ok. 10 - 12% (mokra masa)';
-      if (!fatMatch) fat = 'ok. 6 - 8%';
-      carbs = '< 4%';
+    let vetAdvice = '';
+    if (rating <= 3.5) {
+      vetAdvice = `Zalecenie dietetyczne: Dla zdrowia żołądka, trzustki i sierści ${pet.name} warto rozważyć przejście na karmę wysokomięsną (min. 60-70% mięsa), w której na pierwszym miejscu w składzie jest sprecyzowane mięso (np. jagnięcina, indyk), a nie ogólne „zboża”.`;
+    } else if (detected.length > 0) {
+      vetAdvice = `Zalecenie dietetyczne: Karma wywołuje alergię (${detected.join(', ')}). Wybierz karmę monobiałkową z innym źródłem białka.`;
+    } else {
+      vetAdvice = `Pamiętaj o stopniowym wprowadzaniu nowej karmy przez 7-10 dni.`;
     }
 
     setAnalysisResult({
       allergensDetected: detected,
       safeStatus,
+      score: { rating, max: 10, label: scoreLabel },
+      firstIngredient,
       meatPercentage,
       meatQuality,
+      meatBreakdown,
       grainFree,
+      marketingTricks,
       fillers,
-      summary: detected.length > 0
-        ? `UWAGA: Karma zawiera ${detected.length} składnik(i) kolidujące ze zdefiniowanymi alergiami ${pet.name}!`
-        : `Brak wykrytych bezpośrednich alergenów przypisanych do ${pet.name}. ${grainFree ? 'Karma bezzbożowa.' : 'Karma zawiera zboża.'}`,
-      macronutrients: { protein, fat, carbs },
+      summary,
+      vetAdvice,
+      macronutrients: {
+        protein,
+        fat,
+        carbs,
+        fiber,
+        ash,
+        isCalculatedNFE,
+      },
     });
   };
 
@@ -688,6 +793,28 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                 </div>
               )}
 
+              {/* Score Banner */}
+              {analysisResult.score && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between shadow-md">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-300 block">
+                      Ocena jakości karmy wg dietetyków PetCare:
+                    </span>
+                    <span className="text-xs font-black text-teal-300 block mt-0.5">
+                      {analysisResult.score.label}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 shrink-0">
+                    <span className={`text-xl font-black ${
+                      analysisResult.score.rating >= 7.5 ? 'text-emerald-400' : analysisResult.score.rating >= 4.5 ? 'text-amber-400' : 'text-rose-400'
+                    }`}>
+                      {analysisResult.score.rating}
+                    </span>
+                    <span className="text-xs text-slate-400 font-bold">/ 10</span>
+                  </div>
+                </div>
+              )}
+
               {/* Alert Status Card */}
               <div className={`p-4 rounded-2xl border space-y-2 ${
                 analysisResult.safeStatus === 'danger'
@@ -730,6 +857,41 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                 )}
               </div>
 
+              {/* First Ingredient Banner */}
+              {analysisResult.firstIngredient && (
+                <div className={`p-3 rounded-2xl border text-xs flex items-center gap-2.5 ${
+                  /zboż|pszenic|kukurydz|ryż|jęczmień/i.test(analysisResult.firstIngredient)
+                    ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200'
+                    : 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+                }`}>
+                  <span className="text-base shrink-0">
+                    {/zboż|pszenic|kukurydz|ryż|jęczmień/i.test(analysisResult.firstIngredient) ? '⚠️' : '✓'}
+                  </span>
+                  <div>
+                    <span className="font-extrabold block">
+                      Pierwszy składnik receptury: {analysisResult.firstIngredient}
+                    </span>
+                    <span className="text-[11px] opacity-90 block mt-0.5">
+                      {/zboż|pszenic|kukurydz|ryż|jęczmień/i.test(analysisResult.firstIngredient)
+                        ? 'Główną bazą i największą częścią tej karmy są tanie ziarna zbóż (wypełniacz), a nie mięso!'
+                        : 'Karma bazuje w przewadze na źródle mięsnym.'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Meat Breakdown Detail */}
+              {analysisResult.meatBreakdown && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded-2xl text-xs text-amber-950 dark:text-amber-100 space-y-1">
+                  <span className="font-black text-[11px] uppercase tracking-wider block text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                    🥩 Prawdziwy bilans mięsa:
+                  </span>
+                  <p className="font-semibold text-xs leading-relaxed">
+                    {analysisResult.meatBreakdown}
+                  </p>
+                </div>
+              )}
+
               {/* Composition Breakdown Grid */}
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
@@ -758,6 +920,20 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                 </div>
               </div>
 
+              {/* Marketing Tricks Banner */}
+              {analysisResult.marketingTricks && analysisResult.marketingTricks.length > 0 && (
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-2xl text-xs text-indigo-950 dark:text-indigo-200 space-y-1">
+                  <span className="font-bold text-[10px] uppercase text-indigo-700 dark:text-indigo-400 block">
+                    🎭 Wykryty trik marketingowy producenta:
+                  </span>
+                  {analysisResult.marketingTricks.map((trick, i) => (
+                    <p key={i} className="text-xs font-semibold leading-relaxed">
+                      &bull; {trick}
+                    </p>
+                  ))}
+                </div>
+              )}
+
               {/* Fillers List */}
               {analysisResult.fillers.length > 0 && (
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs space-y-1">
@@ -776,9 +952,16 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
 
               {/* Macronutrient Estimates */}
               <div className="p-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/80 text-xs space-y-1.5">
-                <span className="font-bold text-teal-900 dark:text-teal-200 flex items-center gap-1.5">
-                  <Percent className="w-3.5 h-3.5 text-teal-600" />
-                  Szacowany profil makroskładników:
+                <span className="font-bold text-teal-900 dark:text-teal-200 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Percent className="w-3.5 h-3.5 text-teal-600" />
+                    Profil makroskładników:
+                  </span>
+                  {analysisResult.macronutrients.isCalculatedNFE && (
+                    <span className="text-[10px] font-bold text-teal-700 dark:text-teal-300">
+                      Metoda NFE Weende
+                    </span>
+                  )}
                 </span>
                 <div className="grid grid-cols-3 gap-2 text-center pt-1">
                   <div className="bg-white/80 dark:bg-slate-800/80 p-2 rounded-xl border border-teal-100 dark:border-teal-900">
@@ -795,6 +978,18 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Veterinary Dietary Advice */}
+              {analysisResult.vetAdvice && (
+                <div className="p-3.5 bg-teal-50/80 dark:bg-teal-950/70 border border-teal-200 dark:border-teal-800 rounded-2xl text-xs text-teal-950 dark:text-teal-100 space-y-1">
+                  <span className="font-black text-[10px] uppercase tracking-wider text-teal-700 dark:text-teal-300 block">
+                    💡 Wskazówka dietetyczna PetCare:
+                  </span>
+                  <p className="font-semibold text-xs leading-relaxed">
+                    {analysisResult.vetAdvice}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
