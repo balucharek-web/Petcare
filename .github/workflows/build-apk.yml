@@ -88,23 +88,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.51.0' }}
-          name: "PetCare v2.51.0 - Oficjalna autoryzacja Google Sign-In i synchronizacja Dysku Google"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.52.0' }}
+          name: "PetCare v2.52.0 - Bezpośredni zapis kopii w folderze petcare_kopiazapasowa"
           body: |
-            ### 🐾 PetCare v2.51.0 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.52.0 - Nowości i usprawnienia
 
-            1. 🔑 **Oficjalne logowanie Google z uprawnieniami Dysku:**
-               - Zintegrowano oficjalne API GoogleSignInClient z bezpośrednim zakresem uprawnień `drive.file`.
-               - Telefon automatycznie wyświetla systemowe okno wyboru konta i zgodę na Dysk Google.
-               - Automatyczne odświeżanie tokenów dostępu i natychmiastowy zapis do folderu `petcare_kopiazapasowa`.
+            1. 📁 **Gwarantowany zapis wewnątrz folderu petcare_kopiazapasowa:**
+               - Plik `petcare_app_data.json` jest zawsze tworzony bezpośrednio wewnątrz dedykowanego folderu `petcare_kopiazapasowa`.
+               - Wyeliminowano problem pozostawania pliku w katalogu głównym i pustego folderu na Dysku.
+               - Automatyczne czyszczenie ewentualnych starych duplikatów.
 
-            2. ☁️ **Niezawodne przywracanie kopii zapasowej z Dysku Google:**
-               - Zoptymalizowano zapytania Google Drive API do przestrzeni `spaces=drive` dla pełnej zgodności z uprawnieniami `drive.file`.
-               - Dwuetapowy, bezpieczny proces zapisu i aktualizacji danych (2-Step Standard API).
-               - Automatyczne wyszukiwanie i odzyskiwanie kopii zapasowej pupila po nowej instalacji aplikacji na telefonie lub po zmianie urządzenia.
+            2. 🔑 **Oficjalne logowanie Google SignInClient:**
+               - Bezpośredni zakres `https://www.googleapis.com/auth/drive.file`.
+               - Wymuszone systemowe okienko wyboru konta i zgody.
 
-            3. 🔄 **Cicha synchronizacja w tle:**
-               - Każda zmiana wprowadzona w aplikacji (nowe leki, szczepienia, wizyty weterynaryjne) jest automatycznie archiwizowana w tle na Dysku Google i w chmurze.
+            3. 🔄 **Cicha synchronizacja i przywracanie danych:**
+               - Pełne automatyczne zabezpieczenie danych pupila.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

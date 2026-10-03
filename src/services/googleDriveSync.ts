@@ -464,16 +464,33 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
 
   // 1. Zapewnij istnienie folderu 'petcare_kopiazapasowa' na Dysku Google
   const folderId = await getOrCreateDriveBackupFolder(token);
-
   const jsonContent = storage.exportAllData();
-  const existingFiles = await findAllDriveBackupFiles(token);
-  let fileId = existingFiles.length > 0 ? existingFiles[0].id : null;
+
+  // 2. Szukamy istniejącego pliku WYŁĄCZNIE wewnątrz dedykowanego folderu 'petcare_kopiazapasowa'
+  let targetFileId: string | null = null;
+  if (folderId) {
+    try {
+      const folderFileQ = `'${folderId}' in parents and (name = '${DRIVE_BACKUP_FILENAME}' or name = 'petcare_sync_data.json') and trashed = false`;
+      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(folderFileQ)}&fields=files(id,name)&pageSize=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (searchRes.ok) {
+        const sData = await searchRes.json();
+        if (sData.files && sData.files.length > 0) {
+          targetFileId = sData.files[0].id;
+        }
+      }
+    } catch (e) {
+      console.warn('[Google Drive] Błąd szukania pliku w folderze:', e);
+    }
+  }
+
   let uploadSuccess = false;
 
-  if (fileId) {
-    // Attempt updating existing file on Google Drive
+  // 3. Jeśli plik w folderze istnieje -> aktualizujemy jego zawartość
+  if (targetFileId) {
     try {
-      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${targetFileId}?uploadType=media`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -484,67 +501,19 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
 
       if (res.ok) {
         uploadSuccess = true;
-        // Jeśli plik nie znajdował się jeszcze w folderze 'petcare_kopiazapasowa', przenieś go bezpośrednio do niego
-        if (folderId) {
-          try {
-            const fileMetaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            let prevParents = '';
-            if (fileMetaRes.ok) {
-              const metaJson = await fileMetaRes.json();
-              if (Array.isArray(metaJson.parents)) {
-                prevParents = metaJson.parents.join(',');
-              }
-            }
-            if (!prevParents.includes(folderId)) {
-              await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folderId}${prevParents ? `&removeParents=${prevParents}` : ''}`, {
-                method: 'PATCH',
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({}),
-              });
-            }
-          } catch (moveErr) {
-            console.warn('[Google Drive] Move file to folder warning:', moveErr);
-          }
-
-          // Wyczyść ewentualny pusty zduplikowany podfolder 'petcare_kopiazapasowa'
-          try {
-            const nestedQ = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and (name = 'petcare_kopiazapasowa' or name = 'petcare_kopiazaoasowa') and trashed = false`;
-            const nestedRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(nestedQ)}&fields=files(id)`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (nestedRes.ok) {
-              const nestedData = await nestedRes.json();
-              if (nestedData.files && Array.isArray(nestedData.files)) {
-                for (const nf of nestedData.files) {
-                  await fetch(`https://www.googleapis.com/drive/v3/files/${nf.id}`, {
-                    method: 'DELETE',
-                    headers: { Authorization: `Bearer ${token}` }
-                  }).catch(() => {});
-                }
-              }
-            }
-          } catch {}
-        }
-      } else if (res.status === 404) {
-        // File was deleted on Drive by user - reset fileId to create a fresh one below
-        fileId = null;
       } else {
         const errText = await res.text().catch(() => '');
-        console.warn(`[Google Drive] PATCH failed (${res.status}): ${errText}`);
+        console.warn(`[Google Drive] PATCH do istniejącego pliku nie powiódł się (${res.status}): ${errText}`);
+        targetFileId = null;
       }
     } catch (patchErr) {
-      console.warn('[Google Drive] PATCH network exception:', patchErr);
-      fileId = null;
+      console.warn('[Google Drive] Błąd sieci podczas PATCH:', patchErr);
+      targetFileId = null;
     }
   }
 
-  if (!uploadSuccess || !fileId) {
-    // Robust 2-step file creation inside 'petcare_kopiazapasowa' folder
+  // 4. Jeśli plik w folderze NIE istnieje (lub aktualizacja nie przeszła) -> tworzymy nowy plik wprost w folderze!
+  if (!uploadSuccess || !targetFileId) {
     try {
       const fileMetadata: any = {
         name: DRIVE_BACKUP_FILENAME,
@@ -566,14 +535,14 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
 
       if (!createMetaRes.ok) {
         const errText = await createMetaRes.text().catch(() => '');
-        throw new Error(`Nie udało się utworzyć pliku na Dysku Google (${createMetaRes.status}): ${errText}`);
+        throw new Error(`Nie udało się utworzyć pliku w folderze Dysku Google (${createMetaRes.status}): ${errText}`);
       }
 
       const createdFile = await createMetaRes.json();
-      fileId = createdFile.id;
+      targetFileId = createdFile.id;
 
-      // Upload JSON content into the newly created file inside the folder
-      const uploadMediaRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+      // Zapisz zawartość JSON do nowo utworzonego pliku wewnątrz folderu
+      const uploadMediaRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${targetFileId}?uploadType=media`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -588,11 +557,36 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
       }
 
       uploadSuccess = true;
+      console.log(`[Google Drive] Plik ${DRIVE_BACKUP_FILENAME} zapisany pomyślnie w folderze ${folderId}`);
     } catch (createErr: any) {
       if (!silent) updateSyncMetadata({ lastSyncStatus: 'error' });
       throw createErr;
     }
   }
+
+  // 5. Wyczyść ewentualne zbędne zduplikowane pliki poza folderem lub puste podfoldery
+  if (folderId && targetFileId) {
+    try {
+      // Usuń pusty podfolder o tej samej nazwie jeśli jakiś pozostał
+      const nestedQ = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and (name = 'petcare_kopiazapasowa' or name = 'petcare_kopiazaoasowa') and trashed = false`;
+      const nestedRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(nestedQ)}&fields=files(id)`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (nestedRes.ok) {
+        const nestedData = await nestedRes.json();
+        if (nestedData.files && Array.isArray(nestedData.files)) {
+          for (const nf of nestedData.files) {
+            await fetch(`https://www.googleapis.com/drive/v3/files/${nf.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch {}
+  }
+
+  const fileId = targetFileId!;
 
   const now = new Date().toISOString();
   const petCount = storage.getPets().length;
