@@ -555,12 +555,13 @@ export function signOut(): void {
 export const signOutGoogle = signOut;
 
 // 5. Upload pet data (Google Drive prioritized, with automatic cloud backup safeguard)
-export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount: number }> {
+export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount: number; driveSuccess: boolean; driveError?: string }> {
   saveSession({ lastSyncStatus: 'syncing' });
   const payload = bundleAllPetData();
   const count = payload.pets.length;
   let lastTime = new Date().toISOString();
   let driveSuccess = false;
+  let driveError: string | undefined = undefined;
 
   // 1. Try uploading to personal Google Drive
   try {
@@ -570,7 +571,8 @@ export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount:
       lastTime = driveRes.timestamp;
     }
   } catch (driveErr: any) {
-    console.warn('Google Drive direct upload notice:', driveErr?.message);
+    driveError = driveErr?.message || 'Brak autoryzacji Dysku Google';
+    console.warn('Google Drive direct upload notice:', driveError);
   }
 
   // 2. Always maintain backup in user's isolated account profile
@@ -592,11 +594,11 @@ export async function uploadToCloud(): Promise<{ lastSyncTime: string; petCount:
   }
 
   saveSession({
-    lastSyncStatus: 'success',
+    lastSyncStatus: driveSuccess ? 'success' : 'error',
     lastSyncTime: lastTime,
   });
 
-  return { lastSyncTime: lastTime, petCount: count };
+  return { lastSyncTime: lastTime, petCount: count, driveSuccess, driveError };
 }
 
 // Manual immediate synchronization trigger

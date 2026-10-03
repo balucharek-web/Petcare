@@ -31,6 +31,7 @@ public class NativeGoogleAuthPlugin extends Plugin {
     private static PluginCall pendingSignInCall;
     private static PluginCall pendingDriveCall;
     private static String pendingEmailForDrive;
+    private static JSObject pendingDriveAuthObject;
     private static Activity currentActivity;
 
     @PluginMethod
@@ -144,14 +145,27 @@ public class NativeGoogleAuthPlugin extends Plugin {
                     public void run() {
                         try {
                             String token = GoogleAuthUtil.getToken(currentActivity.getApplicationContext(), targetEmail, DRIVE_SCOPE);
-                            JSObject ret = new JSObject();
-                            ret.put("token", token);
-                            ret.put("success", true);
+                            if (pendingDriveAuthObject != null) {
+                                pendingDriveAuthObject.put("accessToken", token);
+                                if (pendingSignInCall != null) {
+                                    pendingSignInCall.resolve(pendingDriveAuthObject);
+                                    pendingSignInCall = null;
+                                }
+                                pendingDriveAuthObject = null;
+                            }
                             if (pendingDriveCall != null) {
+                                JSObject ret = new JSObject();
+                                ret.put("token", token);
+                                ret.put("success", true);
                                 pendingDriveCall.resolve(ret);
                                 pendingDriveCall = null;
                             }
                         } catch (Exception e) {
+                            if (pendingSignInCall != null && pendingDriveAuthObject != null) {
+                                pendingSignInCall.resolve(pendingDriveAuthObject);
+                                pendingSignInCall = null;
+                                pendingDriveAuthObject = null;
+                            }
                             if (pendingDriveCall != null) {
                                 pendingDriveCall.reject("Błąd autoryzacji: " + e.getMessage());
                                 pendingDriveCall = null;
@@ -160,6 +174,11 @@ public class NativeGoogleAuthPlugin extends Plugin {
                     }
                 }).start();
             } else {
+                if (pendingSignInCall != null && pendingDriveAuthObject != null) {
+                    pendingSignInCall.resolve(pendingDriveAuthObject);
+                    pendingSignInCall = null;
+                    pendingDriveAuthObject = null;
+                }
                 if (pendingDriveCall != null) {
                     pendingDriveCall.reject("Użytkownik odmówił dostępu do Dysku Google.");
                     pendingDriveCall = null;
@@ -256,11 +275,28 @@ public class NativeGoogleAuthPlugin extends Plugin {
                                         ret.put("accessToken", driveToken);
                                     }
                                 }
-                            } catch (Throwable ignored) {}
-
-                            if (pendingSignInCall != null) {
-                                pendingSignInCall.resolve(ret);
-                                pendingSignInCall = null;
+                                if (pendingSignInCall != null) {
+                                    pendingSignInCall.resolve(ret);
+                                    pendingSignInCall = null;
+                                }
+                            } catch (UserRecoverableAuthException recoverable) {
+                                // Request consent from user via Android System Dialog!
+                                pendingEmailForDrive = finalEmail;
+                                pendingDriveAuthObject = ret;
+                                if (act != null) {
+                                    act.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            act.startActivityForResult(recoverable.getIntent(), RC_DRIVE_AUTH);
+                                        }
+                                    });
+                                }
+                            } catch (Throwable e) {
+                                Log.w("PetCareAuth", "Drive token error during signIn: " + e.getMessage());
+                                if (pendingSignInCall != null) {
+                                    pendingSignInCall.resolve(ret);
+                                    pendingSignInCall = null;
+                                }
                             }
                         }
                     }).start();

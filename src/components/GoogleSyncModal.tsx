@@ -280,10 +280,17 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
     try {
       const res = await uploadToCloud();
-      setFeedback({
-        type: 'success',
-        message: `Pomyślnie zapisano ${res.petCount} zwierzaków na Twoim prywatnym Dysku Google (plik petcare_app_data.json)!`
-      });
+      if (res.driveSuccess) {
+        setFeedback({
+          type: 'success',
+          message: `✅ Pomyślnie zapisano ${res.petCount} ${res.petCount === 1 ? 'zwierzaka' : 'zwierzaki'} w folderze petcare_kopiazapasowa na Twoim Dysku Google!`
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: `⚠️ Dane zachowano w pamięci profilu, ale zapis na Dysku Google nie powiódł się: ${res.driveError || 'brak aktywnego tokenu Dysku Google'}. W telefonie wymagana jest jednorazowa zgoda na Dysk Google.`
+        });
+      }
       await checkRemoteDrive();
     } catch (err: any) {
       setFeedback({
