@@ -88,22 +88,23 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.50.0' }}
-          name: "PetCare v2.50.0 - Niezawodne przywracanie i automatyczna kopia zapasowa na Dysku Google"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.51.0' }}
+          name: "PetCare v2.51.0 - Oficjalna autoryzacja Google Sign-In i synchronizacja Dysku Google"
           body: |
-            ### 🐾 PetCare v2.50.0 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.51.0 - Nowości i usprawnienia
 
-            1. ☁️ **Niezawodne przywracanie kopii zapasowej z Dysku Google:**
+            1. 🔑 **Oficjalne logowanie Google z uprawnieniami Dysku:**
+               - Zintegrowano oficjalne API GoogleSignInClient z bezpośrednim zakresem uprawnień `drive.file`.
+               - Telefon automatycznie wyświetla systemowe okno wyboru konta i zgodę na Dysk Google.
+               - Automatyczne odświeżanie tokenów dostępu i natychmiastowy zapis do folderu `petcare_kopiazapasowa`.
+
+            2. ☁️ **Niezawodne przywracanie kopii zapasowej z Dysku Google:**
                - Zoptymalizowano zapytania Google Drive API do przestrzeni `spaces=drive` dla pełnej zgodności z uprawnieniami `drive.file`.
                - Dwuetapowy, bezpieczny proces zapisu i aktualizacji danych (2-Step Standard API).
                - Automatyczne wyszukiwanie i odzyskiwanie kopii zapasowej pupila po nowej instalacji aplikacji na telefonie lub po zmianie urządzenia.
-               - Automatyczna obsługa obu formatów nazw plików (`petcare_app_data.json` oraz `petcare_sync_data.json`).
 
-            2. 🔄 **Cicha synchronizacja w tle:**
+            3. 🔄 **Cicha synchronizacja w tle:**
                - Każda zmiana wprowadzona w aplikacji (nowe leki, szczepienia, wizyty weterynaryjne) jest automatycznie archiwizowana w tle na Dysku Google i w chmurze.
-
-            3. 📲 **Karta statusu kopii zapasowej na żywo:**
-               - W oknie „Konto Google” widoczna jest data i godzina ostatniej kopii oraz przycisk natychmiastowego przywrócenia danych.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
