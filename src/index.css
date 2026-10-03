@@ -88,10 +88,10 @@
     background: #ffffff !important;
     color: #000000 !important;
   }
-  .no-print, nav, header, button, .no-print * {
+  .no-print, nav, header, button, .print\:hidden, .no-print * {
     display: none !important;
   }
-  #printable-medical-report {
+  #printable-medical-report, #printable-booklet, #printable-passport {
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;

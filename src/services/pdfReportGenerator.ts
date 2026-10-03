@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Pet, Vaccination, Medication, MedicalExam, MedicalCondition, VetVisit } from '../types/pet';
+import { LIBERATION_SANS_REGULAR, LIBERATION_SANS_BOLD } from './pdfFonts';
 
 interface NativePrintPluginInterface {
   print(options?: { jobName?: string }): Promise<{ success: boolean }>;
@@ -55,7 +56,23 @@ function calculateAge(birthDate?: string): string {
 }
 
 /**
- * Builds a formatted jsPDF document with the pet's complete medical history.
+ * Setup Polish UTF-8 TrueType fonts in jsPDF instance.
+ */
+function setupPolishFonts(doc: jsPDF): void {
+  try {
+    doc.addFileToVFS('LiberationSans-Regular.ttf', LIBERATION_SANS_REGULAR);
+    doc.addFont('LiberationSans-Regular.ttf', 'LiberationSans', 'normal');
+    doc.addFileToVFS('LiberationSans-Bold.ttf', LIBERATION_SANS_BOLD);
+    doc.addFont('LiberationSans-Bold.ttf', 'LiberationSans', 'bold');
+    doc.setFont('LiberationSans', 'normal');
+  } catch (err) {
+    console.warn('[setupPolishFonts] Failed to load custom TrueType fonts, falling back:', err);
+  }
+}
+
+/**
+ * Builds a beautifully formatted jsPDF document with full Polish character support
+ * and bulletproof multi-line layout that never overlaps.
  */
 export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
   const { pet, vaccinations = [], medications = [], exams = [], conditions = [], visits = [] } = data;
@@ -64,6 +81,9 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
     unit: 'mm',
     format: 'a4',
   });
+
+  // Inject Polish UTF-8 TrueType fonts
+  setupPolishFonts(doc);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -76,9 +96,11 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
       doc.addPage();
       y = 16;
       // Header for next page
+      doc.setFont('LiberationSans', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(140, 140, 140);
       doc.text(`Karta Pacjenta Weterynaryjnego: ${pet.name} | PetCare`, margin, 10);
+      doc.setDrawColor(226, 232, 240);
       doc.line(margin, 12, pageWidth - margin, 12);
     }
   };
@@ -87,18 +109,18 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
   doc.setFillColor(13, 148, 136); // Teal-600
   doc.rect(margin, y, contentWidth, 20, 'F');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
+  doc.setFont('LiberationSans', 'bold');
+  doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
-  doc.text('KARTA ZDROWIA PACJENTA WETERYNARYJNEGO', margin + 6, y + 8);
+  doc.text('KARTA ZDROWIA PACJENTA WETERYNARYJNEGO', margin + 6, y + 8.5);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('LiberationSans', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(230, 255, 250);
   doc.text(
     `Raport medyczny wygenerowany z aplikacji PetCare w dniu ${new Date().toLocaleDateString('pl-PL')}`,
     margin + 6,
-    y + 14
+    y + 14.5
   );
 
   y += 26;
@@ -108,83 +130,94 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
   doc.setDrawColor(226, 232, 240);
   doc.roundedRect(margin, y, contentWidth, 38, 3, 3, 'FD');
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('LiberationSans', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(15, 23, 42);
   doc.text(pet.name, margin + 6, y + 9);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('LiberationSans', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
   const speciesLabel = pet.species === 'dog' ? 'Pies' : pet.species === 'cat' ? 'Kot' : pet.species;
   const genderLabel = pet.gender === 'female' ? 'Samica' : 'Samiec';
   const neuteredLabel = pet.isNeutered ? 'Kastrowany/a: TAK' : 'Kastrowany/a: NIE';
-  doc.text(`${speciesLabel} • ${pet.breed || 'Rasa nieokreslona'} • ${genderLabel} • ${neuteredLabel}`, margin + 6, y + 15);
+  doc.text(`${speciesLabel} • ${pet.breed || 'Rasa nieokreślona'} • ${genderLabel} • ${neuteredLabel}`, margin + 6, y + 15);
 
   // Vital grid
   doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('LiberationSans', 'bold');
   doc.setTextColor(30, 41, 59);
   doc.text('Wiek:', margin + 6, y + 23);
   doc.text('Waga aktualna:', margin + 48, y + 23);
   doc.text('Mikroczip:', margin + 98, y + 23);
   doc.text('Nr paszportu:', margin + 140, y + 23);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('LiberationSans', 'normal');
   doc.setTextColor(71, 85, 105);
   doc.text(`${calculateAge(pet.birthDate)} (${pet.birthDate || '-'})`, margin + 6, y + 29);
   doc.text(`${pet.weightKg ? `${pet.weightKg} kg` : '-'}`, margin + 48, y + 29);
   doc.text(`${pet.chipNumber || 'Brak wpisu'}`, margin + 98, y + 29);
   doc.text(`${pet.passportNumber || 'Brak wpisu'}`, margin + 140, y + 29);
 
-  y += 44;
+  y += 43;
 
   // --- ALLERGIES & WARNINGS BANNER ---
   if (pet.allergies || pet.specialNotes) {
-    ensureSpace(24);
-    doc.setFillColor(254, 242, 242); // Red-50
-    doc.setDrawColor(248, 113, 113); // Red-400
-    doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'FD');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(185, 28, 28);
-    doc.text('! ALERGIE, REAKCJE NIEPOZADANE I SPECJALNE OSTRZEZENIA:', margin + 5, y + 6);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(153, 27, 27);
     const alertText = [
       pet.allergies ? `Alergie: ${pet.allergies}` : null,
       pet.specialNotes ? `Uwagi: ${pet.specialNotes}` : null,
     ].filter(Boolean).join(' | ');
 
-    doc.text(alertText || 'Brak znanych alergii', margin + 5, y + 13, { maxWidth: contentWidth - 10 });
-    y += 24;
+    doc.setFont('LiberationSans', 'normal');
+    doc.setFontSize(8.5);
+    const alertLines = doc.splitTextToSize(alertText || 'Brak znanych alergii', contentWidth - 12);
+    const boxHeight = Math.max(18, 9 + alertLines.length * 4.5);
+
+    ensureSpace(boxHeight + 4);
+    doc.setFillColor(254, 242, 242); // Red-50
+    doc.setDrawColor(248, 113, 113); // Red-400
+    doc.roundedRect(margin, y, contentWidth, boxHeight, 2, 2, 'FD');
+
+    doc.setFont('LiberationSans', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(185, 28, 28);
+    doc.text('! ALERGIE, REAKCJE NIEPOŻĄDANE I SPECJALNE OSTRZEŻENIA:', margin + 5, y + 6);
+
+    doc.setFont('LiberationSans', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(153, 27, 27);
+    doc.text(alertLines, margin + 5, y + 12);
+    y += boxHeight + 5;
   }
 
   // --- VET CONTACT BLOCK ---
   if (pet.vetClinicName || pet.vetPhone || pet.emergencyClinicPhone) {
-    ensureSpace(22);
-    doc.setFillColor(240, 253, 250); // Teal-50
-    doc.setDrawColor(94, 234, 212); // Teal-300
-    doc.roundedRect(margin, y, contentWidth, 18, 2, 2, 'FD');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(15, 118, 110);
-    doc.text('PROWADZACY GABINET WETERYNARYJNY I KONTAKT:', margin + 5, y + 6);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(17, 94, 89);
-    const clinic = pet.vetClinicName ? `Klinika: ${pet.vetClinicName}` : 'Klinika prowadzaca';
+    const clinic = pet.vetClinicName ? `Klinika: ${pet.vetClinicName}` : 'Klinika prowadząca';
     const doctor = pet.vetDoctorName ? `Lekarz: ${pet.vetDoctorName}` : '';
     const phone = pet.vetPhone ? `Tel: ${pet.vetPhone}` : '';
     const emPhone = pet.emergencyClinicPhone ? `Dyżur 24h: ${pet.emergencyClinicPhone}` : '';
     const contactLine = [clinic, doctor, phone, emPhone].filter(Boolean).join(' | ');
-    doc.text(contactLine, margin + 5, y + 12, { maxWidth: contentWidth - 10 });
-    y += 22;
+
+    doc.setFont('LiberationSans', 'normal');
+    doc.setFontSize(8.5);
+    const contactLines = doc.splitTextToSize(contactLine, contentWidth - 12);
+    const boxHeight = Math.max(18, 9 + contactLines.length * 4.5);
+
+    ensureSpace(boxHeight + 4);
+    doc.setFillColor(240, 253, 250); // Teal-50
+    doc.setDrawColor(94, 234, 212); // Teal-300
+    doc.roundedRect(margin, y, contentWidth, boxHeight, 2, 2, 'FD');
+
+    doc.setFont('LiberationSans', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(15, 118, 110);
+    doc.text('PROWADZĄCY GABINET WETERYNARYJNY I KONTAKT:', margin + 5, y + 6);
+
+    doc.setFont('LiberationSans', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(17, 94, 89);
+    doc.text(contactLines, margin + 5, y + 12);
+    y += boxHeight + 5;
   }
 
   // Helper to render section title
@@ -192,7 +225,7 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
     ensureSpace(12);
     doc.setFillColor(241, 245, 249);
     doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('LiberationSans', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(30, 41, 59);
     doc.text(`${title} ${count !== undefined ? `(${count})` : ''}`, margin + 3, y + 5);
@@ -205,97 +238,132 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
 
   if (activeMeds.length === 0) {
     ensureSpace(8);
-    doc.setFont('helvetica', 'italic');
+    doc.setFont('LiberationSans', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(100, 116, 139);
-    doc.text('Brak stale przyjmowanych lekow zarejestrowanych w systemie.', margin + 3, y + 4);
+    doc.text('Brak stale przyjmowanych leków zarejestrowanych w systemie.', margin + 3, y + 4);
     y += 8;
   } else {
     // Table header
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('LiberationSans', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
     doc.text('Nazwa leku', margin + 3, y + 3);
-    doc.text('Dawka i czestotliwosc', margin + 55, y + 3);
+    doc.text('Dawka i częstotliwość', margin + 55, y + 3);
     doc.text('Zalecenia i podawanie', margin + 115, y + 3);
     y += 5;
+    doc.setDrawColor(226, 232, 240);
     doc.line(margin, y, pageWidth - margin, y);
-    y += 3;
+    y += 2;
 
     activeMeds.forEach(m => {
-      ensureSpace(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(m.name, margin + 3, y + 3);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(51, 65, 85);
       const schedule = m.timesOfDay?.length 
         ? m.timesOfDay.map(t => `${t.label} ${t.time}`).join(', ')
         : (m.isChronic ? 'Lek stały' : 'Wg zaleceń');
-      doc.text(`${m.dosage} (${schedule})`, margin + 55, y + 3, { maxWidth: 55 });
-      doc.text(m.instructions || m.notes || '-', margin + 115, y + 3, { maxWidth: 65 });
-      y += 6;
+
+      doc.setFont('LiberationSans', 'normal');
+      doc.setFontSize(8.5);
+
+      const col1Lines = doc.splitTextToSize(m.name, 50);
+      const col2Lines = doc.splitTextToSize(`${m.dosage} (${schedule})`, 56);
+      const col3Lines = doc.splitTextToSize(m.instructions || m.notes || '-', 64);
+      const maxLines = Math.max(col1Lines.length, col2Lines.length, col3Lines.length);
+      const rowHeight = Math.max(7, maxLines * 4.3 + 3);
+
+      ensureSpace(rowHeight + 2);
+
+      doc.setFont('LiberationSans', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(col1Lines, margin + 3, y + 3.5);
+
+      doc.setFont('LiberationSans', 'normal');
+      doc.setTextColor(51, 65, 85);
+      doc.text(col2Lines, margin + 55, y + 3.5);
+      doc.text(col3Lines, margin + 115, y + 3.5);
+
+      y += rowHeight;
+      doc.setDrawColor(241, 245, 249);
+      doc.line(margin, y, pageWidth - margin, y);
     });
     y += 4;
   }
 
   // --- VACCINATIONS TABLE ---
-  renderSectionHeader('HISTORIA SZCZEPIEN', vaccinations.length);
+  renderSectionHeader('HISTORIA SZCZEPIEŃ', vaccinations.length);
 
   if (vaccinations.length === 0) {
     ensureSpace(8);
-    doc.setFont('helvetica', 'italic');
+    doc.setFont('LiberationSans', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(100, 116, 139);
-    doc.text('Brak wpisow dotyczacych szczepien.', margin + 3, y + 4);
+    doc.text('Brak wpisów dotyczących szczepień.', margin + 3, y + 4);
     y += 8;
   } else {
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('LiberationSans', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
     doc.text('Szczepienie / Choroba', margin + 3, y + 3);
-    doc.text('Data podania', margin + 70, y + 3);
-    doc.text('Wazne do', margin + 105, y + 3);
-    doc.text('Nr serii / Weterynarz', margin + 140, y + 3);
+    doc.text('Data podania', margin + 68, y + 3);
+    doc.text('Ważne do', margin + 100, y + 3);
+    doc.text('Nr serii / Weterynarz', margin + 135, y + 3);
     y += 5;
+    doc.setDrawColor(226, 232, 240);
     doc.line(margin, y, pageWidth - margin, y);
-    y += 3;
+    y += 2;
 
     vaccinations.forEach(v => {
-      ensureSpace(8);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('LiberationSans', 'normal');
+      doc.setFontSize(8.5);
+
+      const nameLines = doc.splitTextToSize(v.name, 62);
+      const vetInfo = [v.batchNumber ? `Seria: ${v.batchNumber}` : null, v.vetDoctor || v.vetClinic].filter(Boolean).join(' | ');
+      const vetLines = doc.splitTextToSize(vetInfo || '-', 46);
+      const maxLines = Math.max(nameLines.length, vetLines.length, 1);
+      const rowHeight = Math.max(7, maxLines * 4.3 + 3);
+
+      ensureSpace(rowHeight + 2);
+
+      doc.setFont('LiberationSans', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(v.name, margin + 3, y + 3);
+      doc.text(nameLines, margin + 3, y + 3.5);
 
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('LiberationSans', 'normal');
       doc.setTextColor(51, 65, 85);
-      doc.text(v.dateAdministered || '-', margin + 70, y + 3);
-      doc.text(v.validUntil || '-', margin + 105, y + 3);
-      const vetInfo = [v.batchNumber, v.vetDoctor || v.vetClinic].filter(Boolean).join(' | ');
-      doc.text(vetInfo || '-', margin + 140, y + 3, { maxWidth: 40 });
-      y += 6;
+      doc.text(v.dateAdministered || '-', margin + 68, y + 3.5);
+      doc.text(v.validUntil || '-', margin + 100, y + 3.5);
+      doc.text(vetLines, margin + 135, y + 3.5);
+
+      y += rowHeight;
+      doc.setDrawColor(241, 245, 249);
+      doc.line(margin, y, pageWidth - margin, y);
     });
     y += 4;
   }
 
   // --- CONDITIONS & CHRONIC DISEASES ---
   if (conditions.length > 0) {
-    renderSectionHeader('CHOROBY I ZDIAGNOZOWANE STANY PRZEWLEKLE', conditions.length);
+    renderSectionHeader('CHOROBY I ZDIAGNOZOWANE STANY PRZEWLEKŁE', conditions.length);
     conditions.forEach(c => {
-      ensureSpace(12);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('LiberationSans', 'normal');
+      doc.setFontSize(8.5);
+      const statusLabel = c.status === 'active' ? 'Aktywna' : c.status === 'chronic' ? 'Przewlekła' : c.status === 'cured' ? 'Wyleczona' : c.status;
+      const descLine = `Terapia: ${c.treatment || 'obserwacja'} | Status: ${statusLabel}`;
+      const descLines = doc.splitTextToSize(descLine, contentWidth - 10);
+      const rowHeight = 7 + descLines.length * 4.2;
+
+      ensureSpace(rowHeight + 3);
+      doc.setFont('LiberationSans', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(`• ${c.name} (od: ${c.diagnosisDate || '-'})`, margin + 3, y + 3);
+      doc.text(`• ${c.name} (od: ${c.diagnosisDate || '-'})`, margin + 3, y + 3.5);
 
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('LiberationSans', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
-      doc.text(`Terapia: ${c.treatment || 'obserwacja'} | Status: ${c.status}`, margin + 6, y + 7);
-      y += 10;
+      doc.text(descLines, margin + 6, y + 8);
+      y += rowHeight + 2;
     });
     y += 3;
   }
@@ -303,18 +371,24 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
   // --- RECENT MEDICAL EXAMS ---
   if (exams.length > 0) {
     renderSectionHeader('OSTATNIE BADANIA KLINICZNE I LABORATORYJNE', exams.length);
-    exams.slice(0, 5).forEach(e => {
-      ensureSpace(10);
-      doc.setFont('helvetica', 'bold');
+    exams.slice(0, 10).forEach(e => {
+      doc.setFont('LiberationSans', 'normal');
+      doc.setFontSize(8);
+      const summaryText = `Wynik / Uwagi: ${e.summary || '-'}`;
+      const summaryLines = doc.splitTextToSize(summaryText, contentWidth - 10);
+      const rowHeight = 7 + summaryLines.length * 4.2;
+
+      ensureSpace(rowHeight + 3);
+      doc.setFont('LiberationSans', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(`• ${e.title} (${e.date})`, margin + 3, y + 3);
+      doc.text(`• ${e.title} (${e.date})`, margin + 3, y + 3.5);
 
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('LiberationSans', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
-      doc.text(`Wynik: ${e.summary || '-'}`, margin + 6, y + 7, { maxWidth: contentWidth - 10 });
-      y += 10;
+      doc.text(summaryLines, margin + 6, y + 8);
+      y += rowHeight + 2;
     });
     y += 3;
   }
@@ -322,21 +396,29 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
   // --- VET VISITS HISTORY ---
   if (visits.length > 0) {
     renderSectionHeader('HISTORIA WIZYT WETERYNARYJNYCH', visits.length);
-    visits.slice(0, 5).forEach(v => {
-      ensureSpace(10);
-      doc.setFont('helvetica', 'bold');
+    visits.slice(0, 10).forEach(v => {
+      const visitSummary = [
+        v.diagnosis ? `Diagnoza: ${v.diagnosis}` : null,
+        v.treatmentGiven ? `Zabieg/Leki: ${v.treatmentGiven}` : null,
+        v.notes ? `Notatki: ${v.notes}` : null
+      ].filter(Boolean).join(' | ');
+
+      doc.setFont('LiberationSans', 'normal');
+      doc.setFontSize(8);
+      const summaryLines = doc.splitTextToSize(visitSummary || 'Wizyta zrealizowana', contentWidth - 10);
+      const rowHeight = 7 + summaryLines.length * 4.2;
+
+      ensureSpace(rowHeight + 3);
+      doc.setFont('LiberationSans', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(`• ${v.date} - ${v.reason || 'Wizyta kontrolna'} (${v.clinic || 'Gabinet'})`, margin + 3, y + 3);
+      doc.text(`• ${v.date} - ${v.reason || 'Wizyta kontrolna'} (${v.clinic || 'Gabinet'})`, margin + 3, y + 3.5);
 
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('LiberationSans', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
-      const visitSummary = [v.diagnosis ? `Diagnoza: ${v.diagnosis}` : null, v.treatmentGiven ? `Zabieg/Leki: ${v.treatmentGiven}` : null, v.notes]
-        .filter(Boolean)
-        .join(' | ');
-      doc.text(visitSummary || 'Wizyta zrealizowana', margin + 6, y + 7, { maxWidth: contentWidth - 10 });
-      y += 10;
+      doc.text(summaryLines, margin + 6, y + 8);
+      y += rowHeight + 2;
     });
     y += 3;
   }
@@ -345,11 +427,11 @@ export function buildPetMedicalReportPdf(data: ReportData): jsPDF {
   const totalPages = doc.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('LiberationSans', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(148, 163, 184);
     doc.text(
-      `PetCare • Elektroniczna Ksiazeczka Zdrowia • Strona ${p} z ${totalPages}`,
+      `PetCare • Elektroniczna Książeczka Zdrowia • Strona ${p} z ${totalPages}`,
       pageWidth / 2,
       pageHeight - 8,
       { align: 'center' }
