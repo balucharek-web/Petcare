@@ -1740,15 +1740,30 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   </span>
                 )}
               </button>
-              <div className="bg-slate-50 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 block truncate">Waga</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('widget-weightTracker');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-4', 'ring-teal-500', 'shadow-2xl');
+                    setTimeout(() => el.classList.remove('ring-4', 'ring-teal-500', 'shadow-2xl'), 2500);
+                  }
+                }}
+                className="bg-slate-50 hover:bg-teal-50/70 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 hover:border-teal-200 text-center transition cursor-pointer active:scale-95 group"
+                title="Kliknij, aby przejść do wykresu i historii pomiarów wagi"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 group-hover:text-teal-700 block truncate">Waga</span>
+                  <Scale className="w-2.5 h-2.5 text-teal-600 opacity-60 group-hover:opacity-100 shrink-0" />
+                </div>
                 <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-teal-700 truncate block">
                   {pet.weightKg} kg
                 </span>
-                <span className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-400 block truncate mt-0.5">
-                  {pet.species === 'dog' ? (pet.weightKg <= 10 ? 'Rasa mała' : pet.weightKg <= 25 ? 'Rasa średnia' : pet.weightKg <= 45 ? 'Rasa duża' : 'Rasa olbrzymia') : 'Kot'}
+                <span className="text-[9px] min-[360px]:text-[10px] font-bold text-teal-600/80 group-hover:text-teal-700 block truncate mt-0.5">
+                  Wykres i pomiary ➔
                 </span>
-              </div>
+              </button>
               <div className="bg-slate-50 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 text-center">
                 <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 block truncate">Kastracja</span>
                 <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-slate-800 truncate block">
@@ -1951,6 +1966,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           return (
             <div
               key={widgetKey}
+              id={`widget-${widgetKey}`}
               data-widget-key={widgetKey}
               draggable={isReorderMode}
               onDragStart={isReorderMode ? (e) => handleDragStart(e, widgetKey) : undefined}
