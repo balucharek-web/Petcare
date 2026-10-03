@@ -26,7 +26,7 @@ public class NativeGoogleAuthPlugin extends Plugin {
     public static final int RC_GOOGLE_SIGN_IN = 9001;
     public static final int RC_DRIVE_AUTH = 9002;
     private static final String HMAC_SECRET = "PETCARE_NATIVE_SEC_KEY_2026_V29";
-    private static final String DRIVE_SCOPE = "oauth2:https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata";
+    private static final String DRIVE_SCOPE = "oauth2:https://www.googleapis.com/auth/drive.file";
 
     private static PluginCall pendingSignInCall;
     private static PluginCall pendingDriveCall;
