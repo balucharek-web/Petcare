@@ -88,17 +88,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.60.0' }}
-          name: "PetCare v2.60.0 - Zaawansowany analizator składu karm weterynaryjnych (Demaskowanie marketowych chwytów)"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.61.0' }}
+          name: "PetCare v2.61.0 - Pełny wykres wagi w czasie, eksport CSV i polskie znaki w PDF"
+          make_latest: true
           body: |
-            ### 🐾 PetCare v2.60.0 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.61.0 - Nowości i usprawnienia
 
-            1. 🥩 **Głęboka analiza etykiet karm (Food Lens AI):**
-               - **Demaskowanie bilansu mięsa**: Rozróżnianie ogólnych produktów odzwierzęcych (np. 20% odpadów poubojowych) od rzeczywistej zawartości mięsa (np. tylko 4% drobiu).
-               - **Ocena jakości karmy (1 - 10)**: Wykrywanie karm marketowych o niskiej wartości biologicznej.
-               - **Zasada 1. składnika**: Wykrywanie, kiedy baza karmy to tanie zboża zamiast mięsa.
-               - **Kalkulator węglowodanów NFE Weende**: Dokładne wyliczanie procentu węglowodanów bezpośrednio z etykiety analitycznej (np. 46.7%).
-               - **Wykrywanie chwytów marketingowych**: Identyfikacja sztucznie barwionych granulek ("kolorowe granulki").
+            1. 📈 **Dedykowany moduł i wykres wagi pupila:**
+               - Bezpośredni dostęp po kliknięciu plakietki **Waga** w profilu zwierzaka, w kafelku pulpitu lub w menu Narzędzia.
+               - Automatyczny, interaktywny wykres liniowy SVG z gradientem i oznaczonymi pomiarami w czasie.
+               - Analiza trendu (spadek, wzrost, waga stabilna), zakres minimalny/maksymalny i eksport do CSV.
+            2. 📄 **Generowanie raportu PDF:** Pełne polskie znaki diakrytyczne (UTF-8 TrueType) i dynamiczne dopasowanie wierszy bez nakładania się tekstu.
+            3. 📊 **Eksport finansów i wydatków do pliku Excel / CSV** z polskimi znakami.
+            4. 🚀 **Pełne wsparcie PWA Offline:** Aplikacja działa bez połączenia z siecią.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

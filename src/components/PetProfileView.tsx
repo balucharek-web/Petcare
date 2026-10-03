@@ -84,6 +84,7 @@ interface PetProfileViewProps {
   onOpenFoodLens?: () => void;
   onOpenMicrochipVerify?: () => void;
   onOpenSymptomChecker?: () => void;
+  onOpenWeightTracker?: () => void;
 }
 
 export const PetProfileView: React.FC<PetProfileViewProps> = ({
@@ -114,6 +115,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   onOpenFoodLens,
   onOpenMicrochipVerify,
   onOpenSymptomChecker,
+  onOpenWeightTracker,
 }) => {
   const [copiedChip, setCopiedChip] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -1129,7 +1131,16 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
         );
 
       case 'weightTracker': {
-        const sortedHistory = [...(pet.weightHistory || [])].sort(
+        let initialHistory = pet.weightHistory && pet.weightHistory.length > 0 ? [...pet.weightHistory] : [];
+        if (initialHistory.length === 0 && pet.weightKg && pet.weightKg > 0) {
+          initialHistory = [{
+            id: 'init-weight',
+            date: pet.createdAt ? pet.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            weightKg: pet.weightKg,
+            notes: 'Waga profilu'
+          }];
+        }
+        const sortedHistory = initialHistory.sort(
           (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
         );
         const entriesCount = sortedHistory.length;
@@ -1182,14 +1193,26 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsAddingWeight(!isAddingWeight)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-100 text-xs font-bold transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Nowy pomiar</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                {onOpenWeightTracker && (
+                  <button
+                    type="button"
+                    onClick={onOpenWeightTracker}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                    title="Otwórz pełny widok wykresu i tabeli"
+                  >
+                    <span>Pełny wykres ➔</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsAddingWeight(!isAddingWeight)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-100 text-xs font-bold transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Nowy pomiar</span>
+                </button>
+              </div>
             </div>
 
             {/* Quick Metrics Banner */}
@@ -1743,15 +1766,19 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const el = document.getElementById('widget-weightTracker');
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.classList.add('ring-4', 'ring-teal-500', 'shadow-2xl');
-                    setTimeout(() => el.classList.remove('ring-4', 'ring-teal-500', 'shadow-2xl'), 2500);
+                  if (onOpenWeightTracker) {
+                    onOpenWeightTracker();
+                  } else {
+                    const el = document.getElementById('widget-weightTracker');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      el.classList.add('ring-4', 'ring-teal-500', 'shadow-2xl');
+                      setTimeout(() => el.classList.remove('ring-4', 'ring-teal-500', 'shadow-2xl'), 2500);
+                    }
                   }
                 }}
                 className="bg-slate-50 hover:bg-teal-50/70 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 hover:border-teal-200 text-center transition cursor-pointer active:scale-95 group"
-                title="Kliknij, aby przejść do wykresu i historii pomiarów wagi"
+                title="Kliknij, aby otworzyć pełny wykres i historię pomiarów wagi"
               >
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 group-hover:text-teal-700 block truncate">Waga</span>

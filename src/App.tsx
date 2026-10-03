@@ -71,6 +71,7 @@ import { MicrochipVerifyModal } from './components/MicrochipVerifyModal';
 import { LabTrendsModal } from './components/LabTrendsModal';
 import { FoodLensModal } from './components/FoodLensModal';
 import { SymptomCheckerModal } from './components/SymptomCheckerModal';
+import { WeightTrackerModal } from './components/WeightTrackerModal';
 import { haptics } from './services/hapticsService';
 
 export default function App() {
@@ -116,6 +117,7 @@ export default function App() {
   const [isLabTrendsOpen, setIsLabTrendsOpen] = useState(false);
   const [isFoodLensOpen, setIsFoodLensOpen] = useState(false);
   const [isSymptomCheckerOpen, setIsSymptomCheckerOpen] = useState(false);
+  const [isWeightTrackerOpen, setIsWeightTrackerOpen] = useState(false);
   const [qrInitialMode, setQrInitialMode] = useState<'send' | 'receive'>('send');
   const [restoreToast, setRestoreToast] = useState<string | null>(null);
 
@@ -644,6 +646,7 @@ export default function App() {
                   onOpenFoodLens={() => setIsFoodLensOpen(true)}
                   onOpenMicrochipVerify={() => setIsMicrochipVerifyOpen(true)}
                   onOpenSymptomChecker={() => setIsSymptomCheckerOpen(true)}
+                  onOpenWeightTracker={() => setIsWeightTrackerOpen(true)}
                 />
               )}
 
@@ -875,6 +878,10 @@ export default function App() {
             setIsToolsHubOpen(false);
             setIsMicrochipVerifyOpen(true);
           }}
+          onOpenWeightTracker={() => {
+            setIsToolsHubOpen(false);
+            setIsWeightTrackerOpen(true);
+          }}
           onOpenSettings={() => {
             setIsToolsHubOpen(false);
           }}
@@ -1019,6 +1026,15 @@ export default function App() {
             setIsSymptomCheckerOpen(false);
             setIsEmergencyVetFinderOpen(true);
           }}
+        />
+      )}
+
+      {isWeightTrackerOpen && activePet && (
+        <WeightTrackerModal
+          isOpen={isWeightTrackerOpen}
+          pet={activePet}
+          onClose={() => setIsWeightTrackerOpen(false)}
+          onUpdatePet={handleUpdatePet}
         />
       )}
     </div>

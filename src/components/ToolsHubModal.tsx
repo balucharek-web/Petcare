@@ -21,7 +21,8 @@ import {
   LayoutGrid,
   Activity,
   Scan,
-  Stethoscope
+  Stethoscope,
+  Scale
 } from 'lucide-react';
 import { Pet } from '../types/pet';
 import { haptics } from '../services/hapticsService';
@@ -52,6 +53,7 @@ interface ToolsHubModalProps {
   onOpenFoodLens?: () => void;
   onOpenSymptomChecker?: () => void;
   onOpenMicrochipVerify?: () => void;
+  onOpenWeightTracker?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -81,11 +83,21 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   onOpenFoodLens,
   onOpenSymptomChecker,
   onOpenMicrochipVerify,
+  onOpenWeightTracker,
   onOpenSettings,
 }) => {
   if (!isOpen) return null;
 
   const tools = [
+    {
+      id: 'weight-tracker',
+      label: 'Wykres i Kontrola Wagi Pupila',
+      desc: 'Interaktywny wykres zmian masy ciała w czasie, analiza trendów, historia ważeń i profil kondycji',
+      icon: Scale,
+      color: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
+      badge: 'Wykres w czasie',
+      action: onOpenWeightTracker,
+    },
     {
       id: 'lab-trends',
       label: 'Wykresy Trendów Laboratoryjnych',

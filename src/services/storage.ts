@@ -297,7 +297,22 @@ export const storage = {
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed.map((p: Pet) => {
+          if ((!p.weightHistory || p.weightHistory.length === 0) && p.weightKg && p.weightKg > 0) {
+            return {
+              ...p,
+              weightHistory: [
+                {
+                  id: `w-${p.id}-init`,
+                  date: p.birthDate || p.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+                  weightKg: p.weightKg,
+                  notes: 'Waga profilu'
+                }
+              ]
+            };
+          }
+          return p;
+        });
       }
       return [];
     } catch {
@@ -604,10 +619,17 @@ export const storage = {
           ...existingOrder.filter((k: DashboardWidgetKey) => DEFAULT_WIDGET_ORDER.includes(k)),
           ...DEFAULT_WIDGET_ORDER.filter(k => !existingOrder.includes(k)),
         ];
+        let finalOrder = mergedOrder;
+        if (finalOrder.includes('weightTracker')) {
+          finalOrder = finalOrder.filter(k => k !== 'weightTracker');
+          const insertIdx = finalOrder.indexOf('shortcuts') !== -1 ? finalOrder.indexOf('shortcuts') + 1 : 2;
+          finalOrder.splice(insertIdx, 0, 'weightTracker');
+        }
         return {
           ...DEFAULT_DASHBOARD_CONFIG,
           ...parsed,
-          order: mergedOrder,
+          weightTracker: parsed?.weightTracker !== undefined ? parsed.weightTracker : true,
+          order: finalOrder,
         };
       } catch {}
     }
