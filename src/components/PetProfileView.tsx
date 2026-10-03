@@ -26,6 +26,7 @@ import {
   Sliders,
   Utensils,
   TrendingUp,
+  TrendingDown,
   ArrowRight,
   Search,
   GripVertical,
@@ -119,6 +120,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   const [isAddingWeight, setIsAddingWeight] = useState(false);
   const [newWeight, setNewWeight] = useState('');
   const [newWeightNotes, setNewWeightNotes] = useState('');
+  const [newWeightDate, setNewWeightDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [showAllWeightHistory, setShowAllWeightHistory] = useState(false);
   const [previewBookletScan, setPreviewBookletScan] = useState<{ url: string; title: string; date?: string } | null>(null);
   const [isSamplePhotoPickerOpen, setIsSamplePhotoPickerOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -350,24 +353,46 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
     const newEntry: PetWeightEntry = {
       id: crypto.randomUUID(),
-      date: new Date().toISOString().split('T')[0],
+      date: newWeightDate || new Date().toISOString().split('T')[0],
       weightKg: val,
       notes: newWeightNotes.trim() || undefined,
     };
 
     const currentHistory = pet.weightHistory || [];
-    const updatedHistory = [...currentHistory, newEntry];
+    const updatedHistory = [...currentHistory, newEntry].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const latestEntry = updatedHistory[updatedHistory.length - 1];
 
     const updatedPet: Pet = {
       ...pet,
-      weightKg: val,
+      weightKg: latestEntry.weightKg,
       weightHistory: updatedHistory,
     };
 
     onUpdatePet(updatedPet);
     setNewWeight('');
     setNewWeightNotes('');
+    setNewWeightDate(new Date().toISOString().split('T')[0]);
     setIsAddingWeight(false);
+    haptics.success();
+  };
+
+  const handleDeleteWeight = (entryId: string) => {
+    const currentHistory = pet.weightHistory || [];
+    const updatedHistory = currentHistory.filter(e => e.id !== entryId);
+    const sorted = updatedHistory.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const latestEntry = sorted[sorted.length - 1];
+
+    const updatedPet: Pet = {
+      ...pet,
+      weightKg: latestEntry ? latestEntry.weightKg : pet.weightKg,
+      weightHistory: updatedHistory,
+    };
+
+    onUpdatePet(updatedPet);
+    haptics.selection();
   };
 
   const handleBookletScanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1103,41 +1128,196 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           </div>
         );
 
-      case 'weightTracker':
+      case 'weightTracker': {
+        const sortedHistory = [...(pet.weightHistory || [])].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        const entriesCount = sortedHistory.length;
+        const firstEntry = sortedHistory[0];
+        const lastEntry = sortedHistory[entriesCount - 1];
+        const weightDelta = (firstEntry && lastEntry && entriesCount > 1) 
+          ? Number((lastEntry.weightKg - firstEntry.weightKg).toFixed(2)) 
+          : 0;
+
+        // Chart calculations
+        const minWeight = entriesCount > 0 ? Math.min(...sortedHistory.map(e => e.weightKg)) : 0;
+        const maxWeight = entriesCount > 0 ? Math.max(...sortedHistory.map(e => e.weightKg)) : 0;
+        const weightSpan = maxWeight - minWeight || 1;
+        const chartWidth = 320;
+        const chartHeight = 90;
+        const padX = 24;
+        const padY = 16;
+
+        const chartPoints = sortedHistory.map((entry, index) => {
+          const x = entriesCount === 1 
+            ? chartWidth / 2 
+            : padX + (index / (entriesCount - 1)) * (chartWidth - padX * 2);
+          const y = padY + (1 - (entry.weightKg - minWeight) / weightSpan) * (chartHeight - padY * 2);
+          return { x, y, ...entry };
+        });
+
+        const svgPathD = chartPoints.length > 1
+          ? chartPoints.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`, '')
+          : '';
+
+        const areaPathD = chartPoints.length > 1
+          ? `${svgPathD} L ${chartPoints[chartPoints.length - 1].x.toFixed(1)} ${chartHeight - 4} L ${chartPoints[0].x.toFixed(1)} ${chartHeight - 4} Z`
+          : '';
+
+        const displayedHistory = showAllWeightHistory 
+          ? [...sortedHistory].reverse() 
+          : [...sortedHistory].reverse().slice(0, 4);
+
         return (
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-teal-50 rounded-xl text-teal-700">
                   <Scale className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Kontrola Wagi</h3>
-                  <p className="text-xs text-slate-400">Aktualna: <strong className="text-teal-700">{pet.weightKg} kg</strong></p>
+                  <h3 className="text-sm font-bold text-slate-900">Kontrola Wagi i Wykres</h3>
+                  <p className="text-xs text-slate-400">
+                    Aktualna: <strong className="text-teal-700 font-extrabold">{pet.weightKg} kg</strong>
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setIsAddingWeight(true)}
+                onClick={() => setIsAddingWeight(!isAddingWeight)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-100 text-xs font-bold transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Nowy pomiar
+                <span>Nowy pomiar</span>
               </button>
             </div>
 
+            {/* Quick Metrics Banner */}
+            {entriesCount > 1 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-teal-50/50 p-3 rounded-2xl border border-teal-100/80 text-xs">
+                <div>
+                  <span className="text-[10px] text-teal-800/70 font-semibold block uppercase">Trend ogólny</span>
+                  <span className="font-extrabold text-slate-900 flex items-center gap-1 mt-0.5">
+                    {weightDelta > 0 ? (
+                      <>
+                        <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="text-amber-700">+{weightDelta} kg</span>
+                      </>
+                    ) : weightDelta < 0 ? (
+                      <>
+                        <TrendingDown className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="text-blue-700">{weightDelta} kg</span>
+                      </>
+                    ) : (
+                      <span className="text-teal-700">Waga stabilna</span>
+                    )}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-teal-800/70 font-semibold block uppercase">Najniższa / Najwyższa</span>
+                  <span className="font-bold text-slate-800 mt-0.5 block">
+                    {minWeight} kg / {maxWeight} kg
+                  </span>
+                </div>
+                <div className="hidden sm:block">
+                  <span className="text-[10px] text-teal-800/70 font-semibold block uppercase">Liczba ważeń</span>
+                  <span className="font-bold text-slate-800 mt-0.5 block">
+                    {entriesCount} pomiary
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Interactive SVG Weight Chart */}
+            {entriesCount >= 2 && (
+              <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 px-1 mb-1">
+                  <span>Wykres zmian w czasie</span>
+                  <span>Zakres: {firstEntry.date} ➔ {lastEntry.date}</span>
+                </div>
+                <div className="w-full overflow-hidden">
+                  <svg
+                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                    className="w-full h-24 overflow-visible"
+                  >
+                    <defs>
+                      <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0d9488" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#0d9488" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Horizontal Reference Lines */}
+                    <line x1={padX} y1={padY} x2={chartWidth - padX} y2={padY} stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <line x1={padX} y1={chartHeight - padY} x2={chartWidth - padX} y2={chartHeight - padY} stroke="#e2e8f0" strokeDasharray="3 3" />
+
+                    {/* Shaded Area */}
+                    {areaPathD && (
+                      <path d={areaPathD} fill="url(#weightGradient)" />
+                    )}
+
+                    {/* Trend Line */}
+                    {svgPathD && (
+                      <path
+                        d={svgPathD}
+                        fill="none"
+                        stroke="#0d9488"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    )}
+
+                    {/* Data Points */}
+                    {chartPoints.map((pt) => (
+                      <g key={pt.id}>
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r="4"
+                          fill="#ffffff"
+                          stroke="#0d9488"
+                          strokeWidth="2.5"
+                        />
+                        <text
+                          x={pt.x}
+                          y={pt.y - 7}
+                          textAnchor="middle"
+                          className="text-[9px] font-bold fill-slate-700"
+                        >
+                          {pt.weightKg}
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+              </div>
+            )}
+
+            {/* Form to add new measurement */}
             {isAddingWeight && (
-              <form onSubmit={handleAddWeight} className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100 mb-4 animate-fadeIn">
-                <h4 className="text-xs font-bold text-teal-900 mb-2">Zapisz nowy pomiar masy ciała</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+              <form onSubmit={handleAddWeight} className="p-4 bg-teal-50/60 rounded-2xl border border-teal-200 mb-2 animate-fadeIn space-y-3">
+                <h4 className="text-xs font-bold text-teal-900">Nowy pomiar masy ciała</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold text-teal-800 block mb-0.5">Waga (kg)</label>
+                    <label className="text-[10px] font-bold text-teal-800 block mb-0.5">Waga (kg) *</label>
                     <input
                       type="number"
-                      step="0.05"
+                      step="0.01"
                       value={newWeight}
                       onChange={e => setNewWeight(e.target.value)}
                       placeholder="np. 12.4"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-teal-200 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-teal-500 font-bold"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-teal-800 block mb-0.5">Data pomiaru *</label>
+                    <input
+                      type="date"
+                      value={newWeightDate}
+                      onChange={e => setNewWeightDate(e.target.value)}
                       className="w-full px-3 py-1.5 rounded-xl bg-white border border-teal-200 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-teal-500"
                       required
                     />
@@ -1148,22 +1328,22 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                       type="text"
                       value={newWeightNotes}
                       onChange={e => setNewWeightNotes(e.target.value)}
-                      placeholder="np. po diecie, w gabinecie"
+                      placeholder="np. w gabinecie, po spacerze"
                       className="w-full px-3 py-1.5 rounded-xl bg-white border border-teal-200 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setIsAddingWeight(false)}
-                    className="px-3 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold"
+                    className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold"
                   >
                     Anuluj
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-xs"
+                    className="px-4 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-xs active:scale-98"
                   >
                     Zapisz pomiar
                   </button>
@@ -1171,29 +1351,60 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               </form>
             )}
 
+            {/* List of measurements */}
             <div className="space-y-2">
-              {(!pet.weightHistory || pet.weightHistory.length === 0) ? (
-                <p className="text-xs text-slate-400 text-center py-2">Brak wcześniejszych pomiarów wagi.</p>
+              {entriesCount === 0 ? (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                  <Scale className="w-5 h-5 text-slate-400 mx-auto mb-1 opacity-70" />
+                  <p className="text-xs text-slate-500 font-medium">Brak historii pomiarów wagi.</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Kliknij „Nowy pomiar”, aby śledzić wagę i wykres pupila.</p>
+                </div>
               ) : (
-                pet.weightHistory.slice(-4).reverse().map((entry) => (
+                displayedHistory.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs"
+                    className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 text-xs transition"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-teal-500" />
-                      <span className="font-semibold text-slate-700">{entry.date}</span>
-                      {entry.notes && <span className="text-slate-400 italic">({entry.notes})</span>}
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800">{entry.date}</span>
+                          <span className="font-extrabold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-200/60">
+                            {entry.weightKg} kg
+                          </span>
+                        </div>
+                        {entry.notes && (
+                          <p className="text-[11px] text-slate-500 italic mt-0.5">{entry.notes}</p>
+                        )}
+                      </div>
                     </div>
-                    <span className="font-bold text-slate-900 bg-white px-2.5 py-1 rounded-xl shadow-xs border border-slate-100">
-                      {entry.weightKg} kg
-                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWeight(entry.id)}
+                      className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                      title="Usuń ten wpis wagi"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))
+              )}
+
+              {entriesCount > 4 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllWeightHistory(!showAllWeightHistory)}
+                  className="w-full py-2 text-center text-xs font-bold text-teal-700 hover:text-teal-800 transition"
+                >
+                  {showAllWeightHistory ? 'Zwiń do 4 ostatnich' : `Pokaż całą historię (${entriesCount} pomiarów)`}
+                </button>
               )}
             </div>
           </div>
         );
+      }
 
       case 'bookletScans':
         return (

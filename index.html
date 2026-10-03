@@ -39,22 +39,12 @@
         });
       } catch (err) {}
 
-      // Ensure fresh code in preview by clearing service workers safely
+      // Register Service Worker for offline PWA capabilities
       try {
-        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for (var reg of registrations) {
-              reg.unregister();
-            }
-          }).catch(function() {});
-        }
-      } catch (err) {}
-
-      try {
-        if (typeof window !== 'undefined' && 'caches' in window) {
-          caches.keys().then(function(keys) {
-            keys.forEach(function(key) { caches.delete(key); });
-          }).catch(function() {});
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').catch(function() {});
+          });
         }
       } catch (err) {}
     </script>

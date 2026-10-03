@@ -11,7 +11,8 @@ import {
   DollarSign, 
   Camera, 
   PieChart,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import { Pet, PetExpense, VetVisit, ExpenseCategory } from '../types/pet';
 import { storage } from '../services/storage';
@@ -134,6 +135,30 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
     onDataChanged();
   };
 
+  const handleExportCsv = () => {
+    if (allExpenses.length === 0) return;
+    const cleanPetName = (pet.name || 'pupil').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const headers = ['Data', 'Zwierzak', 'Tytuł / Usługa', 'Kategoria', 'Kwota (PLN)', 'Notatki'];
+    const rows = allExpenses.map(e => [
+      e.date,
+      `"${pet.name.replace(/"/g, '""')}"`,
+      `"${(e.title || '').replace(/"/g, '""')}"`,
+      `"${(categoryLabels[e.category]?.label || e.category).replace(/"/g, '""')}"`,
+      e.amountPln.toFixed(2).replace('.', ','),
+      `"${(e.notes || '').replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Wydatki_${cleanPetName}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
@@ -150,12 +175,24 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
               <p className="text-xs text-emerald-200/80">Koszty leczenia, karmy i opieki dla: {pet.name}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={allExpenses.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-40"
+              title="Pobierz arkusz kalkulacyjny CSV z polskimi znakami do Excela"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Pobierz CSV</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
