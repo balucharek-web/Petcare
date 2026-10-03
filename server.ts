@@ -1089,6 +1089,149 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
     }
   });
 
+  // API Route: AI Pet Food & Document Analyzer (Food Lens AI)
+  app.post(['/api/analyze-pet-document', '/api/analyze-food'], aiScanLimiter, async (req, res) => {
+    const { imageBase64, mimeType, petSpecies, petName, petAllergies, customPrompt } = req.body || {};
+
+    try {
+      if (!imageBase64) {
+        return res.status(400).json({ success: false, error: 'Brak danych zdjęcia karmy.' });
+      }
+
+      const cleanPetName = typeof petName === 'string' ? petName.replace(/[^\p{L}\p{N}\s._-]/gu, '').slice(0, 50) : 'zwierzak';
+      const cleanPetSpecies = typeof petSpecies === 'string' ? petSpecies.replace(/[^\p{L}\p{N}\s._-]/gu, '').slice(0, 50) : 'pies/kot';
+      const cleanAllergies = typeof petAllergies === 'string' ? petAllergies.slice(0, 200) : '';
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          success: false,
+          error: 'Brak klucza API Gemini (GEMINI_API_KEY).',
+        });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: { 'User-Agent': 'aistudio-build' },
+        },
+      });
+
+      const mimeMatch = imageBase64.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,/);
+      const effectiveMime = mimeMatch ? mimeMatch[1] : (mimeType || 'image/jpeg');
+      const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+
+      const prompt = customPrompt || `Jesteś dietetykiem zwierzęcym i ekspertem analizy etykiet karm dla psów i kotów.
+Twoim zadaniem jest dokładne odczytanie ze zdjęcia opakowania karmy listy składników (ingredients) oraz składu analitycznego (analytical constituents: białko, tłuszcz, włókno, popiół, wilgotność).
+
+KONTEKST PACJENTA:
+- Imię: ${cleanPetName}
+- Gatunek: ${cleanPetSpecies}
+- Zdefiniowane alergie w profilu: ${cleanAllergies || 'brak zdefiniowanych alergii'}
+
+WYTYCZNE DLA ANALIZY:
+1. "ingredientsText": Przepisz DOKŁADNIE i wiernie całą listę składników z opakowania w języku polskim. Jeśli etykieta jest wielojęzyczna, wybierz wersję polską (lub przetłumacz na polski).
+2. "analyticalText": Przepisz skład analityczny (białko surowe, tłuszcz surowy, włókno, popiół, wapń, fosfor itp.).
+3. "meatPercentage": Oszacuj procent mięsa (np. "65%" lub "brak danych na etykiecie").
+4. "meatQuality": Oceń jakość ("Bardzo wysoka: transparentne mięso spożywcze", "Wysoka: sprecyzowane mięso i podroby", "Średnia: mięso i produkty pochodzenia zwierzęcego", "Niska: mączki i odpady rzeźne").
+5. "grainFree": Czy karma jest bezzbożowa (true/false).
+6. "allergensDetected": Składniki karmy kolidujące z alergiami zwierzaka (${cleanAllergies}). Jeśli np. pupil ma alergię na kurczaka, a w składzie jest tłuszcz drobiowy lub mączka z kurczaka -> dodaj to do listy!
+7. "fillers": Wypisz wykryte tanie wypełniacze (np. wysłodki buraczane, kukurydza, pszenica, soja, cukier, karmel).
+8. "macronutrients": { "protein": string, "fat": string, "carbs": string, "moisture": string }
+9. "safeStatus": "safe" (jeśli brak kolizji), "warning" (jeśli słaby skład lub wypełniacze), "danger" (jeśli wykryto alergen groźny dla tego pupila).
+10. "summary": Zwięzłe, fachowe podsumowanie karmy w 2-3 zdaniach.
+
+Zwróć WYŁĄCZNIE poprawny obiekt JSON:
+{
+  "productName": string,
+  "foodType": "sucha" | "mokra" | "przysmak" | "inna",
+  "ingredientsText": string,
+  "analyticalText": string,
+  "meatPercentage": string,
+  "meatQuality": string,
+  "grainFree": boolean,
+  "allergensDetected": string[],
+  "fillers": string[],
+  "macronutrients": {
+    "protein": string,
+    "fat": string,
+    "carbs": string,
+    "moisture": string
+  },
+  "safeStatus": "safe" | "warning" | "danger",
+  "summary": string,
+  "text": string
+}`;
+
+      const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+      let response: any = null;
+      let lastModelError: any = null;
+
+      for (const modelName of CANDIDATE_MODELS) {
+        try {
+          response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      data: cleanBase64,
+                      mimeType: effectiveMime,
+                    },
+                  },
+                  { text: prompt },
+                ],
+              },
+            ],
+            config: {
+              responseMimeType: 'application/json',
+            },
+          });
+          if (response && response.text) break;
+        } catch (mErr: any) {
+          lastModelError = mErr;
+        }
+      }
+
+      if (!response || !response.text) {
+        throw new Error(lastModelError?.message || 'Nie udało się uzyskać odpowiedzi od modelu AI.');
+      }
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(response.text.trim());
+      } catch {
+        parsed = {
+          text: response.text,
+          ingredientsText: response.text,
+          summary: 'Odczytano etykietę karmy.',
+          safeStatus: 'safe',
+          allergensDetected: [],
+          fillers: [],
+          grainFree: true,
+          macronutrients: { protein: 'b/d', fat: 'b/d', carbs: 'b/d' },
+        };
+      }
+
+      if (!parsed.text && parsed.ingredientsText) {
+        parsed.text = parsed.ingredientsText;
+      }
+
+      return res.json({
+        success: true,
+        ...parsed,
+      });
+    } catch (err: any) {
+      console.error('Błąd analizy karmy Gemini:', err);
+      return res.status(500).json({
+        success: false,
+        error: err.message || 'Wystąpił błąd podczas analizy obrazu przez AI.',
+      });
+    }
+  });
+
   // In-memory cache for fast Geocoding and Reverse Geocoding
   const geocodeCache = new Map<string, any>();
   const reverseGeocodeCache = new Map<string, any>();

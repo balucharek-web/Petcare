@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Camera, 
+  Camera as CameraIcon, 
   Sparkles, 
   AlertTriangle, 
   CheckCircle2, 
@@ -12,10 +12,16 @@ import {
   FileText,
   ShieldCheck,
   Percent,
-  Check
+  Check,
+  Loader2,
+  RefreshCw,
+  Image as ImageIcon
 } from 'lucide-react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Pet } from '../types/pet';
 import { haptics } from '../services/hapticsService';
+import { getApiUrl } from '../services/cloudSyncService';
+import { compressImage } from '../utils/imageCompressor';
 
 interface FoodLensModalProps {
   pet: Pet;
@@ -42,15 +48,22 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
   onClose,
 }) => {
   const [inputText, setInputText] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
+    productName?: string;
+    foodType?: string;
     allergensDetected: string[];
     safeStatus: 'safe' | 'warning' | 'danger';
+    meatPercentage?: string;
     meatQuality: string;
     grainFree: boolean;
     fillers: string[];
     summary: string;
-    macronutrients: { protein: string; fat: string; carbs: string };
+    macronutrients: { protein: string; fat: string; carbs: string; moisture?: string };
+    ingredientsText?: string;
+    analyticalText?: string;
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,130 +71,207 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
   // Pet's known allergies
   const petAllergies = (pet.allergies || '').toLowerCase();
 
-  const handleAnalyze = (textToAnalyze?: string) => {
+  // Local fallback heuristic analysis when analyzing raw text
+  const runLocalTextAnalysis = (text: string) => {
+    const lower = text.toLowerCase();
+    const detected: string[] = [];
+
+    // Check poultry
+    if ((lower.includes('kurczak') || lower.includes('drób') || lower.includes('drobiow') || lower.includes('ptactw')) && 
+        (petAllergies.includes('kurczak') || petAllergies.includes('drób') || petAllergies.includes('drobiow'))) {
+      detected.push('Kurczak / Drób (zgodny z alergią w profilu)');
+    }
+
+    // Check wheat / grains
+    if ((lower.includes('pszenic') || lower.includes('zboż') || lower.includes('gluten')) &&
+        (petAllergies.includes('pszenic') || petAllergies.includes('zboż') || petAllergies.includes('gluten'))) {
+      detected.push('Pszenica / Zboża glutenowe (zgodne z alergią w profilu)');
+    }
+
+    // Check other common pet allergens
+    if (lower.includes('soj') && petAllergies.includes('soj')) detected.push('Soja');
+    if (lower.includes('wołowin') && petAllergies.includes('wołowin')) detected.push('Wołowina');
+    if (lower.includes('mleko') || lower.includes('laktoz')) {
+      if (petAllergies.includes('mlek') || petAllergies.includes('laktoz')) detected.push('Nabiał / Laktoza');
+    }
+
+    // Meat quality check
+    let meatQuality = 'Wysoka: sprecyzowane gatunki mięsa i podrobów';
+    if (lower.includes('produkty pochodzenia zwierzęcego') || lower.includes('mączka mięsna')) {
+      meatQuality = 'Niska/Średnia: niesprecyzowane odpady rzeźne („produkty pochodzenia zwierzęcego”)';
+    } else if (lower.includes('świeże') || lower.includes('suszone mięso')) {
+      meatQuality = 'Bardzo wysoka: transparentny skład mięsa jakości spożywczej';
+    }
+
+    const grainFree = !lower.includes('pszenic') && !lower.includes('kukurydz') && !lower.includes('zboż') && !lower.includes('jęczmień');
+    
+    const fillers: string[] = [];
+    if (lower.includes('wysłodki buraczane')) fillers.push('Wysłodki buraczane (wypełniacz objętościowy)');
+    if (lower.includes('kukurydz')) fillers.push('Kukurydza (tani węglowodan)');
+    if (lower.includes('pszenic')) fillers.push('Pszenica (potencjalny alergen glutenowy)');
+    if (lower.includes('cukier') || lower.includes('karmel')) fillers.push('Dodatek cukrów / karmelu');
+
+    let safeStatus: 'safe' | 'warning' | 'danger' = 'safe';
+    if (detected.length > 0) {
+      safeStatus = 'danger';
+      haptics.danger();
+    } else if (!grainFree || fillers.length > 1) {
+      safeStatus = 'warning';
+      haptics.warning();
+    } else {
+      safeStatus = 'safe';
+      haptics.success();
+    }
+
+    let protein = 'ok. 26 - 32%';
+    let fat = 'ok. 14 - 18%';
+    let carbs = grainFree ? 'ok. 30 - 38% (z warzyw i batatów)' : 'ok. 45 - 55% (zboża)';
+    if (lower.includes('mokra') || lower.includes('rosół')) {
+      protein = 'ok. 10 - 12% (mokra masa)';
+      fat = 'ok. 6 - 8%';
+      carbs = '< 4%';
+    }
+
+    setAnalysisResult({
+      allergensDetected: detected,
+      safeStatus,
+      meatQuality,
+      grainFree,
+      fillers,
+      summary: detected.length > 0
+        ? `UWAGA: Karma zawiera ${detected.length} składnik(i) kolidujące ze zdefiniowanymi alergiami ${pet.name}!`
+        : `Brak wykrytych bezpośrednich alergenów przypisanych do ${pet.name}. ${grainFree ? 'Karma bezzbożowa.' : 'Karma zawiera zboża.'}`,
+      macronutrients: { protein, fat, carbs },
+    });
+  };
+
+  const handleAnalyzeText = (textToAnalyze?: string) => {
     const text = (textToAnalyze || inputText).trim();
     if (!text) return;
 
     haptics.tap();
     setIsAnalyzing(true);
+    setErrorMsg(null);
 
     setTimeout(() => {
-      const lower = text.toLowerCase();
-      const detected: string[] = [];
-
-      // Check poultry
-      if ((lower.includes('kurczak') || lower.includes('drób') || lower.includes('drobiow') || lower.includes('ptactw')) && 
-          (petAllergies.includes('kurczak') || petAllergies.includes('drób') || petAllergies.includes('drobiow'))) {
-        detected.push('Kurczak / Drób (zgodny z alergią w profilu)');
-      } else if (lower.includes('kurczak') || lower.includes('drób') || lower.includes('drobiow')) {
-        // Not marked in pet's allergies, but found
-      }
-
-      // Check wheat / grains
-      if ((lower.includes('pszenic') || lower.includes('zboż') || lower.includes('gluten')) &&
-          (petAllergies.includes('pszenic') || petAllergies.includes('zboż') || petAllergies.includes('gluten'))) {
-        detected.push('Pszenica / Zboża glutenowe (zgodne z alergią w profilu)');
-      }
-
-      // Check other common pet allergens
-      if (lower.includes('soj') && petAllergies.includes('soj')) detected.push('Soja');
-      if (lower.includes('wołowin') && petAllergies.includes('wołowin')) detected.push('Wołowina');
-      if (lower.includes('mleko') || lower.includes('laktoz')) {
-        if (petAllergies.includes('mlek') || petAllergies.includes('laktoz')) detected.push('Nabiał / Laktoza');
-      }
-
-      // Meat quality check
-      let meatQuality = 'Wysoka: sprecyzowane gatunki mięsa i podrobów';
-      if (lower.includes('produkty pochodzenia zwierzęcego') || lower.includes('mączka mięsna')) {
-        meatQuality = 'Niska/Średnia: niesprecyzowane odpady rzeźne („produkty pochodzenia zwierzęcego”)';
-      } else if (lower.includes('świeże') || lower.includes('suszone mięso')) {
-        meatQuality = 'Bardzo wysoka: transparentny skład mięsa jakości spożywczej';
-      }
-
-      const grainFree = !lower.includes('pszenic') && !lower.includes('kukurydz') && !lower.includes('zboż') && !lower.includes('jęczmień');
-      
-      const fillers: string[] = [];
-      if (lower.includes('wysłodki buraczane')) fillers.push('Wysłodki buraczane (wypełniacz objętościowy)');
-      if (lower.includes('kukurydz')) fillers.push('Kukurydza (tani węglowodan)');
-      if (lower.includes('pszenic')) fillers.push('Pszenica (potencjalny alergen glutenowy)');
-      if (lower.includes('cukier') || lower.includes('karmel')) fillers.push('Dodatek cukrów / karmelu');
-
-      // Status
-      let safeStatus: 'safe' | 'warning' | 'danger' = 'safe';
-      if (detected.length > 0) {
-        safeStatus = 'danger';
-        haptics.danger();
-      } else if (!grainFree || fillers.length > 1) {
-        safeStatus = 'warning';
-        haptics.warning();
-      } else {
-        safeStatus = 'safe';
-        haptics.success();
-      }
-
-      // Estimate macros
-      let protein = 'ok. 26 - 32%';
-      let fat = 'ok. 14 - 18%';
-      let carbs = grainFree ? 'ok. 30 - 38% (z warzyw i batatów)' : 'ok. 45 - 55% (zboża)';
-      if (lower.includes('mokra') || lower.includes('rosół')) {
-        protein = 'ok. 10 - 12% (mokra masa)';
-        fat = 'ok. 6 - 8%';
-        carbs = '< 4%';
-      }
-
-      setAnalysisResult({
-        allergensDetected: detected,
-        safeStatus,
-        meatQuality,
-        grainFree,
-        fillers,
-        summary: detected.length > 0
-          ? `UWAGA: Karma zawiera ${detected.length} składnik(i) kolidujące ze zdefiniowanymi alergiami ${pet.name}!`
-          : `Brak wykrytych bezpośrednich alergenów przypisanych do ${pet.name}. ${grainFree ? 'Karma bezzbożowa.' : 'Karma zawiera zboża.'}`,
-        macronutrients: { protein, fat, carbs },
-      });
-
+      runLocalTextAnalysis(text);
       setIsAnalyzing(false);
-    }, 600);
+    }, 400);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Analyze image with Gemini AI
+  const processImageWithAI = async (base64Image: string) => {
+    setIsAnalyzing(true);
+    setErrorMsg(null);
+    haptics.tap();
+
+    try {
+      const apiUrl = getApiUrl('/api/analyze-pet-document');
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64Image,
+          mimeType: 'image/jpeg',
+          petName: pet.name,
+          petSpecies: pet.species,
+          petAllergies: pet.allergies || '',
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.error || `Błąd serwera (${res.status}) podczas analizy karmy`);
+      }
+
+      const data = await res.json();
+      if (data && data.success) {
+        const extractedIngredients = data.ingredientsText || data.text || '';
+        if (extractedIngredients) {
+          setInputText(extractedIngredients);
+        }
+
+        // If rich response from Gemini
+        if (data.allergensDetected || data.meatQuality || data.summary) {
+          setAnalysisResult({
+            productName: data.productName,
+            foodType: data.foodType,
+            allergensDetected: Array.isArray(data.allergensDetected) ? data.allergensDetected : [],
+            safeStatus: data.safeStatus === 'danger' ? 'danger' : data.safeStatus === 'warning' ? 'warning' : 'safe',
+            meatPercentage: data.meatPercentage,
+            meatQuality: data.meatQuality || 'Zgodna z etykietą',
+            grainFree: typeof data.grainFree === 'boolean' ? data.grainFree : true,
+            fillers: Array.isArray(data.fillers) ? data.fillers : [],
+            summary: data.summary || 'Pomyślnie przeanalizowano skład karmy przez Gemini AI.',
+            macronutrients: data.macronutrients || { protein: 'b/d', fat: 'b/d', carbs: 'b/d' },
+            ingredientsText: data.ingredientsText,
+            analyticalText: data.analyticalText,
+          });
+
+          if (data.safeStatus === 'danger') {
+            haptics.danger();
+          } else {
+            haptics.success();
+          }
+          return;
+        }
+
+        // Fallback to local analyzer if Gemini only returned text
+        runLocalTextAnalysis(extractedIngredients);
+        return;
+      }
+
+      throw new Error(data?.error || 'Nie udało się odczytać etykiety karmy.');
+    } catch (err: any) {
+      console.warn('AI Food analysis error:', err);
+      setErrorMsg(err.message || 'Nie udało się przeanalizować zdjęcia karmy. Upewnij się, że etykieta ze składem jest czytelna.');
+      haptics.warning();
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // 1. Take photo via Native Camera (@capacitor/camera)
+  const handleTakePhoto = async () => {
+    setErrorMsg(null);
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+      });
+
+      if (photo?.dataUrl) {
+        const compressed = await compressImage(photo.dataUrl, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+        setImagePreview(compressed.dataUrl);
+        await processImageWithAI(compressed.dataUrl);
+      }
+    } catch (err: any) {
+      console.warn('Native camera cancelled or failed, falling back to file input:', err);
+      fileInputRef.current?.click();
+    }
+  };
+
+  // 2. File input handler (Web or gallery)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    haptics.tap();
-    setIsAnalyzing(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const base64Data = (reader.result as string).split(',')[1];
-        const res = await fetch('/api/analyze-pet-document', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: base64Data,
-            mimeType: file.type || 'image/jpeg',
-            customPrompt: 'Przepisz dokładnie skład analityczny i listę składników (ingredients) z tego opakowania karmy dla zwierząt. Zwróć wyłącznie polski tekst składników.',
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const extractedText = data.text || data.summary || data.diagnosis || '';
-          if (extractedText) {
-            setInputText(extractedText);
-            handleAnalyze(extractedText);
-            return;
-          }
-        }
-      } catch {
-        // Fallback
-      }
-      // Fallback sample analysis
-      setInputText(SAMPLE_FOOD_INGREDIENTS[0].text);
-      handleAnalyze(SAMPLE_FOOD_INGREDIENTS[0].text);
-    };
-    reader.readAsDataURL(file);
+    setErrorMsg(null);
+    try {
+      const compressed = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+      setImagePreview(compressed.dataUrl);
+      await processImageWithAI(compressed.dataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        setImagePreview(base64);
+        await processImageWithAI(base64);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -235,19 +325,83 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
           </div>
 
           {/* Input text or camera */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-              Wklej skład karmy lub zrób zdjęcie etykiety:
-            </label>
-            <textarea
-              rows={3}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="np. Świeże mięso z kurczaka 40%, kukurydza, pszenica, tłuszcz drobiowy, wysłodki buraczane..."
-              className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-teal-600 focus:ring-1 focus:ring-teal-500 shadow-2xs"
-            />
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                Zrób zdjęcie etykiety karmy lub wklej skład:
+              </label>
+            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Error Message */}
+            {errorMsg && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl text-xs text-rose-800 dark:text-rose-200 flex items-center justify-between gap-2 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrorMsg(null)}
+                  className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Photo Preview if captured */}
+            {imagePreview && (
+              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={imagePreview}
+                    alt="Etykieta karmy"
+                    className="w-12 h-12 object-cover rounded-xl border border-slate-300 dark:border-slate-600 shrink-0 shadow-2xs"
+                  />
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                      Zdjęcie etykiety karmy
+                    </span>
+                    <span className="text-[11px] text-teal-700 dark:text-teal-400 font-semibold block">
+                      ✓ Przesłano do analizy AI
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImagePreview(null);
+                    setAnalysisResult(null);
+                  }}
+                  className="px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 font-semibold transition cursor-pointer"
+                >
+                  Usuń
+                </button>
+              </div>
+            )}
+
+            {/* Camera and Gallery Action Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleTakePhoto}
+                disabled={isAnalyzing}
+                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition cursor-pointer active:scale-98 disabled:opacity-50"
+              >
+                <CameraIcon className="w-4 h-4" />
+                <span>Zrób zdjęcie aparatem</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isAnalyzing}
+                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 font-bold text-xs transition cursor-pointer active:scale-98 disabled:opacity-50"
+              >
+                <ImageIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <span>Wybierz z galerii</span>
+              </button>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -255,29 +409,48 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                 onChange={handleFileUpload}
                 className="hidden"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs transition cursor-pointer active:scale-95"
-              >
-                <Camera className="w-3.5 h-3.5 text-teal-600" />
-                <span>Zrób zdjęcie etykiety</span>
-              </button>
+            </div>
 
-              <button
-                type="button"
-                onClick={() => handleAnalyze()}
-                disabled={!inputText.trim() || isAnalyzing}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition cursor-pointer active:scale-95 disabled:opacity-50 ml-auto"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{isAnalyzing ? 'Analizuję skład...' : 'Przeanalizuj skład'}</span>
-              </button>
+            {/* Textarea for manual ingredients paste */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[11px] font-semibold text-slate-500 block">
+                Lub wklej tekst składu ręcznie:
+              </span>
+              <textarea
+                rows={3}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="np. Świeże mięso z kurczaka 40%, kukurydza, pszenica, tłuszcz drobiowy, wysłodki buraczane..."
+                className="w-full p-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-teal-600 focus:ring-1 focus:ring-teal-500 shadow-2xs"
+              />
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleAnalyzeText()}
+                  disabled={!inputText.trim() || isAnalyzing}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{isAnalyzing ? 'Analizuję skład...' : 'Przeanalizuj wpisany tekst'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* AI Loading State */}
+          {isAnalyzing && (
+            <div className="p-4 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 rounded-2xl flex items-center justify-center gap-3 text-teal-900 dark:text-teal-200 animate-pulse">
+              <Loader2 className="w-5 h-5 animate-spin text-teal-600 shrink-0" />
+              <div className="text-xs">
+                <span className="font-extrabold block">Gemini AI analizuje etykietę karmy...</span>
+                <span className="text-[11px] text-teal-700/80 dark:text-teal-400">Rozpoznaję składniki, procent mięsa i alergeny {pet.name}</span>
+              </div>
+            </div>
+          )}
+
           {/* Quick test sample buttons */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 pt-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Przetestuj na gotowych próbkach składu:
             </span>
@@ -288,7 +461,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                   type="button"
                   onClick={() => {
                     setInputText(sample.text);
-                    handleAnalyze(sample.text);
+                    handleAnalyzeText(sample.text);
                   }}
                   className="px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100/90 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 border border-teal-200/80 dark:border-teal-800 text-[11px] font-bold transition cursor-pointer active:scale-95"
                 >
@@ -299,8 +472,23 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
           </div>
 
           {/* Analysis Results Display */}
-          {analysisResult && (
+          {analysisResult && !isAnalyzing && (
             <div className="space-y-3 pt-2 animate-fadeIn">
+              {/* Product Name if detected by Gemini */}
+              {analysisResult.productName && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Wykryta karma:</span>
+                    <strong className="text-slate-900 dark:text-white font-extrabold text-sm">{analysisResult.productName}</strong>
+                  </div>
+                  {analysisResult.foodType && (
+                    <span className="px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-bold text-[10px] border border-teal-200 dark:border-teal-800 uppercase">
+                      {analysisResult.foodType}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Alert Status Card */}
               <div className={`p-4 rounded-2xl border space-y-2 ${
                 analysisResult.safeStatus === 'danger'
@@ -312,18 +500,18 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                 <div className="flex items-center gap-2 font-black text-sm">
                   {analysisResult.safeStatus === 'danger' ? (
                     <>
-                      <AlertTriangle className="w-5 h-5 text-rose-600 animate-pulse" />
-                      <span>WYKRYTO ZNANY ALERGEN PUPILA!</span>
+                      <AlertTriangle className="w-5 h-5 text-rose-600 animate-pulse shrink-0" />
+                      <span>WYKRYTO ZNANY ALERGEN DLA {pet.name.toUpperCase()}!</span>
                     </>
                   ) : analysisResult.safeStatus === 'warning' ? (
                     <>
-                      <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                       <span>UWAGA NA WYPEŁNIACZE I ZBOŻA</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      <span>SKŁAD BEZPIECZNY DLA ALERGII {pet.name}</span>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <span>SKŁAD BEZPIECZNY DLA ALERGII {pet.name.toUpperCase()}</span>
                     </>
                   )}
                 </div>
@@ -352,6 +540,11 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                   <span className="font-extrabold text-slate-800 dark:text-slate-100 block">
                     {analysisResult.meatQuality}
                   </span>
+                  {analysisResult.meatPercentage && (
+                    <span className="text-[11px] text-teal-600 dark:text-teal-400 font-bold block mt-0.5">
+                      Mięso: {analysisResult.meatPercentage}
+                    </span>
+                  )}
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
