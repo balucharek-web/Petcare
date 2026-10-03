@@ -629,7 +629,11 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <div>
-                        <div className="font-bold">Kopia odnaleziona w folderze petcare_kopiazapasowa!</div>
+                        <div className="font-bold">
+                          {driveFileInfo.inDedicatedFolder
+                            ? 'Kopia odnaleziona w folderze petcare_kopiazapasowa!'
+                            : 'Kopia odnaleziona na Dysku Google (katalog główny)!'}
+                        </div>
                         <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
                           {driveFileInfo.name} • {new Date(driveFileInfo.modifiedTime).toLocaleString('pl-PL')}
                         </div>
