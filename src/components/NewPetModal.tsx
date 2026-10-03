@@ -115,7 +115,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
             {/* Direct In-Place Photo Preview & Interactive Cropper */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-700 dark:text-slate-200 block text-xs">
+                <label className="font-bold text-slate-700 block text-xs">
                   Zdjęcie i kadr pupila
                 </label>
                 <span className="text-[11px] text-slate-400">
@@ -133,7 +133,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
             </div>
 
             <div>
-              <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+              <label className="font-bold text-slate-800 block mb-1">
                 Imię pupila *
               </label>
               <input
@@ -142,7 +142,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 placeholder="np. Borys, Bella, Puszek"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:outline-teal-600"
+                className="w-full p-2.5 rounded-xl bg-slate-50 focus:bg-white border border-slate-300 focus:border-teal-500 text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition shadow-2xs"
               />
             </div>
 
@@ -152,7 +152,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 <select
                   value={species}
                   onChange={(e) => handleSpeciesChange(e.target.value as Species)}
-                  className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium"
+                  className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs font-medium text-slate-900"
                 >
                   <option value="dog">Pies</option>
                   <option value="cat">Kot</option>
@@ -167,7 +167,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value as Gender)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900"
               >
                 <option value="female">Samica</option>
                 <option value="male">Samiec</option>
@@ -178,7 +178,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               <select
                 value={isNeutered ? 'yes' : 'no'}
                 onChange={(e) => setIsNeutered(e.target.value === 'yes')}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900"
               >
                 <option value="no">Nie</option>
                 <option value="yes">Tak</option>
@@ -194,7 +194,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 placeholder="np. Kundelek, Owczarek"
                 value={breed}
                 onChange={(e) => setBreed(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400"
               />
             </div>
             <div>
@@ -203,7 +203,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900"
               />
             </div>
           </div>
@@ -217,7 +217,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 placeholder="np. 12.5"
                 value={weightKg}
                 onChange={(e) => setWeightKg(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs font-bold text-slate-900 placeholder:text-slate-400"
               />
             </div>
             <div>
@@ -227,7 +227,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 placeholder="np. Rudy, łaciaty"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -239,7 +239,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               placeholder="15 cyfr mikroczipa (np. 616093900...)"
               value={chipNumber}
               onChange={(e) => setChipNumber(e.target.value)}
-              className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-semibold"
+              className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs font-mono font-semibold text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
@@ -251,7 +251,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 placeholder="Nazwa przychodni"
                 value={vetClinicName}
                 onChange={(e) => setVetClinicName(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400"
               />
             </div>
             <div>
@@ -261,7 +261,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 placeholder="np. +48 600..."
                 value={vetPhone}
                 onChange={(e) => setVetPhone(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
