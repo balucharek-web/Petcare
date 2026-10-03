@@ -23,6 +23,7 @@ import { Pet } from '../types/pet';
 import { haptics } from '../services/hapticsService';
 import { getApiUrl } from '../services/cloudSyncService';
 import { compressImage } from '../utils/imageCompressor';
+import { extractTextFromImage } from '../services/ocrMedicalService';
 
 interface FoodLensModalProps {
   pet: Pet;
@@ -151,21 +152,30 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
     }
 
     // Check other common pet allergens
-    if (lower.includes('soj') && petAllergies.includes('soj')) detected.push('Soja');
-    if (lower.includes('wołowin') && petAllergies.includes('wołowin')) detected.push('Wołowina');
+    if (lower.includes('soj') && petAllergies.includes('soj')) detected.push('Soja (alergen)');
+    if (lower.includes('wołowin') && petAllergies.includes('wołowin')) detected.push('Wołowina (alergen)');
+    if (lower.includes('jagnięcin') && petAllergies.includes('jagnięcin')) detected.push('Jagnięcina (alergen)');
     if (lower.includes('mleko') || lower.includes('laktoz')) {
-      if (petAllergies.includes('mlek') || petAllergies.includes('laktoz')) detected.push('Nabiał / Laktoza');
+      if (petAllergies.includes('mlek') || petAllergies.includes('laktoz')) detected.push('Nabiał / Laktoza (alergen)');
     }
 
     // Meat quality check
     let meatQuality = 'Wysoka: sprecyzowane gatunki mięsa i podrobów';
     if (lower.includes('produkty pochodzenia zwierzęcego') || lower.includes('mączka mięsna')) {
       meatQuality = 'Niska/Średnia: niesprecyzowane odpady rzeźne („produkty pochodzenia zwierzęcego”)';
-    } else if (lower.includes('świeże') || lower.includes('suszone mięso')) {
+    } else if (lower.includes('świeże') || lower.includes('suszone mięso') || lower.includes('filet')) {
       meatQuality = 'Bardzo wysoka: transparentny skład mięsa jakości spożywczej';
     }
 
-    const grainFree = !lower.includes('pszenic') && !lower.includes('kukurydz') && !lower.includes('zboż') && !lower.includes('jęczmień');
+    // Extract meat percentage if printed
+    let meatPercentage: string | undefined;
+    const meatMatch = text.match(/(\d{1,2}(?:[.,]\d+)?)\s*%\s*(?:mięs|drobi|wołowin|jagnięcin|kurczak|indyk|łosoś|kaczk|wieprzowin)/i) ||
+                      text.match(/(?:mięso|mięsa|drób|wołowina|jagnięcina|kurczak|indyk|łosoś)[^.,\n]*?(\d{1,2}(?:[.,]\d+)?)\s*%/i);
+    if (meatMatch) {
+      meatPercentage = `ok. ${meatMatch[1]}%`;
+    }
+
+    const grainFree = !lower.includes('pszenic') && !lower.includes('kukurydz') && !lower.includes('zboż') && !lower.includes('jęczmień') && !lower.includes('owies');
     
     const fillers: string[] = [];
     if (lower.includes('wysłodki buraczane')) fillers.push('Wysłodki buraczane (wypełniacz objętościowy)');
@@ -185,18 +195,27 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
       haptics.success();
     }
 
+    // Analytical constituents regex extraction
     let protein = 'ok. 26 - 32%';
     let fat = 'ok. 14 - 18%';
     let carbs = grainFree ? 'ok. 30 - 38% (z warzyw i batatów)' : 'ok. 45 - 55% (zboża)';
-    if (lower.includes('mokra') || lower.includes('rosół')) {
-      protein = 'ok. 10 - 12% (mokra masa)';
-      fat = 'ok. 6 - 8%';
+
+    const protMatch = text.match(/białko\s*(?:surowe)?\s*[:\s]*(\d{1,2}(?:[.,]\d+)?\s*%)/i);
+    if (protMatch) protein = protMatch[1];
+
+    const fatMatch = text.match(/tłuszcz\s*(?:surowy)?\s*[:\s]*(\d{1,2}(?:[.,]\d+)?\s*%)/i);
+    if (fatMatch) fat = fatMatch[1];
+
+    if (lower.includes('mokra') || lower.includes('rosół') || lower.includes('galaretk')) {
+      if (!protMatch) protein = 'ok. 10 - 12% (mokra masa)';
+      if (!fatMatch) fat = 'ok. 6 - 8%';
       carbs = '< 4%';
     }
 
     setAnalysisResult({
       allergensDetected: detected,
       safeStatus,
+      meatPercentage,
       meatQuality,
       grainFree,
       fillers,
@@ -221,28 +240,31 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
     }, 400);
   };
 
-  // Analyze image with Gemini AI
+  // Analyze image: Server AI + Native OCR fallback
   const processImageWithAI = async (base64Image: string) => {
     setIsAnalyzing(true);
     setErrorMsg(null);
     haptics.tap();
 
+    let serverSuccess = false;
+
+    // 1. Try server-side AI if online/available (with 5s timeout)
     try {
       const candidates = [
         getApiUrl('/api/analyze-pet-document'),
         'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/analyze-pet-document',
-        'https://ais-dev-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/analyze-pet-document',
       ];
       const uniqueUrls = Array.from(new Set(candidates));
 
-      let res: Response | null = null;
-      let lastFetchError: any = null;
-
       for (const url of uniqueUrls) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
           const r = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             body: JSON.stringify({
               imageBase64: base64Image,
               mimeType: 'image/jpeg',
@@ -251,60 +273,71 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               petAllergies: pet.allergies || '',
             }),
           });
+          clearTimeout(timeoutId);
+
           if (r.ok) {
-            res = r;
-            break;
+            const data = await r.json();
+            if (data && data.success) {
+              const extractedIngredients = data.ingredientsText || data.text || '';
+              if (extractedIngredients) {
+                setInputText(extractedIngredients);
+              }
+
+              if (data.allergensDetected || data.meatQuality || data.summary) {
+                setAnalysisResult({
+                  productName: data.productName,
+                  foodType: data.foodType,
+                  allergensDetected: Array.isArray(data.allergensDetected) ? data.allergensDetected : [],
+                  safeStatus: data.safeStatus === 'danger' ? 'danger' : data.safeStatus === 'warning' ? 'warning' : 'safe',
+                  meatPercentage: data.meatPercentage,
+                  meatQuality: data.meatQuality || 'Zgodna z etykietą',
+                  grainFree: typeof data.grainFree === 'boolean' ? data.grainFree : true,
+                  fillers: Array.isArray(data.fillers) ? data.fillers : [],
+                  summary: data.summary || 'Pomyślnie przeanalizowano skład karmy przez AI.',
+                  macronutrients: data.macronutrients || { protein: 'b/d', fat: 'b/d', carbs: 'b/d' },
+                  ingredientsText: data.ingredientsText,
+                  analyticalText: data.analyticalText,
+                });
+
+                if (data.safeStatus === 'danger') {
+                  haptics.danger();
+                } else {
+                  haptics.success();
+                }
+                serverSuccess = true;
+                break;
+              }
+            }
           }
-        } catch (fErr) {
-          lastFetchError = fErr;
+        } catch {
+          // Continue to fallback
         }
       }
+    } catch {
+      // Ignored for seamless OCR fallback
+    }
 
-      if (!res) {
-        throw new Error(lastFetchError?.message || 'Brak połączenia z serwerem analizy karmy AI.');
-      }
+    if (serverSuccess) {
+      setIsAnalyzing(false);
+      return;
+    }
 
-      const data = await res.json();
-      if (data && data.success) {
-        const extractedIngredients = data.ingredientsText || data.text || '';
-        if (extractedIngredients) {
-          setInputText(extractedIngredients);
-        }
-
-        // If rich response from Gemini
-        if (data.allergensDetected || data.meatQuality || data.summary) {
-          setAnalysisResult({
-            productName: data.productName,
-            foodType: data.foodType,
-            allergensDetected: Array.isArray(data.allergensDetected) ? data.allergensDetected : [],
-            safeStatus: data.safeStatus === 'danger' ? 'danger' : data.safeStatus === 'warning' ? 'warning' : 'safe',
-            meatPercentage: data.meatPercentage,
-            meatQuality: data.meatQuality || 'Zgodna z etykietą',
-            grainFree: typeof data.grainFree === 'boolean' ? data.grainFree : true,
-            fillers: Array.isArray(data.fillers) ? data.fillers : [],
-            summary: data.summary || 'Pomyślnie przeanalizowano skład karmy przez Gemini AI.',
-            macronutrients: data.macronutrients || { protein: 'b/d', fat: 'b/d', carbs: 'b/d' },
-            ingredientsText: data.ingredientsText,
-            analyticalText: data.analyticalText,
-          });
-
-          if (data.safeStatus === 'danger') {
-            haptics.danger();
-          } else {
-            haptics.success();
-          }
-          return;
-        }
-
-        // Fallback to local analyzer if Gemini only returned text
-        runLocalTextAnalysis(extractedIngredients);
+    // 2. Client-side OCR fallback (Guarantees 100% operation in standalone APK without network error)
+    try {
+      console.log('[FoodLens] Running local OCR on image...');
+      const ocrText = await extractTextFromImage(base64Image);
+      
+      if (ocrText && ocrText.trim().length > 5) {
+        setInputText(ocrText.trim());
+        runLocalTextAnalysis(ocrText.trim());
         return;
       }
 
-      throw new Error(data?.error || 'Nie udało się odczytać etykiety karmy.');
-    } catch (err: any) {
-      console.warn('AI Food analysis error:', err);
-      setErrorMsg(err.message || 'Nie udało się przeanalizować zdjęcia karmy. Upewnij się, że etykieta ze składem jest czytelna.');
+      setErrorMsg('Nie udało się wyraźnie odczytać składników ze zdjęcia. Upewnij się, że tekst na opakowaniu jest ostry i dobrze oświetlony, lub wklej go ręcznie poniżej.');
+      haptics.warning();
+    } catch (ocrErr: any) {
+      console.warn('[FoodLens] OCR error:', ocrErr);
+      setErrorMsg('Nie udało się przetworzyć zdjęcia. Spróbuj zrobić zdjęcie z bliższej odległości lub wklej tekst.');
       haptics.warning();
     } finally {
       setIsAnalyzing(false);

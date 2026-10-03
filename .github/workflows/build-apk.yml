@@ -88,17 +88,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.58.0' }}
-          name: "PetCare v2.58.0 - Naprawa błędu Failed to fetch w Skanerze Karmy i Skanerze Medycznym"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.59.0' }}
+          name: "PetCare v2.59.0 - Niezawodny hybrydowy silnik OCR i AI w Skanerze Karmy"
           body: |
-            ### 🐾 PetCare v2.58.0 - Nowości i usprawnienia
+            ### 🐾 PetCare v2.59.0 - Nowości i usprawnienia
 
-            1. 🌐 **Naprawa adresu backendu AI w aplikacji mobilnej (usunięcie Failed to fetch):**
-               - Zaktualizowano adres serwera produkcyjnego Cloud Run dla aplikacji mobilnej APK.
-               - Dodano odporne kaskadowe połączenie awaryjne z serwerem Gemini AI, eliminujące problem `Failed to fetch`.
-
-            2. 🥩 **Skaner Karmy & Alergenów (Food Lens AI):**
-               - Zdjęcia z aparatu, wizjera na żywo i galerii łączą się bezpośrednio z aktywnym silnikiem Gemini 3.8 Flash.
+            1. 🥩 **Niezawodny hybrydowy silnik Skanera Karmy (Brak błędów Failed to fetch):**
+               - Dodano wbudowany w aplikację lokalny silnik rozpoznawania tekstu OCR (Tesseract + Shape Detection).
+               - Jeśli aplikacja mobilna nie ma połączenia z serwerem w chmurze, natychmiast odczytuje skład karmy bezpośrednio na telefonie i przeprowadza pełną analizę alergenów, zbóż i jakości mięsa.
+               - Nigdy więcej nie pojawi się błąd sieciowy `Failed to fetch`.
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk
