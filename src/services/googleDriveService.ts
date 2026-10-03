@@ -114,12 +114,79 @@ export interface DriveFileInfo {
   size?: string;
 }
 
+export const DRIVE_BACKUP_FOLDER_NAME = 'petcare_kopiazapasowa';
 const DRIVE_FILE_NAME = 'petcare_app_data.json';
 
 /**
- * Searches for existing petcare data file in user's Google Drive
+ * Finds or creates the dedicated 'petcare_kopiazapasowa' folder
+ */
+export async function getOrCreateDriveBackupFolder(token: string): Promise<string | null> {
+  try {
+    // 1. Search existing folder
+    const q = "mimeType = 'application/vnd.google-apps.folder' and (name = 'petcare_kopiazapasowa' or name = 'petcare_kopiazaoasowa') and trashed = false";
+    const searchUrl = `https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=5`;
+    const searchRes = await fetch(searchUrl, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (searchRes.ok) {
+      const data = await searchRes.json();
+      if (data.files && data.files.length > 0) {
+        return data.files[0].id;
+      }
+    }
+
+    // 2. Create if not found
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: DRIVE_BACKUP_FOLDER_NAME,
+        mimeType: 'application/vnd.google-apps.folder',
+        description: 'Folder kopii zapasowych aplikacji PetCare'
+      })
+    });
+    if (createRes.ok) {
+      const folder = await createRes.json();
+      return folder.id;
+    }
+  } catch (err) {
+    console.warn('[Google Drive Service] Błąd operacji na folderze:', err);
+  }
+  return null;
+}
+
+/**
+ * Searches for existing petcare data file in user's Google Drive (in folder first, then global)
  */
 export async function findDriveSyncFile(token: string): Promise<DriveFileInfo | null> {
+  try {
+    // 1. Check folder first
+    const qFolder = "mimeType = 'application/vnd.google-apps.folder' and (name = 'petcare_kopiazapasowa' or name = 'petcare_kopiazaoasowa') and trashed = false";
+    const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(qFolder)}&fields=files(id)&pageSize=1`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    });
+    if (folderRes.ok) {
+      const folderData = await folderRes.json();
+      if (folderData.files && folderData.files.length > 0) {
+        const folderId = folderData.files[0].id;
+        const fileInFolderQ = encodeURIComponent(`'${folderId}' in parents and (name = 'petcare_app_data.json' or name = 'petcare_sync_data.json') and trashed = false`);
+        const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${fileInFolderQ}&fields=files(id,name,modifiedTime,size)&spaces=drive&orderBy=modifiedTime desc`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+        });
+        if (fileRes.ok) {
+          const filesData = await fileRes.json();
+          if (filesData.files && filesData.files.length > 0) {
+            return filesData.files[0] as DriveFileInfo;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // 2. Global fallback
   const query = encodeURIComponent("(name = 'petcare_app_data.json' or name = 'petcare_sync_data.json') and trashed = false");
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size)&spaces=drive&orderBy=modifiedTime desc`;
   
@@ -168,9 +235,11 @@ export async function downloadPetDataFromDrive(token: string, fileId: string): P
 
 /**
  * Uploads (create or overwrite) pet data JSON into user's Google Drive.
- * Note: Must be preceded by explicit user confirmation modal.
+ * Places file inside 'petcare_kopiazapasowa' folder.
  */
 export async function uploadPetDataToDrive(token: string, jsonData: string, existingFileId?: string): Promise<DriveFileInfo> {
+  const folderId = await getOrCreateDriveBackupFolder(token);
+
   if (existingFileId) {
     // Update existing file content
     const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`;
@@ -189,6 +258,15 @@ export async function uploadPetDataToDrive(token: string, jsonData: string, exis
       throw new Error(`Błąd zapisu w Google Drive (${response.status})`);
     }
 
+    if (folderId) {
+      try {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${existingFileId}?addParents=${folderId}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch {}
+    }
+
     const updated = await response.json();
     return {
       id: updated.id || existingFileId,
@@ -196,18 +274,23 @@ export async function uploadPetDataToDrive(token: string, jsonData: string, exis
       modifiedTime: new Date().toISOString()
     };
   } else {
-    // 1. Create file metadata in Drive
+    // 1. Create file metadata in Drive inside folder
+    const metaBody: any = {
+      name: DRIVE_FILE_NAME,
+      mimeType: 'application/json',
+      description: 'PetCare - Kopia zapasowa i synchronizacja danych Twojego zwierzaka'
+    };
+    if (folderId) {
+      metaBody.parents = [folderId];
+    }
+
     const metaResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        name: DRIVE_FILE_NAME,
-        mimeType: 'application/json',
-        description: 'PetCare - Kopia zapasowa i synchronizacja danych Twojego zwierzaka'
-      })
+      body: JSON.stringify(metaBody)
     });
 
     if (!metaResponse.ok) {

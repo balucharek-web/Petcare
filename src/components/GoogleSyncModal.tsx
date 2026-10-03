@@ -612,7 +612,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     </span>
                   </div>
                   <span className="text-[11px] text-teal-700 dark:text-teal-400 font-semibold bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded-full border border-teal-200 dark:border-teal-800">
-                    Plik: petcare_app_data.json
+                    Folder: petcare_kopiazapasowa
                   </span>
                 </div>
 
@@ -622,7 +622,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <div>
-                        <div className="font-bold">Kopia odnaleziona na Dysku Google!</div>
+                        <div className="font-bold">Kopia odnaleziona w folderze petcare_kopiazapasowa!</div>
                         <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
                           {driveFileInfo.name} • {new Date(driveFileInfo.modifiedTime).toLocaleString('pl-PL')}
                         </div>

@@ -28,6 +28,7 @@ provider.setCustomParameters({
 let cachedAccessToken: string | null = null;
 let isSigningIn = false;
 
+const DRIVE_BACKUP_FOLDER_NAME = 'petcare_kopiazapasowa';
 const DRIVE_BACKUP_FILENAME = 'petcare_app_data.json';
 const STORAGE_SYNC_META_KEY = 'petcare_drive_sync_metadata';
 
@@ -38,6 +39,7 @@ export interface SyncMetadata {
   userName: string | null;
   userPhoto: string | null;
   fileId: string | null;
+  folderId?: string | null;
   autoSyncEnabled: boolean;
   petCount: number;
 }
@@ -210,7 +212,78 @@ export interface DriveBackupFile {
   size?: string;
 }
 
-// Find all candidate PetCare backup files on Google Drive (drive space first, then appDataFolder)
+/**
+ * Znajduje istniejący dedykowany folder 'petcare_kopiazapasowa' na Dysku Google.
+ */
+export async function findDriveBackupFolder(token?: string): Promise<string | null> {
+  const authToken = token || await getAccessToken();
+  if (!authToken) return null;
+
+  try {
+    const q = "mimeType = 'application/vnd.google-apps.folder' and (name = 'petcare_kopiazapasowa' or name = 'petcare_kopiazaoasowa') and trashed = false";
+    const url = `https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=5`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.files && data.files.length > 0) {
+        return data.files[0].id;
+      }
+    }
+  } catch (err) {
+    console.warn('[Google Drive] Błąd wyszukiwania folderu kopii:', err);
+  }
+  return null;
+}
+
+/**
+ * Upewnia się, że folder 'petcare_kopiazapasowa' istnieje na Dysku Google użytkownika.
+ * Jeśli nie istnieje, tworzy go i zwraca jego ID.
+ */
+export async function getOrCreateDriveBackupFolder(token?: string): Promise<string | null> {
+  const authToken = token || await getAccessToken();
+  if (!authToken) return null;
+
+  // 1. Sprawdź czy folder już istnieje
+  const existingFolderId = await findDriveBackupFolder(authToken);
+  if (existingFolderId) {
+    updateSyncMetadata({ folderId: existingFolderId });
+    return existingFolderId;
+  }
+
+  // 2. Jeśli nie istnieje, utwórz nowy folder na Dysku Google
+  try {
+    const res = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: JSON.stringify({
+        name: DRIVE_BACKUP_FOLDER_NAME,
+        mimeType: 'application/vnd.google-apps.folder',
+        description: 'Folder kopii zapasowych aplikacji PetCare (zwierzaki, szczepienia, leki, wizyty)',
+      }),
+    });
+
+    if (res.ok) {
+      const createdFolder = await res.json();
+      console.log(`[Google Drive] Pomyślnie utworzono folder '${DRIVE_BACKUP_FOLDER_NAME}' (ID: ${createdFolder.id})`);
+      updateSyncMetadata({ folderId: createdFolder.id });
+      return createdFolder.id;
+    } else {
+      const errText = await res.text().catch(() => '');
+      console.warn(`[Google Drive] Nie udało się utworzyć folderu (${res.status}): ${errText}`);
+    }
+  } catch (err) {
+    console.warn('[Google Drive] Błąd podczas tworzenia folderu kopii:', err);
+  }
+
+  return null;
+}
+
+// Find all candidate PetCare backup files on Google Drive (sprawdza najpierw folder petcare_kopiazapasowa)
 export async function findAllDriveBackupFiles(token?: string): Promise<DriveBackupFile[]> {
   const authToken = token || await getAccessToken();
   if (!authToken) return [];
@@ -218,7 +291,43 @@ export async function findAllDriveBackupFiles(token?: string): Promise<DriveBack
   const foundFiles: DriveBackupFile[] = [];
   const seenIds = new Set<string>();
 
-  // Use targeted, syntax-safe queries on spaces=drive first (which is always permitted by drive.file scope)
+  // 1. NAJPIERW przeszukujemy dedykowany folder 'petcare_kopiazapasowa'
+  const folderId = await findDriveBackupFolder(authToken);
+  if (folderId) {
+    try {
+      const folderQuery = `'${folderId}' in parents and (name = 'petcare_app_data.json' or name = 'petcare_sync_data.json' or name contains 'petcare' or name contains 'PetCare') and trashed = false`;
+      const url = `https://www.googleapis.com/drive/v3/files?spaces=drive&q=${encodeURIComponent(folderQuery)}&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc&pageSize=10`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.files && Array.isArray(data.files)) {
+          for (const f of data.files) {
+            if (!seenIds.has(f.id)) {
+              seenIds.add(f.id);
+              foundFiles.push({
+                id: f.id,
+                name: f.name || 'petcare_app_data.json',
+                modifiedTime: f.modifiedTime || new Date().toISOString(),
+                size: f.size,
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Google Drive] Błąd wyszukiwania plików w folderze:', e);
+    }
+  }
+
+  // Jeśli znaleziono plik w dedykowanym folderze, natychmiast go zwracamy
+  if (foundFiles.length > 0) {
+    return foundFiles;
+  }
+
+  // 2. Fallback dla wstecznej kompatybilności: przeszukujemy ogólną przestrzeń spaces=drive
   const queries = [
     "name = 'petcare_app_data.json' and trashed = false",
     "name = 'petcare_sync_data.json' and trashed = false",
@@ -294,7 +403,7 @@ export async function findDriveBackupFile(token?: string): Promise<DriveBackupFi
   return all.length > 0 ? all[0] : null;
 }
 
-// Upload current local database to Google Drive (ONLY Google Drive, no server DB)
+// Upload current local database to Google Drive (ALWAYS places file inside 'petcare_kopiazapasowa' folder)
 export const uploadPetDataToDrive = async (silent = false): Promise<{ success: boolean; fileId: string; timestamp: string }> => {
   let token = await getAccessToken();
   if (!token) {
@@ -335,6 +444,9 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
     updateSyncMetadata({ lastSyncStatus: 'syncing' });
   }
 
+  // 1. Zapewnij istnienie folderu 'petcare_kopiazapasowa' na Dysku Google
+  const folderId = await getOrCreateDriveBackupFolder(token);
+
   const jsonContent = storage.exportAllData();
   const existingFiles = await findAllDriveBackupFiles(token);
   let fileId = existingFiles.length > 0 ? existingFiles[0].id : null;
@@ -354,6 +466,15 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
 
       if (res.ok) {
         uploadSuccess = true;
+        // Jeśli plik nie znajdował się jeszcze w folderze 'petcare_kopiazapasowa', przenieś go tam
+        if (folderId) {
+          try {
+            await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folderId}`, {
+              method: 'PATCH',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+          } catch {}
+        }
       } else if (res.status === 404) {
         // File was deleted on Drive by user - reset fileId to create a fresh one below
         fileId = null;
@@ -368,19 +489,24 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
   }
 
   if (!uploadSuccess || !fileId) {
-    // Robust 2-step file creation: 1. Metadata -> 2. Media Upload
+    // Robust 2-step file creation inside 'petcare_kopiazapasowa' folder
     try {
+      const fileMetadata: any = {
+        name: DRIVE_BACKUP_FILENAME,
+        mimeType: 'application/json',
+        description: 'Prywatna baza danych aplikacji PetCare (zwierzaki, szczepienia, leki, wizyty)',
+      };
+      if (folderId) {
+        fileMetadata.parents = [folderId];
+      }
+
       const createMetaRes = await fetch('https://www.googleapis.com/drive/v3/files', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json; charset=UTF-8',
         },
-        body: JSON.stringify({
-          name: DRIVE_BACKUP_FILENAME,
-          mimeType: 'application/json',
-          description: 'Prywatna baza danych aplikacji PetCare (zwierzaki, szczepienia, leki, wizyty)',
-        }),
+        body: JSON.stringify(fileMetadata),
       });
 
       if (!createMetaRes.ok) {
@@ -391,7 +517,7 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
       const createdFile = await createMetaRes.json();
       fileId = createdFile.id;
 
-      // Upload JSON content into the newly created file
+      // Upload JSON content into the newly created file inside the folder
       const uploadMediaRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
         method: 'PATCH',
         headers: {
@@ -417,6 +543,7 @@ export const uploadPetDataToDrive = async (silent = false): Promise<{ success: b
   const petCount = storage.getPets().length;
   updateSyncMetadata({
     fileId: fileId!,
+    folderId: folderId || undefined,
     lastSyncTime: now,
     lastSyncStatus: 'success',
     petCount,
@@ -519,31 +646,47 @@ export const downloadPetDataFromDrive = async (tokenOverride?: string): Promise<
 
 /**
  * Automatyczne sprawdzenie i pobranie danych z Dysku Google:
- * Jeśli użytkownik nie ma jeszcze własnych zwierzaków (np. 0 zwierzaków lub tylko domyślny demo zwierzak),
- * pobiera kopię z Dysku Google.
+ * 1. Zapewnia istnienie folderu 'petcare_kopiazapasowa' na koncie Google użytkownika.
+ * 2. Jeśli użytkownik nie ma jeszcze własnych zwierzaków (np. 0 zwierzaków lub tylko demo):
+ *    - Szuka kopii zapasowej w folderze 'petcare_kopiazapasowa' (lub ogólnie na dysku).
+ *    - Jeśli kopia istnieje, automatycznie przywraca dane zwierzaków.
+ *    - Jeśli kopia nie istnieje, folder 'petcare_kopiazapasowa' pozostaje przygotowany na przyszłe zapisy.
  */
 export async function autoRestoreFromDriveIfEmpty(token?: string): Promise<{ restored: boolean; petCount: number; timestamp?: string }> {
   try {
-    const localPets = storage.getPets();
-    const isOnlyDemoOrEmpty = localPets.length === 0 || 
-      (localPets.length === 1 && (localPets[0].id === 'pet-1' || localPets[0].id === 'pet-bono-sample'));
-
-    if (!isOnlyDemoOrEmpty) {
-      // User already has real custom data locally, no automatic overwriting
-      return { restored: false, petCount: localPets.length };
-    }
-
     const authToken = token || await getAccessToken();
     if (!authToken) {
       return { restored: false, petCount: 0 };
     }
 
-    const restoreResult = await downloadPetDataFromDrive(authToken);
-    return {
-      restored: true,
-      petCount: restoreResult.petCount,
-      timestamp: restoreResult.timestamp,
-    };
+    // ZAWSZE upewnij się, że dedykowany folder 'petcare_kopiazapasowa' istnieje na Dysku Google użytkownika
+    const folderId = await getOrCreateDriveBackupFolder(authToken);
+    if (folderId) {
+      updateSyncMetadata({ folderId });
+    }
+
+    const localPets = storage.getPets();
+    const isOnlyDemoOrEmpty = localPets.length === 0 || 
+      (localPets.length === 1 && (localPets[0].id === 'pet-1' || localPets[0].id === 'pet-bono-sample'));
+
+    if (!isOnlyDemoOrEmpty) {
+      // Użytkownik ma już swoje zwierzaki lokalnie - nie nadpisujemy
+      return { restored: false, petCount: localPets.length };
+    }
+
+    // Użytkownik nie ma zwierzaka lokalnie - sprawdzamy czy na Dysku Google istnieje kopia
+    const candidateFiles = await findAllDriveBackupFiles(authToken);
+    if (candidateFiles.length > 0) {
+      const restoreResult = await downloadPetDataFromDrive(authToken);
+      return {
+        restored: true,
+        petCount: restoreResult.petCount,
+        timestamp: restoreResult.timestamp,
+      };
+    } else {
+      console.log(`[Google Drive] Użytkownik nie posiada zwierzaka. Folder '${DRIVE_BACKUP_FOLDER_NAME}' został przygotowany na Dysku Google.`);
+      return { restored: false, petCount: 0 };
+    }
   } catch (err) {
     console.warn('Automatyczne przywracanie z Dysku Google nie powiodło się:', err);
     return { restored: false, petCount: 0 };
