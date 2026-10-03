@@ -285,14 +285,27 @@ async function startServer() {
 
     // 3. Fallback: Local cryptographic verification using google-auth-library
     try {
+      let configClientId: string | undefined;
+      try {
+        const configPath = path.resolve(__dirname, 'firebase-applet-config.json');
+        if (fs.existsSync(configPath)) {
+          const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          configClientId = cfg.oAuthClientId;
+        }
+      } catch {}
+
+      const audiences = [
+        '764412082432-q5d25pi0er4lnevgagscd26h7mkm8kcb.apps.googleusercontent.com',
+        '790254321655-2irfb1normmrbsi2nh34oiv5oob6rhnf.apps.googleusercontent.com',
+        ...(configClientId ? [configClientId] : []),
+        ...(process.env.GOOGLE_CLIENT_ID ? [process.env.GOOGLE_CLIENT_ID] : []),
+      ];
+
       const { OAuth2Client } = await import('google-auth-library');
       const client = new OAuth2Client();
       const ticket = await client.verifyIdToken({
         idToken,
-        audience: [
-          '764412082432-q5d25pi0er4lnevgagscd26h7mkm8kcb.apps.googleusercontent.com',
-          '790254321655-2irfb1normmrbsi2nh34oiv5oob6rhnf.apps.googleusercontent.com'
-        ],
+        audience: audiences,
       });
       const payload = ticket.getPayload();
       if (payload && payload.email) {

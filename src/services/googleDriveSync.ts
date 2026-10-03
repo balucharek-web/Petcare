@@ -211,6 +211,9 @@ export interface DriveBackupFile {
   modifiedTime: string;
   size?: string;
   inDedicatedFolder?: boolean;
+  petCount?: number;
+  petNames?: string[];
+  isEmpty?: boolean;
 }
 
 /**
@@ -415,14 +418,57 @@ export async function findAllDriveBackupFiles(token?: string): Promise<DriveBack
   return foundFiles;
 }
 
+// Fetch summary of pets stored inside a remote Google Drive backup file
+export async function getDriveFilePetSummary(
+  fileId: string,
+  token: string
+): Promise<{ petCount: number; petNames: string[]; isEmpty: boolean } | null> {
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const pets = Array.isArray(data?.pets) ? data.pets : [];
+      const petNames = pets.map((p: any) => p.name || 'Zwierzak').filter(Boolean);
+      return {
+        petCount: pets.length,
+        petNames,
+        isEmpty: pets.length === 0,
+      };
+    }
+  } catch (e) {
+    console.warn('[Google Drive] Podgląd pliku kopii nie powiódł się:', e);
+  }
+  return null;
+}
+
 // Search for the single most relevant PetCare backup file on Google Drive
 export async function findDriveBackupFile(token?: string): Promise<DriveBackupFile | null> {
-  const all = await findAllDriveBackupFiles(token);
-  return all.length > 0 ? all[0] : null;
+  const authToken = token || (await getAccessToken()) || undefined;
+  const all = await findAllDriveBackupFiles(authToken);
+  if (all.length === 0) return null;
+  const best = all[0];
+  if (authToken && best.id) {
+    try {
+      const summary = await getDriveFilePetSummary(best.id, authToken);
+      if (summary) {
+        best.petCount = summary.petCount;
+        best.petNames = summary.petNames;
+        best.isEmpty = summary.isEmpty;
+      }
+    } catch {}
+  }
+  return best;
 }
 
 // Upload current local database to Google Drive (ALWAYS places file inside 'petcare_kopiazapasowa' folder)
 export const uploadPetDataToDrive = async (silent = false): Promise<{ success: boolean; fileId: string; timestamp: string }> => {
+  // If silent background sync and user has no pets yet, do NOT auto-upload an empty database
+  if (silent && storage.getPets().length === 0) {
+    return { success: false, fileId: '', timestamp: '' };
+  }
+
   let token = await getAccessToken();
   if (!token) {
     const meta = getStoredSyncMetadata();
@@ -751,6 +797,8 @@ export function scheduleAutoDriveSave(): void {
     try {
       const meta = getStoredSyncMetadata();
       if (!meta.autoSyncEnabled) return;
+      const localPets = storage.getPets();
+      if (localPets.length === 0) return; // Do not auto-upload empty database
       const token = await getAccessToken();
       if (!token) return;
       await uploadPetDataToDrive(/* silent */ true);

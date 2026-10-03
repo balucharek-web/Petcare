@@ -11,6 +11,7 @@ import {
   Copy, 
   Check, 
   RefreshCw, 
+  Cloud,
   CloudUpload, 
   CloudDownload, 
   ArrowRight,
@@ -102,7 +103,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [showUnauthorizedDomainHelp, setShowUnauthorizedDomainHelp] = useState(false);
-  const [previewEmailInput, setPreviewEmailInput] = useState('michalakmarcin941@gmail.com');
+  const [previewEmailInput, setPreviewEmailInput] = useState('baluch.arek@gmail.com');
 
   const checkRemoteDrive = async () => {
     try {
@@ -141,7 +142,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
   // Fallback login for preview environments where Firebase domain is not yet whitelisted
   const handlePreviewLogin = async (overrideEmail?: string) => {
-    const emailToUse = (overrideEmail || previewEmailInput || 'michalakmarcin941@gmail.com').trim().toLowerCase();
+    const emailToUse = (overrideEmail || previewEmailInput || 'baluch.arek@gmail.com').trim().toLowerCase();
     if (!emailToUse.includes('@')) {
       setFeedback({ type: 'error', message: 'Wpisz poprawny adres e-mail.' });
       return;
@@ -227,7 +228,7 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
         setShowUnauthorizedDomainHelp(true);
         // Automatically attempt seamless preview sign-in so user is not blocked
         try {
-          await handlePreviewLogin('michalakmarcin941@gmail.com');
+          await handlePreviewLogin('baluch.arek@gmail.com');
           return;
         } catch {
           setFeedback({
@@ -625,29 +626,55 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
 
                 {/* Drive File Status Info */}
                 {driveFileInfo ? (
-                  <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <div>
-                        <div className="font-bold">
-                          {driveFileInfo.inDedicatedFolder
-                            ? 'Kopia odnaleziona w folderze petcare_kopiazapasowa!'
-                            : 'Kopia odnaleziona na Dysku Google (katalog główny)!'}
-                        </div>
-                        <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
-                          {driveFileInfo.name} • {new Date(driveFileInfo.modifiedTime).toLocaleString('pl-PL')}
+                  driveFileInfo.isEmpty || driveFileInfo.petCount === 0 ? (
+                    <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Cloud className="w-4 h-4 text-blue-600 shrink-0" />
+                        <div>
+                          <div className="font-bold">
+                            Dysk Google połączony (Brak zwierzaków w kopii)
+                          </div>
+                          <div className="text-[11px] text-blue-700/80 dark:text-blue-300">
+                            Folder petcare_kopiazapasowa jest gotowy. Nie dodałeś jeszcze pupila — utwórz profil w aplikacji, a dane zapiszą się na Dysku.
+                          </div>
                         </div>
                       </div>
+                      <button
+                        onClick={checkRemoteDrive}
+                        disabled={isCheckingDrive}
+                        className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg text-blue-700 dark:text-blue-300 transition-colors"
+                        title="Odśwież stan pliku"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
+                      </button>
                     </div>
-                    <button
-                      onClick={checkRemoteDrive}
-                      disabled={isCheckingDrive}
-                      className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg text-emerald-700 dark:text-emerald-300 transition-colors"
-                      title="Odśwież stan pliku"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <div className="font-bold">
+                            {driveFileInfo.petCount 
+                              ? `Kopia odnaleziona: ${driveFileInfo.petCount} ${driveFileInfo.petCount === 1 ? 'zwierzak' : 'zwierzaki'} (${driveFileInfo.petNames?.join(', ') || 'dane'})`
+                              : (driveFileInfo.inDedicatedFolder
+                                ? 'Kopia odnaleziona w folderze petcare_kopiazapasowa!'
+                                : 'Kopia odnaleziona na Dysku Google!')}
+                          </div>
+                          <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400">
+                            {driveFileInfo.name} • {new Date(driveFileInfo.modifiedTime).toLocaleString('pl-PL')}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={checkRemoteDrive}
+                        disabled={isCheckingDrive}
+                        className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg text-emerald-700 dark:text-emerald-300 transition-colors"
+                        title="Odśwież stan pliku"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isCheckingDrive ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                  )
                 ) : isCheckingDrive ? (
                   <div className="p-2.5 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-xs text-slate-500 flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-600" />
@@ -674,14 +701,22 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                   <span>{isLoading ? 'Zapisywanie...' : '💾 Zapisz dane na Twoim Dysku Google'}</span>
                 </button>
 
-                <button
-                  onClick={() => setShowRestoreConfirm(true)}
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-bold rounded-2xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer text-xs sm:text-sm"
-                >
-                  <CloudDownload className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                  <span>📥 Pobierz dane z Dysku Google (Przywróć zwierzaki)</span>
-                </button>
+                {driveFileInfo && !driveFileInfo.isEmpty && (driveFileInfo.petCount ?? 1) > 0 ? (
+                  <button
+                    onClick={() => setShowRestoreConfirm(true)}
+                    disabled={isLoading}
+                    className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-bold rounded-2xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer text-xs sm:text-sm"
+                  >
+                    <CloudDownload className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <span>
+                      📥 Pobierz dane z Dysku Google ({driveFileInfo.petCount ? `Przywróć ${driveFileInfo.petCount === 1 ? '1 zwierzaka' : `${driveFileInfo.petCount} zwierzaki`}` : 'Przywróć zwierzaki'})
+                    </span>
+                  </button>
+                ) : (
+                  <div className="py-2.5 px-3 bg-slate-100 dark:bg-slate-800/50 rounded-xl text-center text-xs text-slate-500 dark:text-slate-400">
+                    💡 Brak zwierzaków w kopii w chmurze — po dodaniu pupila w aplikacji kliknij „Zapisz dane”, aby zachować kopię na Dysku.
+                  </div>
+                )}
               </div>
 
               {/* Multi-Device Transfer via QR CODE */}
@@ -841,12 +876,12 @@ export const GoogleSyncModal: React.FC<GoogleSyncModalProps> = ({
                     <div className="space-y-2 pt-1">
                       <button
                         type="button"
-                        onClick={() => handlePreviewLogin('michalakmarcin941@gmail.com')}
+                        onClick={() => handlePreviewLogin('baluch.arek@gmail.com')}
                         disabled={isLoading}
                         className="w-full py-2.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-amber-300 dark:border-amber-700 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs cursor-pointer transition"
                       >
                         <GoogleGIcon className="w-4 h-4" />
-                        <span>Zaloguj jako michalakmarcin941@gmail.com</span>
+                        <span>Zaloguj jako baluch.arek@gmail.com</span>
                       </button>
 
                       <div className="flex gap-2 pt-1">

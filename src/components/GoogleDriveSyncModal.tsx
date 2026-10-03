@@ -123,26 +123,12 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
             });
           }
         } else {
-          // No file on Drive yet -> Create initial sample pet data file on user's Google Drive right away!
-          try {
-            const initialJson = storage.getPets().length > 0 ? storage.exportAllData() : getSampleDataJson();
-            const createdFile = await uploadPetDataToDrive(result.accessToken, initialJson);
-            setDriveFile(createdFile);
-            if (storage.getPets().length === 0) {
-              storage.seedSampleData();
-              onDataRestored();
-            }
-            setMessage({
-              type: 'success',
-              text: 'Zalogowano! Utworzono dla Ciebie przykładowy profil zwierzaka (Bono - Golden Retriever) i zapisano kopię na Twoim Dysku Google.'
-            });
-          } catch (upErr: any) {
-            console.error('Błąd tworzenia pliku startowego na Dysku:', upErr);
-            setMessage({
-              type: 'info',
-              text: 'Połączono z Dyskiem Google. Możesz teraz kliknąć "Wyślij na Dysk Google", aby zapisać dane.'
-            });
-          }
+          // No file on Drive yet -> Account connected, waiting for user's own pet
+          setDriveFile(null);
+          setMessage({
+            type: 'success',
+            text: 'Połączono z Dyskiem Google! Twoje konto jest gotowe — gdy dodasz profil swojego pupila, jego dane zostaną tutaj bezpiecznie zapisane.'
+          });
         }
       }
     } catch (err: any) {
