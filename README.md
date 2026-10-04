@@ -31,5 +31,5 @@ Backend (`server.ts`) działa na Cloud Run w projekcie `gen-lang-client-09125559
 
 - Jednorazowa konfiguracja Google Cloud (w Cloud Shell): `bash <(curl -fsSL https://raw.githubusercontent.com/balucharek-web/Petcare/main/scripts/setup-gcp.sh)`
 - Następnie ustaw zmienną repozytorium `GCP_DEPLOY_ENABLED=true` (Settings → Secrets and variables → Actions → Variables).
-- Każdy push do `main` wdraża serwer przez `.github/workflows/deploy-cloud-run.yml` (logowanie do GCP przez Workload Identity Federation, bez kluczy w repo). Klucz Gemini jest w Secret Manager jako `gemini-api-key`.
+- Każdy push do `main` wdraża serwer przez `.github/workflows/deploy-cloud-run.yml` (logowanie do GCP przez Workload Identity Federation, bez kluczy w repo). Klucz Gemini: sekret repozytorium `GEMINI_API_KEY` (ma pierwszeństwo), w przeciwnym razie Secret Manager `gemini-api-key`.
 - Aplikacja web/APK łączy się z adresem z `VITE_APP_URL` (domyślnie powyższy adres Cloud Run).

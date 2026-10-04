@@ -48,7 +48,17 @@ jobs:
           docker push "$IMAGE"
 
       - name: Deploy
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          ENV_VARS="SYNC_STORE=firestore@APP_URL=${APP_URL}@GOOGLE_CLOUD_PROJECT=${PROJECT_ID}"
+          # GitHub secret GEMINI_API_KEY takes precedence over the Secret Manager secret.
+          if [ -n "$GEMINI_API_KEY" ]; then
+            ENV_VARS="${ENV_VARS}@GEMINI_API_KEY=${GEMINI_API_KEY}"
+            SECRET_FLAGS=(--clear-secrets)
+          else
+            SECRET_FLAGS=(--set-secrets "GEMINI_API_KEY=gemini-api-key:latest")
+          fi
           gcloud run deploy "$SERVICE" \
             --image "$IMAGE" \
             --region "$REGION" \
@@ -56,8 +66,8 @@ jobs:
             --allow-unauthenticated \
             --memory 1Gi \
             --max-instances 3 \
-            --set-env-vars "SYNC_STORE=firestore,APP_URL=${APP_URL},GOOGLE_CLOUD_PROJECT=${PROJECT_ID}" \
-            --set-secrets "GEMINI_API_KEY=gemini-api-key:latest"
+            --set-env-vars "^@^${ENV_VARS}" \
+            "${SECRET_FLAGS[@]}"
 
       - name: Smoke test
         run: |
