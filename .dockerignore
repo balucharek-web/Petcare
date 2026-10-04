@@ -1,0 +1,9 @@
+node_modules
+dist
+android
+data
+.git
+.github
+.env
+*.keystore
+*.jks

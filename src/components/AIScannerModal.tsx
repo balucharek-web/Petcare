@@ -277,8 +277,6 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
 
       const candidates = [
         getApiUrl('/api/scan-medical'),
-        'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/scan-medical',
-        'https://ais-dev-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/scan-medical',
       ];
       const uniqueUrls = Array.from(new Set(candidates));
       let extracted: ExtractedMedicalData | null = null;
