@@ -56,6 +56,10 @@ jobs:
           if [ -n "$GEMINI_API_KEY" ]; then
             ENV_VARS="${ENV_VARS}@GEMINI_API_KEY=${GEMINI_API_KEY}"
             SECRET_FLAGS=(--clear-secrets)
+            # gcloud refuses to turn a secret-backed variable into a literal in one step.
+            if gcloud run services describe "$SERVICE" --region "$REGION" --format=json 2>/dev/null | grep -q '"secretKeyRef"'; then
+              gcloud run services update "$SERVICE" --region "$REGION" --clear-secrets --quiet
+            fi
           else
             SECRET_FLAGS=(--set-secrets "GEMINI_API_KEY=gemini-api-key:latest")
           fi
