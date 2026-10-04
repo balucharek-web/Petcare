@@ -20,6 +20,8 @@ async function startServer() {
 
   // Disable fingerprinting
   app.disable('x-powered-by');
+  // Trust exactly one proxy hop (Cloud Run front end) so req.ip cannot be spoofed via X-Forwarded-For
+  app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
 
   // Enterprise HTTP Security Headers (adjusted for AI Studio preview iframe support)
   app.use((req, res, next) => {
@@ -33,14 +35,30 @@ async function startServer() {
     // Content Security Policy permitting Vite, Google APIs, OpenStreetMap, and AI Studio iframe preview
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https:;"
+      "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; worker-src 'self' blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' data: blob: https: wss:; media-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self';"
     );
     next();
   });
 
-  // Enable CORS for web, mobile apps (Capacitor), and local environments
+  // CORS: only the app's own web origins, Capacitor WebView and local development
+  const allowedOrigins = new Set<string>([
+    'capacitor://localhost',
+    'https://localhost',
+    'http://localhost',
+    'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app',
+    'https://ais-dev-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app',
+    ...(process.env.APP_URL ? [process.env.APP_URL.replace(/\/$/, '')] : []),
+    ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean) : []),
+  ]);
+  const isAllowedOrigin = (origin: string) =>
+    allowedOrigins.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    if (origin && isAllowedOrigin(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Vary', 'Origin');
+    }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     if (req.method === 'OPTIONS') {
@@ -57,9 +75,13 @@ async function startServer() {
   function createRateLimiter(options: { windowMs: number; max: number; message: string }) {
     const store = new Map<string, RateLimitEntry>();
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      const forwarded = req.headers['x-forwarded-for'];
-      const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '') || req.socket.remoteAddress || 'unknown-client';
+      const ip = req.ip || req.socket.remoteAddress || 'unknown-client';
       const now = Date.now();
+      if (store.size > 10000) {
+        for (const [key, entry] of store) {
+          if (now > entry.resetTime) store.delete(key);
+        }
+      }
       let record = store.get(ip);
       if (!record || now > record.resetTime) {
         record = { count: 1, resetTime: now + options.windowMs };
@@ -186,6 +208,13 @@ async function startServer() {
     });
   }
 
+  function tokensMatch(provided: unknown, stored: string | undefined): boolean {
+    if (typeof provided !== 'string' || !stored) return false;
+    const a = Buffer.from(provided);
+    const b = Buffer.from(stored);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+
   // Enterprise PBKDF2 Password Hashing (100,000 iterations, SHA-512, 32-byte salt)
   function hashPasswordPbkdf2(password: string, salt: string): string {
     return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
@@ -232,6 +261,18 @@ async function startServer() {
     return { isValid: false, needsRehash: false };
   }
 
+  let firebaseConfig: { apiKey?: string; oAuthClientId?: string } = {};
+  try {
+    firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'firebase-applet-config.json'), 'utf8'));
+  } catch {}
+
+  const GOOGLE_ALLOWED_AUDIENCES: string[] = [
+    '764412082432-q5d25pi0er4lnevgagscd26h7mkm8kcb.apps.googleusercontent.com',
+    '790254321655-2irfb1normmrbsi2nh34oiv5oob6rhnf.apps.googleusercontent.com',
+    ...(firebaseConfig.oAuthClientId ? [firebaseConfig.oAuthClientId] : []),
+    ...(process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.split(',').map((id) => id.trim()) : []),
+  ];
+
   // Cryptographic token verification for Google OAuth 2.0 / OpenID Connect & Firebase Auth
   async function verifyGoogleOrFirebaseToken(idToken: string): Promise<{
     email: string;
@@ -243,7 +284,8 @@ async function startServer() {
 
     // 1. Check with Firebase Identity Toolkit endpoint (for tokens from Firebase Client SDK)
     try {
-      const firebaseApiKey = process.env.FIREBASE_API_KEY || 'AIzaSyA_M_UwFyqQWHBCb5zqqfUeq8KXmLQFsow';
+      const firebaseApiKey = process.env.FIREBASE_API_KEY || firebaseConfig.apiKey;
+      if (!firebaseApiKey) throw new Error('Brak FIREBASE_API_KEY');
       const fbRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -270,7 +312,11 @@ async function startServer() {
       const gRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
       if (gRes.ok) {
         const gData: any = await gRes.json();
-        if (gData.email && (gData.email_verified === 'true' || gData.email_verified === true)) {
+        if (
+          gData.email &&
+          (gData.email_verified === 'true' || gData.email_verified === true) &&
+          GOOGLE_ALLOWED_AUDIENCES.includes(gData.aud)
+        ) {
           return {
             email: gData.email.toLowerCase(),
             name: gData.name || gData.email.split('@')[0],
@@ -285,27 +331,11 @@ async function startServer() {
 
     // 3. Fallback: Local cryptographic verification using google-auth-library
     try {
-      let configClientId: string | undefined;
-      try {
-        const configPath = path.resolve(__dirname, 'firebase-applet-config.json');
-        if (fs.existsSync(configPath)) {
-          const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-          configClientId = cfg.oAuthClientId;
-        }
-      } catch {}
-
-      const audiences = [
-        '764412082432-q5d25pi0er4lnevgagscd26h7mkm8kcb.apps.googleusercontent.com',
-        '790254321655-2irfb1normmrbsi2nh34oiv5oob6rhnf.apps.googleusercontent.com',
-        ...(configClientId ? [configClientId] : []),
-        ...(process.env.GOOGLE_CLIENT_ID ? [process.env.GOOGLE_CLIENT_ID] : []),
-      ];
-
       const { OAuth2Client } = await import('google-auth-library');
       const client = new OAuth2Client();
       const ticket = await client.verifyIdToken({
         idToken,
-        audience: audiences,
+        audience: GOOGLE_ALLOWED_AUDIENCES,
       });
       const payload = ticket.getPayload();
       if (payload && payload.email) {
@@ -392,17 +422,6 @@ async function startServer() {
             isAuthorized = true;
             if (verifiedUser.name) verifiedName = verifiedUser.name;
             if (verifiedUser.avatar) verifiedAvatar = verifiedUser.avatar;
-          }
-        }
-
-        // Case C: Development / Preview environment fallback (allows sign-in when Firebase Auth domain is not yet whitelisted)
-        if (!isAuthorized && (
-          (typeof idToken === 'string' && (idToken.startsWith('gis_oauth_') || idToken.startsWith('preview_token_'))) ||
-          process.env.NODE_ENV !== 'production' ||
-          (req.headers.origin && (req.headers.origin.includes('.run.app') || req.headers.origin.includes('localhost')))
-        )) {
-          if (normalizedEmail && normalizedEmail.includes('@')) {
-            isAuthorized = true;
           }
         }
 
@@ -592,7 +611,7 @@ async function startServer() {
       const db = readSyncDB();
       const user = db.users[normalizedEmail];
 
-      if (!token || typeof token !== 'string' || !user || !user.token || user.token !== token) {
+      if (!user || !tokensMatch(token, user.token)) {
         return res.status(401).json({ 
           success: false, 
           error: 'Brak autoryzacji sesji. Zaloguj się ponownie.' 
@@ -643,7 +662,7 @@ async function startServer() {
       }
 
       // Strict security: Require matching active session token
-      if (!token || typeof token !== 'string' || !user.token || user.token !== token) {
+      if (!tokensMatch(token, user.token)) {
         return res.status(401).json({ 
           success: false, 
           error: 'Brak autoryzacji sesji. Wymagany jest ważny token sesji.' 
@@ -672,16 +691,25 @@ async function startServer() {
     createdAt: string;
   }
   const qrTransfers = new Map<string, QRTransferRecord>();
+  const MAX_QR_TRANSFERS = 200;
 
   // API Route: Generate a QR Code Transfer with all pet data and attachments
-  app.post('/api/cloud-sync/generate-qr', (req, res) => {
+  app.post('/api/cloud-sync/generate-qr', pairCodeLimiter, (req, res) => {
     try {
       const { payload, email } = req.body;
       if (!payload) {
         return res.status(400).json({ success: false, error: 'Brak danych do synchronizacji QR.' });
       }
 
-      const qrId = 'pc_sync_' + crypto.randomBytes(9).toString('hex');
+      const nowTs = Date.now();
+      for (const [id, rec] of qrTransfers) {
+        if (nowTs > rec.expiresAt) qrTransfers.delete(id);
+      }
+      if (qrTransfers.size >= MAX_QR_TRANSFERS) {
+        return res.status(503).json({ success: false, error: 'Serwer jest chwilowo przeciążony. Spróbuj ponownie za kilka minut.' });
+      }
+
+      const qrId = 'pc_sync_' + crypto.randomBytes(16).toString('hex');
       const petCount = Array.isArray(payload.pets) ? payload.pets.length : 0;
       const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
 
@@ -715,7 +743,7 @@ async function startServer() {
   });
 
   // API Route: Redeem QR Code Transfer on the second device
-  app.post('/api/cloud-sync/redeem-qr', (req, res) => {
+  app.post('/api/cloud-sync/redeem-qr', pairCodeLimiter, async (req, res) => {
     try {
       const { qrId, code } = req.body;
       const targetId = qrId || code;
@@ -740,14 +768,19 @@ async function startServer() {
         });
       }
 
-      // Fallback: check 6-digit pairCode in syncDB
+      // Fallback: check 6-digit pairCode in syncDB (single use, limited attempts)
       const db = readSyncDB();
       for (const email in db.users) {
         const u = db.users[email];
-        if (u.pairCode && (u.pairCode.code === targetId || u.token === targetId)) {
-          if (Date.now() > u.pairCode.expiresAt) {
+        if (u.pairCode && typeof targetId === 'string' && u.pairCode.code === targetId) {
+          u.pairCode.attempts = (u.pairCode.attempts || 0) + 1;
+          if (Date.now() > u.pairCode.expiresAt || u.pairCode.attempts > 5) {
+            delete u.pairCode;
+            await writeSyncDB(db);
             return res.status(410).json({ success: false, error: 'Kod wygasł. Wygeneruj nowy na pierwszym urządzeniu.' });
           }
+          delete u.pairCode;
+          await writeSyncDB(db);
           return res.json({
             success: true,
             payload: u.payload,
@@ -772,7 +805,7 @@ async function startServer() {
       const db = readSyncDB();
       const user = db.users[normalizedEmail];
 
-      if (!user || user.token !== token) {
+      if (!user || !tokensMatch(token, user.token)) {
         return res.status(403).json({ success: false, error: 'Wymagane logowanie do wygenerowania kodu.' });
       }
 
@@ -858,7 +891,7 @@ async function startServer() {
       const db = readSyncDB();
       const user = db.users[normalizedEmail];
 
-      if (!user || user.token !== token) {
+      if (!user || !tokensMatch(token, user.token)) {
         return res.status(401).json({ success: false, error: 'Brak autoryzacji do usunięcia tego konta.' });
       }
 

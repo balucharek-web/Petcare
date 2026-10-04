@@ -1,5 +1,5 @@
 {
-  "name": "react-example",
+  "name": "petcare",
   "private": true,
   "version": "2.61.0",
   "type": "module",
@@ -53,5 +53,9 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.13.6",
+    "uuid": "^11.1.1"
   }
 }

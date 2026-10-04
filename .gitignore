@@ -10,7 +10,6 @@ public/*.apk
 public/*.tar.gz
 public/*.zip
 bun.lock
-data/*.json
+data/
 *.keystore
-!android/app/release.keystore
 *.jks

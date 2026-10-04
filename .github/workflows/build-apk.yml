@@ -29,7 +29,10 @@ jobs:
           java-version: '21'
 
       - name: Instalacja zależności projektu
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
+
+      - name: Sprawdzenie typów (tsc)
+        run: npm run lint
 
       - name: Kompilacja aplikacji webowej (Vite)
         run: npm run build
@@ -40,28 +43,38 @@ jobs:
       - name: Nadanie uprawnień wykonywalności dla Gradle
         run: chmod +x android/gradlew
 
-      - name: Konfiguracja stałego oficjalnego klucza produkcyjnego (Official Release Keystore)
+      - name: Odczyt wersji aplikacji
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Przygotowanie klucza podpisującego z GitHub Secrets
+        id: keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          OFFICIAL_KEYSTORE_B64: "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"
         run: |
-          cd android/app
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Używanie oficjalnego klucza z GitHub Secrets (ANDROID_KEYSTORE_BASE64)..."
-            echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
-          elif [ -s release.keystore ]; then
-            echo "Używanie stałego, trwałego klucza release.keystore z repozytorium..."
-          else
-            echo "Przywracanie stałego oficjalnego klucza produkcyjnego z bezpiecznego fallbacku..."
-            echo "$OFFICIAL_KEYSTORE_B64" | base64 -d > release.keystore
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Brak sekretu ANDROID_KEYSTORE_BASE64 - budowany będzie tylko APK debug, bez publikacji wydania."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          if [ ! -s release.keystore ]; then
-            echo "BŁĄD: release.keystore nie został utworzony!"
-            exit 1
-          fi
-          echo "Klucz release.keystore zweryfikowany pomyślnie."
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Kompilacja APK debug
+        if: steps.keystore.outputs.signed != 'true'
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p ../dist-packages
+          find app/build/outputs/apk/debug -type f -name "*.apk" -exec cp {} ../dist-packages/PetCare-debug.apk \;
 
       - name: Kompilacja pakietów APK (Release & Debug) oraz AAB (Google Play Bundle)
+        if: steps.keystore.outputs.signed == 'true'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd android
           ./gradlew assembleRelease assembleDebug bundleRelease --no-daemon --stacktrace || (sleep 5 && ./gradlew assembleRelease assembleDebug bundleRelease --no-daemon --stacktrace)
@@ -80,27 +93,20 @@ jobs:
           retention-days: 30
 
       - name: Odczytaj odciski certyfikatów (SHA-1 / SHA-256)
-        run: |
-          echo "=== Informacje o oficjalnym certyfikacie produkcyjnym release.keystore ==="
-          keytool -list -v -keystore android/app/release.keystore -alias petcare -storepass petcare123 || true
+        if: steps.keystore.outputs.signed == 'true'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: keytool -list -v -keystore "$ANDROID_KEYSTORE_PATH" -alias "${ANDROID_KEY_ALIAS:-petcare}" -storepass:env ANDROID_KEYSTORE_PASSWORD | grep -E "SHA1|SHA256" || true
 
       - name: Publikacja APK i AAB do GitHub Releases
         uses: softprops/action-gh-release@v2
-        if: success()
+        if: success() && steps.keystore.outputs.signed == 'true'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v2.61.0' }}
-          name: "PetCare v2.61.0 - Pełny wykres wagi w czasie, eksport CSV i polskie znaki w PDF"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          name: PetCare v${{ steps.version.outputs.version }}
           make_latest: true
-          body: |
-            ### 🐾 PetCare v2.61.0 - Nowości i usprawnienia
-
-            1. 📈 **Dedykowany moduł i wykres wagi pupila:**
-               - Bezpośredni dostęp po kliknięciu plakietki **Waga** w profilu zwierzaka, w kafelku pulpitu lub w menu Narzędzia.
-               - Automatyczny, interaktywny wykres liniowy SVG z gradientem i oznaczonymi pomiarami w czasie.
-               - Analiza trendu (spadek, wzrost, waga stabilna), zakres minimalny/maksymalny i eksport do CSV.
-            2. 📄 **Generowanie raportu PDF:** Pełne polskie znaki diakrytyczne (UTF-8 TrueType) i dynamiczne dopasowanie wierszy bez nakładania się tekstu.
-            3. 📊 **Eksport finansów i wydatków do pliku Excel / CSV** z polskimi znakami.
-            4. 🚀 **Pełne wsparcie PWA Offline:** Aplikacja działa bez połączenia z siecią.
+          generate_release_notes: true
           files: |
             dist-packages/PetCare.apk
             dist-packages/PetCare-release.apk

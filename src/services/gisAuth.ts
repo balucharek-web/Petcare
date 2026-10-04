@@ -48,7 +48,7 @@ export async function tryGisOAuthToken(): Promise<GisAuthResult | null> {
                   name: uData.name || uData.email.split('@')[0],
                   photoUrl: uData.picture || '',
                   accessToken: tokenResp.access_token,
-                  idToken: `gis_oauth_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+                  idToken: '',
                 });
               }
             }
