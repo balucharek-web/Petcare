@@ -16,13 +16,15 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: "release.keystore"
+    def hasReleaseKeystore = file(keystorePath).exists() && System.getenv("ANDROID_KEYSTORE_PASSWORD")
     signingConfigs {
         release {
-            if (file('release.keystore').exists()) {
-                storeFile file('release.keystore')
-                storePassword 'petcare123'
-                keyAlias 'petcare'
-                keyPassword 'petcare123'
+            if (hasReleaseKeystore) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "petcare"
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
                 v1SigningEnabled true
                 v2SigningEnabled true
             }
@@ -30,7 +32,7 @@ android {
     }
     buildTypes {
         release {
-            if (file('release.keystore').exists()) {
+            if (hasReleaseKeystore) {
                 signingConfig signingConfigs.release
             }
             minifyEnabled false

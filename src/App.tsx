@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { 
   WifiOff, 
   AlertCircle,
@@ -25,7 +25,6 @@ import { ExamsAndTestsView } from './components/ExamsAndTestsView';
 import { DiseasesAndVisitsView } from './components/DiseasesAndVisitsView';
 import { CalendarHubView } from './components/CalendarHubView';
 import { SOSModal } from './components/SOSModal';
-import { HealthPassportModal } from './components/HealthPassportModal';
 import { NewPetModal } from './components/NewPetModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { AlertsBanner } from './components/AlertsBanner';
@@ -44,35 +43,37 @@ import {
   CloudSession 
 } from './services/cloudSyncService';
 import { syncLatestDriveData } from './services/googleDriveSync';
-import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { syncAllScheduledNotifications, requestNotificationPermission } from './services/notificationService';
 import { QRTransferModal } from './components/QRTransferModal';
 
 // New Feature Modals
-import { MedicalReportModal } from './components/MedicalReportModal';
-import { ToxicityCheckerModal } from './components/ToxicityCheckerModal';
-import { AIScannerModal } from './components/AIScannerModal';
-import { NutritionCalculatorModal } from './components/NutritionCalculatorModal';
-import { ExpensesModal } from './components/ExpensesModal';
-import { PetsitterModal } from './components/PetsitterModal';
-import { DashboardCustomizerModal } from './components/DashboardCustomizerModal';
-import { ToolsHubModal } from './components/ToolsHubModal';
-import { AgeCalculatorModal } from './components/AgeCalculatorModal';
-import { EmergencyVetFinderModal } from './components/EmergencyVetFinderModal';
-import { VetCardModal } from './components/VetCardModal';
-import { HealthTimelineModal } from './components/HealthTimelineModal';
-import { FamilySharingModal } from './components/FamilySharingModal';
-import { CommercialPrivacyModal } from './components/CommercialPrivacyModal';
-import { HomeScreenWidgetModal } from './components/HomeScreenWidgetModal';
-import { ParasiteProtectionModal } from './components/ParasiteProtectionModal';
 import { syncWidgetWithLatestData } from './services/nativeWidget';
 import { NoPetsView } from './components/NoPetsView';
-import { MicrochipVerifyModal } from './components/MicrochipVerifyModal';
-import { LabTrendsModal } from './components/LabTrendsModal';
-import { FoodLensModal } from './components/FoodLensModal';
-import { SymptomCheckerModal } from './components/SymptomCheckerModal';
-import { WeightTrackerModal } from './components/WeightTrackerModal';
 import { haptics } from './services/hapticsService';
+
+const HealthPassportModal = lazy(() => import('./components/HealthPassportModal').then((m) => ({ default: m.HealthPassportModal })));
+const MedicalReportModal = lazy(() => import('./components/MedicalReportModal').then((m) => ({ default: m.MedicalReportModal })));
+const ToxicityCheckerModal = lazy(() => import('./components/ToxicityCheckerModal').then((m) => ({ default: m.ToxicityCheckerModal })));
+const AIScannerModal = lazy(() => import('./components/AIScannerModal').then((m) => ({ default: m.AIScannerModal })));
+const NutritionCalculatorModal = lazy(() => import('./components/NutritionCalculatorModal').then((m) => ({ default: m.NutritionCalculatorModal })));
+const ExpensesModal = lazy(() => import('./components/ExpensesModal').then((m) => ({ default: m.ExpensesModal })));
+const PetsitterModal = lazy(() => import('./components/PetsitterModal').then((m) => ({ default: m.PetsitterModal })));
+const DashboardCustomizerModal = lazy(() => import('./components/DashboardCustomizerModal').then((m) => ({ default: m.DashboardCustomizerModal })));
+const ToolsHubModal = lazy(() => import('./components/ToolsHubModal').then((m) => ({ default: m.ToolsHubModal })));
+const AgeCalculatorModal = lazy(() => import('./components/AgeCalculatorModal').then((m) => ({ default: m.AgeCalculatorModal })));
+const EmergencyVetFinderModal = lazy(() => import('./components/EmergencyVetFinderModal').then((m) => ({ default: m.EmergencyVetFinderModal })));
+const NotificationSettingsModal = lazy(() => import('./components/NotificationSettingsModal').then((m) => ({ default: m.NotificationSettingsModal })));
+const VetCardModal = lazy(() => import('./components/VetCardModal').then((m) => ({ default: m.VetCardModal })));
+const HealthTimelineModal = lazy(() => import('./components/HealthTimelineModal').then((m) => ({ default: m.HealthTimelineModal })));
+const FamilySharingModal = lazy(() => import('./components/FamilySharingModal').then((m) => ({ default: m.FamilySharingModal })));
+const CommercialPrivacyModal = lazy(() => import('./components/CommercialPrivacyModal').then((m) => ({ default: m.CommercialPrivacyModal })));
+const HomeScreenWidgetModal = lazy(() => import('./components/HomeScreenWidgetModal').then((m) => ({ default: m.HomeScreenWidgetModal })));
+const ParasiteProtectionModal = lazy(() => import('./components/ParasiteProtectionModal').then((m) => ({ default: m.ParasiteProtectionModal })));
+const MicrochipVerifyModal = lazy(() => import('./components/MicrochipVerifyModal').then((m) => ({ default: m.MicrochipVerifyModal })));
+const LabTrendsModal = lazy(() => import('./components/LabTrendsModal').then((m) => ({ default: m.LabTrendsModal })));
+const FoodLensModal = lazy(() => import('./components/FoodLensModal').then((m) => ({ default: m.FoodLensModal })));
+const SymptomCheckerModal = lazy(() => import('./components/SymptomCheckerModal').then((m) => ({ default: m.SymptomCheckerModal })));
+const WeightTrackerModal = lazy(() => import('./components/WeightTrackerModal').then((m) => ({ default: m.WeightTrackerModal })));
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
@@ -709,6 +710,7 @@ export default function App() {
       </div>
 
       {/* Global Modals */}
+      <Suspense fallback={null}>
       {isSOSOpen && (
         <SOSModal
           isOpen={isSOSOpen}
@@ -1037,6 +1039,7 @@ export default function App() {
           onUpdatePet={handleUpdatePet}
         />
       )}
+      </Suspense>
     </div>
   );
 }
