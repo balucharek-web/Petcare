@@ -357,7 +357,6 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
     try {
       const candidates = [
         getApiUrl('/api/analyze-pet-document'),
-        'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app/api/analyze-pet-document',
       ];
       const uniqueUrls = Array.from(new Set(candidates));
 

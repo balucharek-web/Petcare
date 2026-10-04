@@ -25,3 +25,11 @@ Klucz podpisujący **nie jest przechowywany w repozytorium**. Aby workflow zbudo
 | `ANDROID_KEY_PASSWORD` | hasło klucza (domyślnie takie jak keystore) |
 
 Bez tych sekretów workflow buduje tylko `PetCare-debug.apk` (Artifacts) i nie publikuje wydania. Tag wydania jest brany z `version` w `package.json`.
+
+## ☁️ Serwer (Cloud Run + Firestore)
+Backend (`server.ts`) działa na Cloud Run w projekcie `gen-lang-client-0912555946` (`europe-west3`) pod adresem `https://petcare-558255772316.europe-west3.run.app`. Dane synchronizacji i transfery QR są w Firestore (`syncStore.ts`); lokalnie, bez `SYNC_STORE=firestore`, zapisywane są w `data/cloud_sync_db.json`.
+
+- Jednorazowa konfiguracja Google Cloud (w Cloud Shell): `bash <(curl -fsSL https://raw.githubusercontent.com/balucharek-web/Petcare/main/scripts/setup-gcp.sh)`
+- Następnie ustaw zmienną repozytorium `GCP_DEPLOY_ENABLED=true` (Settings → Secrets and variables → Actions → Variables).
+- Każdy push do `main` wdraża serwer przez `.github/workflows/deploy-cloud-run.yml` (logowanie do GCP przez Workload Identity Federation, bez kluczy w repo). Klucz Gemini jest w Secret Manager jako `gemini-api-key`.
+- Aplikacja web/APK łączy się z adresem z `VITE_APP_URL` (domyślnie powyższy adres Cloud Run).

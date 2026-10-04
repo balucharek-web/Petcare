@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { createSyncStore } from './syncStore.ts';
 
 dotenv.config();
 
@@ -14,7 +15,7 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: '25mb' }));
 
@@ -114,99 +115,8 @@ async function startServer() {
     message: 'Przekroczono limit zapytań skanera AI. Odczekaj chwilę.',
   });
 
-  // Persistent Cloud Sync Storage with Atomic Writes & Backup Protection
-  const DATA_FILE = path.resolve(__dirname, 'data', 'cloud_sync_db.json');
-  const BACKUP_FILE = path.resolve(__dirname, 'data', 'cloud_sync_db.json.bak');
-  const TMP_FILE = path.resolve(__dirname, 'data', 'cloud_sync_db.json.tmp');
-
-  interface UserSyncRecord {
-    email: string;
-    passwordHash?: string;
-    salt?: string;
-    hashAlgorithm?: 'pbkdf2-sha512' | 'hmac-sha256';
-    name: string;
-    avatar?: string;
-    provider?: 'google' | 'email';
-    lastSyncTime: string | null;
-    petCount: number;
-    payload?: any;
-    token: string;
-    tokenCreatedAt?: number;
-    pairCode?: {
-      code: string;
-      expiresAt: number;
-      attempts?: number;
-    };
-  }
-
-  interface SyncDB {
-    users: Record<string, UserSyncRecord>;
-  }
-
-  function readSyncDB(): SyncDB {
-    try {
-      if (fs.existsSync(DATA_FILE)) {
-        const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-        return JSON.parse(raw);
-      }
-    } catch (err) {
-      console.error('Błąd odczytu cloud_sync_db.json, próba przywrócenia z kopii zapasowej:', err);
-      try {
-        if (fs.existsSync(BACKUP_FILE)) {
-          const bak = fs.readFileSync(BACKUP_FILE, 'utf-8');
-          const parsed = JSON.parse(bak);
-          fs.writeFileSync(DATA_FILE, bak, 'utf-8');
-          console.log('Pomyślnie przywrócono bazę danych z cloud_sync_db.json.bak');
-          return parsed;
-        }
-      } catch (bakErr) {
-        console.error('Przywracanie z kopii zapasowej nie powiodło się:', bakErr);
-      }
-    }
-    return { users: {} };
-  }
-
-  // Mutex Queue for Atomic DB writes (prevents race conditions and corruption)
-  let isWritingDb = false;
-  const dbWriteQueue: Array<() => void> = [];
-
-  function writeSyncDB(db: SyncDB): Promise<void> {
-    return new Promise((resolve) => {
-      const executeWrite = () => {
-        isWritingDb = true;
-        try {
-          const dir = path.dirname(DATA_FILE);
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
-          const content = JSON.stringify(db, null, 2);
-          // 1. Write to temporary file
-          fs.writeFileSync(TMP_FILE, content, 'utf-8');
-          // 2. Atomic rename (operating system level guarantee)
-          fs.renameSync(TMP_FILE, DATA_FILE);
-          // 3. Mirror to backup file
-          try {
-            fs.copyFileSync(DATA_FILE, BACKUP_FILE);
-          } catch {}
-        } catch (err) {
-          console.error('Błąd atomowego zapisu cloud_sync_db.json:', err);
-        } finally {
-          isWritingDb = false;
-          resolve();
-          if (dbWriteQueue.length > 0) {
-            const next = dbWriteQueue.shift();
-            if (next) next();
-          }
-        }
-      };
-
-      if (isWritingDb) {
-        dbWriteQueue.push(executeWrite);
-      } else {
-        executeWrite();
-      }
-    });
-  }
+  const syncStore = createSyncStore(path.resolve(__dirname, 'data'));
+  console.log(`Cloud sync storage: ${syncStore.kind}`);
 
   function tokensMatch(provided: unknown, stored: string | undefined): boolean {
     if (typeof provided !== 'string' || !stored) return false;
@@ -395,8 +305,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Podany adres e-mail jest nieprawidłowy.' });
       }
 
-      const db = readSyncDB();
-      let user = db.users[normalizedEmail];
+      let user = await syncStore.getUser(normalizedEmail);
       const generatedToken = 'tok_' + crypto.randomBytes(24).toString('hex');
 
       // 1. Google Provider Sign-in (Cryptographically verified ID Token or OAuth2 Access Token)
@@ -455,7 +364,6 @@ async function startServer() {
               visits: []
             }
           };
-          db.users[normalizedEmail] = user;
         } else {
           user.token = generatedToken;
           user.tokenCreatedAt = Date.now();
@@ -463,7 +371,7 @@ async function startServer() {
           if (effectiveAvatar) user.avatar = effectiveAvatar;
           user.provider = 'google';
         }
-        await writeSyncDB(db);
+        await syncStore.putUser(user);
 
         return res.json({
           success: true,
@@ -520,8 +428,7 @@ async function startServer() {
             visits: []
           }
         };
-        db.users[normalizedEmail] = user;
-        await writeSyncDB(db);
+        await syncStore.putUser(user);
 
         return res.json({
           success: true,
@@ -578,7 +485,7 @@ async function startServer() {
 
       user.token = generatedToken;
       user.tokenCreatedAt = Date.now();
-      await writeSyncDB(db);
+      await syncStore.putUser(user);
 
       return res.json({
         success: true,
@@ -608,8 +515,7 @@ async function startServer() {
       }
 
       const normalizedEmail = email.trim().toLowerCase();
-      const db = readSyncDB();
-      const user = db.users[normalizedEmail];
+      const user = await syncStore.getUser(normalizedEmail);
 
       if (!user || !tokensMatch(token, user.token)) {
         return res.status(401).json({ 
@@ -632,7 +538,7 @@ async function startServer() {
       user.payload = payload;
       user.petCount = typeof petCount === 'number' ? petCount : (payload.pets?.length || 0);
       user.lastSyncTime = now;
-      await writeSyncDB(db);
+      await syncStore.putUser(user);
 
       return res.json({
         success: true,
@@ -646,7 +552,7 @@ async function startServer() {
   });
 
   // API Route: Download PetCare data from Cloud (Authorized only for own data)
-  app.post('/api/cloud-sync/download', (req, res) => {
+  app.post('/api/cloud-sync/download', async (req, res) => {
     try {
       const { email, token } = req.body;
       if (!email) {
@@ -654,8 +560,7 @@ async function startServer() {
       }
 
       const normalizedEmail = email.trim().toLowerCase();
-      const db = readSyncDB();
-      const user = db.users[normalizedEmail];
+      const user = await syncStore.getUser(normalizedEmail);
 
       if (!user) {
         return res.status(404).json({ success: false, error: 'Nie znaleziono konta w chmurze.' });
@@ -681,20 +586,10 @@ async function startServer() {
     }
   });
 
-  // In-memory / persistent QR Sync Transfers
-  interface QRTransferRecord {
-    id: string;
-    payload: any;
-    petCount: number;
-    email?: string;
-    expiresAt: number;
-    createdAt: string;
-  }
-  const qrTransfers = new Map<string, QRTransferRecord>();
   const MAX_QR_TRANSFERS = 200;
 
   // API Route: Generate a QR Code Transfer with all pet data and attachments
-  app.post('/api/cloud-sync/generate-qr', pairCodeLimiter, (req, res) => {
+  app.post('/api/cloud-sync/generate-qr', pairCodeLimiter, async (req, res) => {
     try {
       const { payload, email } = req.body;
       if (!payload) {
@@ -702,10 +597,7 @@ async function startServer() {
       }
 
       const nowTs = Date.now();
-      for (const [id, rec] of qrTransfers) {
-        if (nowTs > rec.expiresAt) qrTransfers.delete(id);
-      }
-      if (qrTransfers.size >= MAX_QR_TRANSFERS) {
+      if ((await syncStore.pruneTransfers(nowTs)) >= MAX_QR_TRANSFERS) {
         return res.status(503).json({ success: false, error: 'Serwer jest chwilowo przeciążony. Spróbuj ponownie za kilka minut.' });
       }
 
@@ -713,7 +605,7 @@ async function startServer() {
       const petCount = Array.isArray(payload.pets) ? payload.pets.length : 0;
       const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
 
-      qrTransfers.set(qrId, {
+      await syncStore.putTransfer({
         id: qrId,
         payload,
         petCount,
@@ -753,10 +645,10 @@ async function startServer() {
       }
 
       // Try QR Transfers map first
-      const record = qrTransfers.get(targetId);
+      const record = typeof targetId === 'string' ? await syncStore.getTransfer(targetId) : undefined;
       if (record) {
         if (Date.now() > record.expiresAt) {
-          qrTransfers.delete(targetId);
+          await syncStore.deleteTransfer(targetId);
           return res.status(410).json({ success: false, error: 'Ten kod QR wygasł (ważny przez 30 minut). Wygeneruj nowy na pierwszym telefonie.' });
         }
 
@@ -768,26 +660,21 @@ async function startServer() {
         });
       }
 
-      // Fallback: check 6-digit pairCode in syncDB (single use, limited attempts)
-      const db = readSyncDB();
-      for (const email in db.users) {
-        const u = db.users[email];
-        if (u.pairCode && typeof targetId === 'string' && u.pairCode.code === targetId) {
-          u.pairCode.attempts = (u.pairCode.attempts || 0) + 1;
-          if (Date.now() > u.pairCode.expiresAt || u.pairCode.attempts > 5) {
-            delete u.pairCode;
-            await writeSyncDB(db);
-            return res.status(410).json({ success: false, error: 'Kod wygasł. Wygeneruj nowy na pierwszym urządzeniu.' });
-          }
-          delete u.pairCode;
-          await writeSyncDB(db);
-          return res.json({
-            success: true,
-            payload: u.payload,
-            petCount: u.petCount,
-            lastSyncTime: u.lastSyncTime || new Date().toISOString(),
-          });
+      // Fallback: 6-digit pairCode (single use, limited lifetime)
+      const u = typeof targetId === 'string' ? await syncStore.findUserByPairCode(targetId) : undefined;
+      if (u?.pairCode) {
+        const expired = Date.now() > u.pairCode.expiresAt;
+        delete u.pairCode;
+        await syncStore.putUser(u);
+        if (expired) {
+          return res.status(410).json({ success: false, error: 'Kod wygasł. Wygeneruj nowy na pierwszym urządzeniu.' });
         }
+        return res.json({
+          success: true,
+          payload: u.payload,
+          petCount: u.petCount,
+          lastSyncTime: u.lastSyncTime || new Date().toISOString(),
+        });
       }
 
       return res.status(404).json({ success: false, error: 'Nie znaleziono danych dla tego kodu QR lub kod wygasł.' });
@@ -802,8 +689,7 @@ async function startServer() {
     try {
       const { email, token } = req.body;
       const normalizedEmail = (email || '').trim().toLowerCase();
-      const db = readSyncDB();
-      const user = db.users[normalizedEmail];
+      const user = await syncStore.getUser(normalizedEmail);
 
       if (!user || !tokensMatch(token, user.token)) {
         return res.status(403).json({ success: false, error: 'Wymagane logowanie do wygenerowania kodu.' });
@@ -816,7 +702,7 @@ async function startServer() {
         expiresAt: Date.now() + 15 * 60 * 1000, // 15 mins
         attempts: 0,
       };
-      await writeSyncDB(db);
+      await syncStore.putUser(user);
 
       return res.json({ success: true, code, expiresAt: user.pairCode.expiresAt });
     } catch (err: any) {
@@ -833,28 +719,13 @@ async function startServer() {
       }
 
       const cleanCode = code.replace(/\D/g, '');
-      const db = readSyncDB();
-
-      let matchedUser: UserSyncRecord | null = null;
-      for (const email in db.users) {
-        const u = db.users[email];
-        if (u.pairCode && u.pairCode.code === cleanCode) {
-          u.pairCode.attempts = (u.pairCode.attempts || 0) + 1;
-          if (u.pairCode.attempts > 5) {
-            delete u.pairCode;
-            await writeSyncDB(db);
-            return res.status(410).json({ success: false, error: 'Przekroczono limit prób dla tego kodu. Wygeneruj nowy kod na pierwszym telefonie.' });
-          }
-          if (Date.now() > u.pairCode.expiresAt) {
-            delete u.pairCode;
-            await writeSyncDB(db);
-            return res.status(410).json({ success: false, error: 'Ten kod parowania wygasł (ważny przez 15 minut). Wygeneruj nowy na pierwszym telefonie.' });
-          }
-          matchedUser = u;
-          // Invalidate single-use code immediately upon successful pair
-          delete u.pairCode;
-          await writeSyncDB(db);
-          break;
+      const matchedUser = await syncStore.findUserByPairCode(cleanCode);
+      if (matchedUser?.pairCode) {
+        const expired = Date.now() > matchedUser.pairCode.expiresAt;
+        delete matchedUser.pairCode;
+        await syncStore.putUser(matchedUser);
+        if (expired) {
+          return res.status(410).json({ success: false, error: 'Ten kod parowania wygasł (ważny przez 15 minut). Wygeneruj nowy na pierwszym telefonie.' });
         }
       }
 
@@ -888,15 +759,13 @@ async function startServer() {
       }
 
       const normalizedEmail = email.trim().toLowerCase();
-      const db = readSyncDB();
-      const user = db.users[normalizedEmail];
+      const user = await syncStore.getUser(normalizedEmail);
 
       if (!user || !tokensMatch(token, user.token)) {
         return res.status(401).json({ success: false, error: 'Brak autoryzacji do usunięcia tego konta.' });
       }
 
-      delete db.users[normalizedEmail];
-      await writeSyncDB(db);
+      await syncStore.deleteUser(normalizedEmail);
 
       return res.json({ success: true, message: 'Konto i wszystkie dane w chmurze zostały pomyślnie usunięte.' });
     } catch (err: any) {

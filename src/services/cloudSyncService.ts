@@ -12,8 +12,8 @@ import { Capacitor } from '@capacitor/core';
 
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
-export const CURRENT_APP_PRODUCTION_URL = 'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app';
-export const CURRENT_APP_DEV_URL = 'https://ais-dev-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app';
+export const CURRENT_APP_PRODUCTION_URL: string =
+  (import.meta as any).env?.VITE_APP_URL || 'https://petcare-558255772316.europe-west3.run.app';
 
 const getCustomBackendUrl = (): string | null => {
   try {
