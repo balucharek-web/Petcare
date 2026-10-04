@@ -15,8 +15,11 @@ export interface UserSyncRecord {
   lastSyncTime: string | null;
   petCount: number;
   payload?: any;
-  token: string;
+  /** Legacy plaintext session token; migrated to `sessions` on first use. */
+  token?: string;
   tokenCreatedAt?: number;
+  /** SHA-256 hashes of active session tokens (plaintext tokens are never stored). */
+  sessions?: { hash: string; createdAt: number }[];
   pairCode?: {
     code: string;
     expiresAt: number;
