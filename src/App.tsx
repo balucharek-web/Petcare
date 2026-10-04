@@ -266,30 +266,23 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = subscribeToCloudSync((newSession) => {
       setSession(newSession);
-      if (newSession.user) {
-        const currentPets = storage.getPets();
-        setPets(currentPets);
-        const targetPetId = activePetId || currentPets[0]?.id || '';
-        setActivePetId(targetPetId);
-        if (targetPetId) {
-          setVaccinations(storage.getVaccinations(targetPetId));
-          setMedications(storage.getMedications(targetPetId));
-          setExams(storage.getExams(targetPetId));
-          setConditions(storage.getConditions(targetPetId));
-          setVisits(storage.getVisits(targetPetId));
-        }
-      } else {
-        setPets([]);
-        setActivePetId('');
-        setVaccinations([]);
-        setMedications([]);
-        setExams([]);
-        setConditions([]);
-        setVisits([]);
-      }
+      // Always mirror local storage: signOut() clears storage itself, while guest
+      // sessions (no cloud account) must keep their locally saved pets.
+      const currentPets = storage.getPets();
+      setPets(currentPets);
+      const storedActiveId = storage.getActivePetId();
+      const targetPetId = currentPets.some((p) => p.id === storedActiveId)
+        ? storedActiveId
+        : currentPets[0]?.id || '';
+      setActivePetId(targetPetId);
+      setVaccinations(targetPetId ? storage.getVaccinations(targetPetId) : []);
+      setMedications(targetPetId ? storage.getMedications(targetPetId) : []);
+      setExams(targetPetId ? storage.getExams(targetPetId) : []);
+      setConditions(targetPetId ? storage.getConditions(targetPetId) : []);
+      setVisits(targetPetId ? storage.getVisits(targetPetId) : []);
     });
     return () => unsubscribe();
-  }, [activePetId]);
+  }, []);
 
   useEffect(() => {
     if (activePet?.id) {
@@ -304,6 +297,7 @@ export default function App() {
 
   // Mutations with automatic cloud synchronization for authenticated user
   const handleSelectPet = (petId: string) => {
+    storage.setActivePetId(petId);
     setActivePetId(petId);
   };
 
@@ -318,6 +312,7 @@ export default function App() {
     const newPets = [...pets, newPet];
     setPets(newPets);
     storage.savePets(newPets);
+    storage.setActivePetId(newPet.id);
     setActivePetId(newPet.id);
     uploadToCloud().catch(() => {});
   };
@@ -327,6 +322,7 @@ export default function App() {
     const remainingPets = storage.getPets();
     setPets(remainingPets);
     const nextPetId = remainingPets[0]?.id || '';
+    storage.setActivePetId(nextPetId);
     setActivePetId(nextPetId);
     if (nextPetId) {
       setVaccinations(storage.getVaccinations(nextPetId));
