@@ -13,7 +13,7 @@ import { Capacitor } from '@capacitor/core';
 const STORAGE_SESSION_KEY = 'petcare_google_cloud_session';
 const AUTO_SYNC_INTERVAL_HOURS = 24;
 export const CURRENT_APP_PRODUCTION_URL: string =
-  (import.meta as any).env?.VITE_APP_URL || 'https://petcare-558255772316.europe-west3.run.app';
+  import.meta.env.VITE_APP_URL || 'https://petcare-558255772316.europe-west3.run.app';
 
 const getCustomBackendUrl = (): string | null => {
   try {
@@ -25,7 +25,7 @@ const getCustomBackendUrl = (): string | null => {
 
 const REMOTE_BACKEND_URL = 
   getCustomBackendUrl() ||
-  (import.meta as any).env?.VITE_APP_URL || 
+  import.meta.env.VITE_APP_URL || 
   (typeof window !== 'undefined' && 
    window.location.origin && 
    !window.location.origin.startsWith('capacitor:') && 
@@ -775,7 +775,7 @@ export async function deleteCloudAccount(): Promise<boolean> {
 }
 
 // Debounced auto-save to Cloud Sync on any data change in storage
-let autoCloudSyncTimer: any = null;
+let autoCloudSyncTimer: ReturnType<typeof setTimeout> | null = null;
 export function scheduleAutoCloudSync(): void {
   if (autoCloudSyncTimer) clearTimeout(autoCloudSyncTimer);
   autoCloudSyncTimer = setTimeout(async () => {
