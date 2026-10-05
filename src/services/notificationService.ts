@@ -185,8 +185,9 @@ export async function syncAllScheduledNotifications(): Promise<number> {
 
     // Cancel existing scheduled petcare notifications to prevent duplicates
     const pending = await LocalNotifications.getPending();
-    if (pending.notifications.length > 0) {
-      await LocalNotifications.cancel({ notifications: pending.notifications });
+    const toCancel = pending.notifications.filter(n => n.id < SNOOZE_ID_BASE);
+    if (toCancel.length > 0) {
+      await LocalNotifications.cancel({ notifications: toCancel });
     }
 
     const scheduledNotifications: ScheduleOptions['notifications'] = [];
@@ -240,6 +241,14 @@ export async function syncAllScheduledNotifications(): Promise<number> {
                 schedule: { 
                   at: scheduledTime,
                   allowWhileIdle: true 
+                },
+                actionTypeId: MED_ACTION_TYPE,
+                extra: {
+                  kind: 'medication',
+                  petId: med.petId,
+                  medicationId: med.id,
+                  time: slot.time || '08:00',
+                  scheduledDate: toLocalDateStr(scheduledTime),
                 },
               });
             }
@@ -341,5 +350,96 @@ export async function syncAllScheduledNotifications(): Promise<number> {
   } catch (err) {
     console.warn('[Notifications] Błąd planowania powiadomień:', err);
     return 0;
+  }
+}
+
+export const MED_ACTION_TYPE = 'petcare_med_dose';
+export const MED_ACTION_TAKEN = 'taken';
+export const MED_ACTION_SNOOZE = 'snooze';
+const SNOOZE_ID_BASE = 900000;
+const SNOOZE_MINUTES = 15;
+
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export interface MedicationNotificationExtra {
+  kind: 'medication';
+  petId: string;
+  medicationId: string;
+  time: string;
+  scheduledDate: string;
+}
+
+/** Applies a "Podano" / "Odłóż" action from a medication reminder. Returns what was done. */
+export async function handleMedicationAction(
+  actionId: string,
+  notification: { title?: string; body?: string; extra?: Partial<MedicationNotificationExtra> }
+): Promise<'taken' | 'already_taken' | 'snoozed' | 'ignored'> {
+  const extra = notification.extra;
+  if (!extra || extra.kind !== 'medication' || !extra.petId || !extra.medicationId || !extra.time || !extra.scheduledDate) {
+    return 'ignored';
+  }
+
+  if (actionId === MED_ACTION_TAKEN) {
+    const logged = storage.markDoseTaken(extra.petId, extra.medicationId, extra.time, extra.scheduledDate);
+    if (!logged) return 'already_taken';
+    const meds = storage.getMedications();
+    const med = meds.find(m => m.id === extra.medicationId);
+    if (med && typeof med.currentStock === 'number' && med.currentStock > 0) {
+      storage.saveMedications(meds.map(m => (m.id === med.id ? { ...m, currentStock: Math.max(0, (m.currentStock || 1) - 1) } : m)));
+    }
+    return 'taken';
+  }
+
+  if (actionId === MED_ACTION_SNOOZE) {
+    if (!Capacitor.isNativePlatform()) return 'ignored';
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: SNOOZE_ID_BASE + (Date.now() % 90000),
+        title: notification.title || '💊 Przypomnienie o leku',
+        body: `${notification.body || ''} • odłożone o ${SNOOZE_MINUTES} min`.replace(/^ • /, ''),
+        channelId: 'petcare_alerts',
+        smallIcon: 'ic_stat_petcare_paw',
+        iconColor: '#0D9488',
+        largeIcon: 'ic_launcher',
+        schedule: { at: new Date(Date.now() + SNOOZE_MINUTES * 60 * 1000), allowWhileIdle: true },
+        actionTypeId: MED_ACTION_TYPE,
+        extra,
+      }],
+    });
+    return 'snoozed';
+  }
+
+  return 'ignored';
+}
+
+let medActionsInitialized = false;
+
+/** Registers the notification buttons and listens for taps (call once at app start). */
+export async function initMedicationNotificationActions(onDoseLogged?: () => void): Promise<void> {
+  if (!Capacitor.isNativePlatform() || medActionsInitialized) return;
+  medActionsInitialized = true;
+  try {
+    await LocalNotifications.registerActionTypes({
+      types: [{
+        id: MED_ACTION_TYPE,
+        actions: [
+          { id: MED_ACTION_TAKEN, title: 'Podano' },
+          { id: MED_ACTION_SNOOZE, title: `Odłóż ${SNOOZE_MINUTES} min` },
+        ],
+      }],
+    });
+    await LocalNotifications.addListener('localNotificationActionPerformed', async (event) => {
+      try {
+        const result = await handleMedicationAction(event.actionId, event.notification);
+        if (result === 'taken') onDoseLogged?.();
+      } catch (err) {
+        console.warn('[Notifications] Błąd obsługi akcji powiadomienia:', err);
+      }
+    });
+  } catch (err) {
+    medActionsInitialized = false;
+    console.warn('[Notifications] Nie udało się zarejestrować akcji powiadomień:', err);
   }
 }

@@ -51,7 +51,8 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
   const [doseLogs, setDoseLogs] = useState<DoseLogEntry[]>([]);
   const [justMarkedId, setJustMarkedId] = useState<string | null>(null);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   // Load dose logs
   useEffect(() => {
@@ -99,6 +100,18 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
     const diffMs = new Date(dateStr).getTime() - Date.now();
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   };
+
+  const nextVisit = storage.getVisits(pet.id)
+    .flatMap(v => [
+      { date: v.date, time: v.time, label: v.reason || 'Wizyta', clinic: v.clinic },
+      ...(v.nextAppointmentDate ? [{ date: v.nextAppointmentDate, time: undefined, label: `Kontrola: ${v.reason || 'wizyta'}`, clinic: v.clinic }] : []),
+    ])
+    .filter(v => v.date && v.date.slice(0, 10) >= todayStr)
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+
+  const nextVaccineDue = vaccinations
+    .filter(v => v.petId === pet.id && v.validUntil && v.validUntil.slice(0, 10) >= todayStr)
+    .sort((a, b) => a.validUntil.localeCompare(b.validUntil))[0];
 
   const dewormingDaysAgo = getDaysAgo(dewormingVaccine?.dateAdministered);
   const tickDaysUntil = getDaysUntil(tickVaccine?.validUntil);
@@ -320,6 +333,40 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
             })}
           </div>
         )}
+      </div>
+
+      {/* UPCOMING: next visit & next vaccination */}
+      <div className="mt-3.5 grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs relative z-10">
+        <button
+          type="button"
+          onClick={onOpenTimeline}
+          className="flex items-center gap-2.5 p-2.5 bg-white/90 border border-gray-100 rounded-2xl text-left hover:bg-white cursor-pointer min-h-[44px]"
+        >
+          <Calendar className="w-4 h-4 text-indigo-600 shrink-0" aria-hidden="true" />
+          <span className="min-w-0">
+            <span className="block font-bold text-gray-500">Najbliższa wizyta</span>
+            <span className="block font-extrabold text-gray-800 truncate">
+              {nextVisit
+                ? `${nextVisit.date.slice(0, 10) === todayStr ? 'Dziś' : `za ${getDaysUntil(nextVisit.date)} dni`}${nextVisit.time ? `, ${nextVisit.time}` : ''} · ${nextVisit.label}`
+                : 'Brak zaplanowanych'}
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenTimeline}
+          className="flex items-center gap-2.5 p-2.5 bg-white/90 border border-gray-100 rounded-2xl text-left hover:bg-white cursor-pointer min-h-[44px]"
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
+          <span className="min-w-0">
+            <span className="block font-bold text-gray-500">Najbliższe szczepienie</span>
+            <span className="block font-extrabold text-gray-800 truncate">
+              {nextVaccineDue
+                ? `${nextVaccineDue.name} · za ${getDaysUntil(nextVaccineDue.validUntil)} dni`
+                : 'Brak terminów'}
+            </span>
+          </span>
+        </button>
       </div>
 
       {/* PREVENTATIVE HEALTH STATUS ROW */}
