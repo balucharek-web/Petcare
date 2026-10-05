@@ -580,6 +580,15 @@ export const storage = {
     return all.filter(l => (!petId || l.petId === petId) && (!dateStr || l.scheduledDate === dateStr));
   },
 
+  /** Marks a dose as taken (idempotent). Returns false if it was already logged. */
+  markDoseTaken(petId: string, medicationId: string, time: string, scheduledDate: string): boolean {
+    const already = this.getDoseLogs(petId, scheduledDate).some(
+      l => l.medicationId === medicationId && l.time === time && l.completed
+    );
+    if (already) return false;
+    return this.toggleDoseLog(petId, medicationId, time, scheduledDate);
+  },
+
   toggleDoseLog(petId: string, medicationId: string, time: string, scheduledDate: string): boolean {
     const raw = safeGetItem(STORAGE_KEYS.DOSE_LOGS);
     let all: DoseLogEntry[] = raw ? JSON.parse(raw) : [];

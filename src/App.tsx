@@ -43,7 +43,7 @@ import {
   CloudSession 
 } from './services/cloudSyncService';
 import { syncLatestDriveData } from './services/googleDriveSync';
-import { syncAllScheduledNotifications, requestNotificationPermission } from './services/notificationService';
+import { syncAllScheduledNotifications, requestNotificationPermission, initMedicationNotificationActions } from './services/notificationService';
 import { QRTransferModal } from './components/QRTransferModal';
 
 // New Feature Modals
@@ -215,6 +215,10 @@ export default function App() {
   useEffect(() => {
     // 1. Perform background auto-sync check on app startup and request notification permission
     checkDailyAutoSync().catch(() => {});
+    initMedicationNotificationActions(() => {
+      setMedications(storage.getMedications().filter(m => m.petId === storage.getActivePetId()));
+      syncWidgetWithLatestData().catch(() => {});
+    }).catch(() => {});
     requestNotificationPermission().then(() => {
       syncAllScheduledNotifications().catch(() => {});
     }).catch(() => {
