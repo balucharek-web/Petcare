@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import type { ExtractedMedication, ExtractedExamParameter } from '../services/ocrMedicalService';
 import { 
   Camera as CameraIcon, 
   Upload, 
@@ -43,7 +44,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
 }) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [extractedData, setExtractedData] = useState<any | null>(null);
+  const [extractedData, setExtractedData] = useState<ExtractedMedicalData | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isEnhanceEnabled, setIsEnhanceEnabled] = useState(false);
@@ -386,7 +387,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     // 1. Import all medications
     if (extractedData.medications && extractedData.medications.length > 0) {
       const currentMeds = storage.getMedications(pet.id);
-      const newItems: Medication[] = extractedData.medications.map((m: any, index: number) => {
+      const newItems: Medication[] = extractedData.medications.map((m: ExtractedMedication, index: number) => {
         const suggestedTimes = Array.isArray(m.suggestedHours) && m.suggestedHours.length > 0
           ? m.suggestedHours.map((h: string, hi: number) => ({
               id: `t-${index}-${hi}`,
@@ -433,7 +434,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         Array.isArray(extractedData.recommendations) ? extractedData.recommendations.join('\n') : '',
         extractedData.visitInfo?.doctorPhone ? `Kontakt do lekarza: ${extractedData.visitInfo.doctorPhone}` : '',
       ].filter(Boolean).join('\n\n'),
-      treatmentGiven: (extractedData.medications || []).map((m: any) => `${m.name} (${m.dosage})`).join(', '),
+      treatmentGiven: (extractedData.medications || []).map((m: ExtractedMedication) => `${m.name} (${m.dosage})`).join(', '),
       nextAppointmentDate: extractedData.nextCheckup ? new Date(new Date(visitDate).getTime() + 35 * 24 * 3600 * 1000).toISOString().slice(0, 10) : undefined,
     };
     storage.saveVisits([...storage.getVisits().filter(v => v.petId !== pet.id), ...currentVisits, newVisit]);
@@ -491,7 +492,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
     if (!extractedData?.medications || extractedData.medications.length === 0) return;
 
     const currentMeds = storage.getMedications(pet.id);
-    const newItems: Medication[] = extractedData.medications.map((m: any, index: number) => {
+    const newItems: Medication[] = extractedData.medications.map((m: ExtractedMedication, index: number) => {
       const suggestedTimes = Array.isArray(m.suggestedHours) && m.suggestedHours.length > 0
         ? m.suggestedHours.map((h: string, hi: number) => ({
             id: `t-${index}-${hi}`,
@@ -542,7 +543,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
         Array.isArray(extractedData.recommendations) ? extractedData.recommendations.join('\n') : '',
         extractedData.visitInfo?.doctorPhone ? `Kontakt do lekarza: ${extractedData.visitInfo.doctorPhone}` : '',
       ].filter(Boolean).join('\n\n'),
-      treatmentGiven: (extractedData.medications || []).map((m: any) => `${m.name} (${m.dosage})`).join(', '),
+      treatmentGiven: (extractedData.medications || []).map((m: ExtractedMedication) => `${m.name} (${m.dosage})`).join(', '),
       nextAppointmentDate: extractedData.nextCheckup ? new Date(Date.now() + 35 * 24 * 3600 * 1000).toISOString().slice(0, 10) : undefined,
     };
 
@@ -590,9 +591,9 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
       title: extractedData.title || 'Badanie laboratoryjne krwi (Skaner AI)',
       category: 'blood',
       date: new Date().toISOString().slice(0, 10),
-      status: extractedData.examParameters.some((p: any) => p.status === 'abnormal') ? 'abnormal' : 'normal',
+      status: extractedData.examParameters.some((p: ExtractedExamParameter) => p.status === 'abnormal') ? 'abnormal' : 'normal',
       summary: extractedData.summary || 'Wyniki wyodrębnione automatycznie ze zdjęcia.',
-      keyParameters: extractedData.examParameters.map((p: any) => ({
+      keyParameters: extractedData.examParameters.map((p: ExtractedExamParameter) => ({
         name: p.name,
         value: p.value,
         unit: p.unit,
@@ -1019,7 +1020,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          const newMed = {
+                          const newMed: ExtractedMedication = {
                             name: 'Nowy lek',
                             dosage: '1 tabl.',
                             instructions: '1x dziennie',
@@ -1047,7 +1048,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    {extractedData.medications.map((med: any, idx: number) => {
+                    {extractedData.medications.map((med: ExtractedMedication, idx: number) => {
                       const isEditing = editingMedIndex === idx;
 
                       if (isEditing) {
@@ -1098,7 +1099,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const updated = extractedData.medications.filter((_: any, i: number) => i !== idx);
+                                  const updated = extractedData.medications.filter((_: ExtractedMedication, i: number) => i !== idx);
                                   setExtractedData({ ...extractedData, medications: updated });
                                   setEditingMedIndex(null);
                                 }}
@@ -1136,7 +1137,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const updated = extractedData.medications.filter((_: any, i: number) => i !== idx);
+                                  const updated = extractedData.medications.filter((_: ExtractedMedication, i: number) => i !== idx);
                                   setExtractedData({ ...extractedData, medications: updated });
                                 }}
                                 className="text-xs text-slate-400 hover:text-rose-600 cursor-pointer"
@@ -1174,7 +1175,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {extractedData.examParameters.map((param: any, idx: number) => (
+                    {extractedData.examParameters.map((param: ExtractedExamParameter, idx: number) => (
                       <div key={idx} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
                         <span className="text-xs text-slate-500 dark:text-slate-400 block truncate">{param.name}</span>
                         <div className="flex items-baseline gap-1 mt-0.5">

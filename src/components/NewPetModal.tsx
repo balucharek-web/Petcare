@@ -132,10 +132,10 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
             </div>
 
             <div>
-              <label className="font-bold text-slate-800 block mb-1">
+              <label htmlFor="newpet-field-1" className="font-bold text-slate-800 block mb-1">
                 Imię pupila *
               </label>
-              <input
+              <input id="newpet-field-1"
                 type="text"
                 required
                 autoComplete="off"
@@ -148,8 +148,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Gatunek</label>
-                <select
+                <label htmlFor="newpet-field-2" className="font-semibold text-slate-700 block mb-1">Gatunek</label>
+                <select id="newpet-field-2"
                   value={species}
                   onChange={(e) => handleSpeciesChange(e.target.value as Species)}
                   className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs font-medium text-slate-900"
@@ -163,8 +163,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 </select>
               </div>
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Płeć</label>
-              <select
+                <label htmlFor="newpet-field-3" className="font-semibold text-slate-700 block mb-1">Płeć</label>
+              <select id="newpet-field-3"
                 required
                 value={gender}
                 onChange={(e) => setGender(e.target.value as Gender)}
@@ -176,8 +176,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Kastracja</label>
-              <select
+              <label htmlFor="newpet-field-4" className="font-semibold text-slate-700 block mb-1">Kastracja</label>
+              <select id="newpet-field-4"
                 value={isNeutered ? 'yes' : 'no'}
                 onChange={(e) => setIsNeutered(e.target.value === 'yes')}
                 className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900"
@@ -190,8 +190,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Rasa</label>
-              <input
+              <label htmlFor="newpet-field-5" className="font-semibold text-slate-700 block mb-1">Rasa</label>
+              <input id="newpet-field-5"
                 type="text"
                 placeholder="np. Kundelek, Owczarek"
                 value={breed}
@@ -200,8 +200,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               />
             </div>
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Data urodzenia</label>
-              <input
+              <label htmlFor="newpet-field-6" className="font-semibold text-slate-700 block mb-1">Data urodzenia</label>
+              <input id="newpet-field-6"
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
@@ -212,8 +212,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Waga (kg)</label>
-              <input
+              <label htmlFor="newpet-field-7" className="font-semibold text-slate-700 block mb-1">Waga (kg)</label>
+              <input id="newpet-field-7"
                 type="number"
                 step="0.1"
                 placeholder="np. 12.5"
@@ -223,8 +223,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               />
             </div>
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Umaszczenie</label>
-              <input
+              <label htmlFor="newpet-field-8" className="font-semibold text-slate-700 block mb-1">Umaszczenie</label>
+              <input id="newpet-field-8"
                 type="text"
                 placeholder="np. Rudy, łaciaty"
                 value={color}
@@ -235,8 +235,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
           </div>
 
           <div>
-            <label className="font-semibold text-slate-700 block mb-1">Numer mikroczipa <span className="font-normal text-slate-500">(opcjonalnie)</span></label>
-            <input
+            <label htmlFor="newpet-field-9" className="font-semibold text-slate-700 block mb-1">Numer mikroczipa <span className="font-normal text-slate-500">(opcjonalnie)</span></label>
+            <input id="newpet-field-9"
               type="text"
               placeholder="15 cyfr mikroczipa (np. 616093900...)"
               value={chipNumber}
@@ -247,8 +247,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Klinika weterynaryjna</label>
-              <input
+              <label htmlFor="newpet-field-10" className="font-semibold text-slate-700 block mb-1">Klinika weterynaryjna</label>
+              <input id="newpet-field-10"
                 type="text"
                 placeholder="Nazwa przychodni"
                 value={vetClinicName}
@@ -257,8 +257,8 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               />
             </div>
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Telefon do weterynarza</label>
-              <input
+              <label htmlFor="newpet-field-11" className="font-semibold text-slate-700 block mb-1">Telefon do weterynarza</label>
+              <input id="newpet-field-11"
                 type="tel"
                 placeholder="np. +48 600..."
                 value={vetPhone}

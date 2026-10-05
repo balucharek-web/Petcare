@@ -533,8 +533,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Imię</label>
-              <input
+              <label htmlFor="profile-field-1" className="block text-xs font-semibold text-slate-600 mb-1">Imię</label>
+              <input id="profile-field-1"
                 type="text"
                 value={editForm.name || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
@@ -544,8 +544,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Rasa</label>
-              <input
+              <label htmlFor="profile-field-2" className="block text-xs font-semibold text-slate-600 mb-1">Rasa</label>
+              <input id="profile-field-2"
                 type="text"
                 value={editForm.breed || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, breed: e.target.value }))}
@@ -554,8 +554,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Gatunek</label>
-              <select
+              <label htmlFor="profile-field-3" className="block text-xs font-semibold text-slate-600 mb-1">Gatunek</label>
+              <select id="profile-field-3"
                 value={editForm.species || 'dog'}
                 onChange={e => setEditForm(prev => ({ ...prev, species: e.target.value as any }))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
@@ -567,8 +567,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Płeć</label>
-              <select
+              <label htmlFor="profile-field-4" className="block text-xs font-semibold text-slate-600 mb-1">Płeć</label>
+              <select id="profile-field-4"
                 value={editForm.gender || 'male'}
                 onChange={e => setEditForm(prev => ({ ...prev, gender: e.target.value as any }))}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 font-semibold text-sm focus:ring-2 focus:ring-teal-500 outline-none"
@@ -579,8 +579,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Data urodzenia</label>
-              <input
+              <label htmlFor="profile-field-5" className="block text-xs font-semibold text-slate-600 mb-1">Data urodzenia</label>
+              <input id="profile-field-5"
                 type="date"
                 value={editForm.birthDate || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, birthDate: e.target.value }))}
@@ -589,8 +589,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Waga (kg)</label>
-              <input
+              <label htmlFor="profile-field-6" className="block text-xs font-semibold text-slate-600 mb-1">Waga (kg)</label>
+              <input id="profile-field-6"
                 type="number"
                 step="0.1"
                 value={editForm.weightKg || ''}
@@ -600,8 +600,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Numer Mikroczipa (15 cyfr)</label>
-              <input
+              <label htmlFor="profile-field-7" className="block text-xs font-semibold text-slate-600 mb-1">Numer Mikroczipa (15 cyfr)</label>
+              <input id="profile-field-7"
                 type="text"
                 value={editForm.chipNumber || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, chipNumber: e.target.value }))}
@@ -611,8 +611,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Numer Paszportu</label>
-              <input
+              <label htmlFor="profile-field-8" className="block text-xs font-semibold text-slate-600 mb-1">Numer Paszportu</label>
+              <input id="profile-field-8"
                 type="text"
                 value={editForm.passportNumber || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, passportNumber: e.target.value }))}
@@ -622,8 +622,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Umaszczenie / Kolor</label>
-              <input
+              <label htmlFor="profile-field-9" className="block text-xs font-semibold text-slate-600 mb-1">Umaszczenie / Kolor</label>
+              <input id="profile-field-9"
                 type="text"
                 value={editForm.color || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, color: e.target.value }))}
@@ -658,8 +658,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Przychodnia weterynaryjna</label>
-              <input
+              <label htmlFor="profile-field-10" className="block text-xs font-semibold text-slate-600 mb-1">Przychodnia weterynaryjna</label>
+              <input id="profile-field-10"
                 type="text"
                 value={editForm.vetClinicName || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, vetClinicName: e.target.value }))}
@@ -668,8 +668,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Telefon do weterynarza</label>
-              <input
+              <label htmlFor="profile-field-11" className="block text-xs font-semibold text-slate-600 mb-1">Telefon do weterynarza</label>
+              <input id="profile-field-11"
                 type="tel"
                 value={editForm.vetPhone || ''}
                 onChange={e => setEditForm(prev => ({ ...prev, vetPhone: e.target.value }))}
@@ -679,8 +679,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Alergie i Nietolerancje</label>
-            <input
+            <label htmlFor="profile-field-12" className="block text-xs font-semibold text-slate-600 mb-1">Alergie i Nietolerancje</label>
+            <input id="profile-field-12"
               type="text"
               value={editForm.allergies || ''}
               onChange={e => setEditForm(prev => ({ ...prev, allergies: e.target.value }))}
@@ -690,8 +690,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Szczególne uwagi / Behawior</label>
-            <textarea
+            <label htmlFor="profile-field-13" className="block text-xs font-semibold text-slate-600 mb-1">Szczególne uwagi / Behawior</label>
+            <textarea id="profile-field-13"
               rows={2}
               value={editForm.specialNotes || ''}
               onChange={e => setEditForm(prev => ({ ...prev, specialNotes: e.target.value }))}
@@ -1323,8 +1323,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 <h4 className="text-xs font-bold text-teal-900">Nowy pomiar masy ciała</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
-                    <label className="text-xs font-bold text-teal-800 block mb-0.5">Waga (kg) *</label>
-                    <input
+                    <label htmlFor="profile-field-14" className="text-xs font-bold text-teal-800 block mb-0.5">Waga (kg) *</label>
+                    <input id="profile-field-14"
                       type="number"
                       step="0.01"
                       value={newWeight}
@@ -1336,8 +1336,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-teal-800 block mb-0.5">Data pomiaru *</label>
-                    <input
+                    <label htmlFor="profile-field-15" className="text-xs font-bold text-teal-800 block mb-0.5">Data pomiaru *</label>
+                    <input id="profile-field-15"
                       type="date"
                       value={newWeightDate}
                       onChange={e => setNewWeightDate(e.target.value)}
@@ -1346,8 +1346,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-teal-800 block mb-0.5">Notatka (opcjonalnie)</label>
-                    <input
+                    <label htmlFor="profile-field-16" className="text-xs font-bold text-teal-800 block mb-0.5">Notatka (opcjonalnie)</label>
+                    <input id="profile-field-16"
                       type="text"
                       value={newWeightNotes}
                       onChange={e => setNewWeightNotes(e.target.value)}

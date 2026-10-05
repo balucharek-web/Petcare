@@ -502,10 +502,10 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
           {/* Row 1: Nazwa i Postać */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label className="font-bold text-slate-700 block mb-0.5 text-xs">
+              <label htmlFor="meds-field-1" className="font-bold text-slate-700 block mb-0.5 text-xs">
                 Nazwa leku lub suplementu *
               </label>
-              <input
+              <input id="meds-field-1"
                 type="text"
                 required
                 placeholder="np. Melosus, Cardisure, Apoquel"
@@ -515,10 +515,10 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-700 block mb-0.5 text-xs">
+              <label htmlFor="meds-field-2" className="font-bold text-slate-700 block mb-0.5 text-xs">
                 Postać leku
               </label>
-              <select
+              <select id="meds-field-2"
                 value={formForm}
                 onChange={(e) => handleSelectMedicationForm(e.target.value as any)}
                 className="w-full px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-teal-800"
@@ -706,8 +706,8 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
               <div className="p-3 pt-1 border-t border-slate-200 space-y-2.5 bg-white text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1 text-xs">Wielkość opakowania</label>
-                    <input
+                    <label htmlFor="meds-field-3" className="font-bold text-slate-700 block mb-1 text-xs">Wielkość opakowania</label>
+                    <input id="meds-field-3"
                       type="number"
                       value={formPackageSize}
                       onChange={(e) => setFormPackageSize(e.target.value)}
@@ -715,8 +715,8 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1 text-xs">Zapas w domu</label>
-                    <input
+                    <label htmlFor="meds-field-4" className="font-bold text-slate-700 block mb-1 text-xs">Zapas w domu</label>
+                    <input id="meds-field-4"
                       type="number"
                       value={formCurrentStock}
                       onChange={(e) => setFormCurrentStock(e.target.value)}
@@ -725,8 +725,8 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                   </div>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1 text-xs">Zalecenia podawania</label>
-                  <input
+                  <label htmlFor="meds-field-5" className="font-bold text-slate-700 block mb-1 text-xs">Zalecenia podawania</label>
+                  <input id="meds-field-5"
                     type="text"
                     placeholder="np. z jedzeniem, po posiłku, na czczo"
                     value={formInstructions}

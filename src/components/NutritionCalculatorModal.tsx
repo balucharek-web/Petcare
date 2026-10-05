@@ -171,10 +171,10 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
 
             {/* Physiological & Activity Status */}
             <div>
-              <label className="font-bold text-slate-700 block mb-1">
+              <label htmlFor="nutrition-field-1" className="font-bold text-slate-700 block mb-1">
                 Faza życia i poziom aktywności
               </label>
-              <select
+              <select id="nutrition-field-1"
                 value={activityLevel}
                 onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)}
                 className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-teal-600"
@@ -219,8 +219,8 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Kcal w 100g karmy</label>
-                  <input
+                  <label htmlFor="nutrition-field-2" className="text-xs text-slate-500 block mb-1">Kcal w 100g karmy</label>
+                  <input id="nutrition-field-2"
                     type="number"
                     value={foodKcalPer100g}
                     onChange={(e) => {
@@ -231,8 +231,8 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Liczba posiłków dziennie</label>
-                  <select
+                  <label htmlFor="nutrition-field-3" className="text-xs text-slate-500 block mb-1">Liczba posiłków dziennie</label>
+                  <select id="nutrition-field-3"
                     value={mealsPerDay}
                     onChange={(e) => setMealsPerDay(parseInt(e.target.value) || 2)}
                     className="w-full p-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800 focus:outline-teal-600"
