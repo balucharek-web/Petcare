@@ -49,7 +49,7 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
       <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-200 dark:border-slate-800">
         {/* Header */}
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white">
@@ -60,15 +60,14 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
             <div>
               <h3 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
                 <span>Widżet na pulpit telefonu</span>
-                <span className="text-[10px] bg-emerald-400 text-emerald-950 font-black px-1.5 py-0.5 rounded uppercase">Android</span>
+                <span className="text-xs bg-emerald-400 text-emerald-950 font-black px-1.5 py-0.5 rounded uppercase">Android</span>
               </h3>
               <p className="text-xs text-teal-100">Ekran początkowy bez konieczności otwierania aplikacji</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
-          >
+            className="p-2 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -90,7 +89,7 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
               <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <strong>Twój launcher Androida wymaga ręcznego dodania widżetu.</strong>
-                <p className="mt-0.5 text-[11px] text-amber-800 dark:text-amber-300">
+                <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-300">
                   Przytrzymaj palec na wolnym miejscu na pulpicie telefonu ➔ wybierz <strong>„Widżety”</strong> ➔ przeciągnij <strong>„PetCare: Pupil i Leki”</strong>.
                 </p>
               </div>
@@ -102,7 +101,7 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
               <Info className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
               <div>
                 <strong>Jesteś w wersji webowej (przeglądarka / PWA).</strong>
-                <p className="mt-0.5 text-[11px] text-sky-800 dark:text-sky-300">
+                <p className="mt-0.5 text-xs text-sky-800 dark:text-sky-300">
                   Natywny widżet pulpitu 4x2 działa w <strong>aplikacji zainstalowanej z pliku APK na telefonie</strong>. W przeglądarce możesz skorzystać z opcji menu: <em>„Dodaj do ekranu głównego”</em>, aby zainstalować aplikację.
                 </p>
               </div>
@@ -116,7 +115,7 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                 Tak widżet wygląda na pulpicie telefonu:
               </span>
-              <span className="text-[11px] text-slate-400 font-normal">Format 4x2</span>
+              <span className="text-xs text-slate-400 font-normal">Format 4x2</span>
             </div>
 
             {/* Widget Replica */}
@@ -132,33 +131,33 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
                       <span className="text-slate-400">•</span>
                       <span className="text-teal-400">{activePet?.name || 'Lucky'}</span>
                     </h4>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-xs text-slate-400">
                       {activePet?.species === 'dog' ? 'Pies' : activePet?.species === 'cat' ? 'Kot' : 'Pupil'}
                       {activePet?.breed ? ` • ${activePet.breed}` : ''}
                     </p>
                   </div>
                 </div>
 
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-800">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-800">
                   {pendingMedicationsCount > 0 ? `⚠️ ${pendingMedicationsCount} do podania` : '✓ Wszystko podane'}
                 </span>
               </div>
 
               <div className="py-3 space-y-1">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block">PLAN NA DZIŚ &amp; LEKI:</span>
+                <span className="text-[11px] uppercase font-bold tracking-wider text-slate-400 block">PLAN NA DZIŚ &amp; LEKI:</span>
                 <p className="text-xs font-bold text-slate-200">
                   {pendingMedicationsCount > 0 
                     ? `💊 Zaplanowane dawki leków na dziś (${pendingMedicationsCount} do podania)`
                     : 'Wszystkie dawki leków na dziś podane ✓'}
                 </p>
-                <p className="text-[11px] text-emerald-400 flex items-center gap-1">
+                <p className="text-xs text-emerald-400 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 inline" />
                   <span>Kleszcze: aktywna ochrona • Profilaktyka aktualna</span>
                 </p>
               </div>
 
               <div className="pt-2 border-t border-slate-800 flex justify-end">
-                <span className="text-[10px] font-bold text-teal-400 flex items-center gap-1">
+                <span className="text-xs font-bold text-teal-400 flex items-center gap-1">
                   Dotknij, aby otworzyć PetCare <ArrowRight className="w-3 h-3" />
                 </span>
               </div>
@@ -178,10 +177,10 @@ export const HomeScreenWidgetModal: React.FC<HomeScreenWidgetModalProps> = ({
           {/* Manual Instructions for Android Launchers */}
           <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
             <h5 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 flex items-center justify-center text-[11px] font-black">?</span>
+              <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 flex items-center justify-center text-xs font-black">?</span>
               Jak dodać widżet ręcznie na dowolnym telefonie z Androidem:
             </h5>
-            <ol className="space-y-1.5 pl-6 list-decimal leading-relaxed text-[11px] text-slate-600 dark:text-slate-400">
+            <ol className="space-y-1.5 pl-6 list-decimal leading-relaxed text-xs text-slate-600 dark:text-slate-400">
               <li>Wyjdź na <strong>pulpit telefonu (ekran startowy)</strong>.</li>
               <li><strong>Przytrzymaj palec</strong> na pustym miejscu na ekranie przez 1 sekundę.</li>
               <li>Z dolnego menu wybierz opcję <strong>„Widżety” (Widgets)</strong>.</li>

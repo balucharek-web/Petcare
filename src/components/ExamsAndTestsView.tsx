@@ -373,7 +373,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
       {/* Top Banner */}
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600 block">
+          <span className="text-xs font-bold uppercase tracking-wider text-teal-600 block">
             Diagnostyka i Laboratorium
           </span>
           <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
@@ -443,7 +443,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-base text-slate-900">{exam.title}</h3>
                     <span
-                      className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                         exam.status === 'normal'
                           ? 'bg-emerald-100 text-emerald-800'
                           : exam.status === 'attention'
@@ -486,7 +486,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
               {/* Key Parameters Table if present */}
               {exam.keyParameters && exam.keyParameters.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden text-xs">
-                  <div className="bg-slate-100/70 px-3 py-1.5 font-bold text-slate-600 text-[11px] uppercase tracking-wider">
+                  <div className="bg-slate-100/70 px-3 py-1.5 font-bold text-slate-600 text-xs uppercase tracking-wider">
                     Kluczowe parametry laboratoryjne
                   </div>
                   <div className="divide-y divide-slate-100">
@@ -498,7 +498,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                             {param.value} {param.unit}
                           </span>
                           {param.refRange && (
-                            <span className="text-[10px] text-slate-400 block">Norma: {param.refRange}</span>
+                            <span className="text-xs text-slate-400 block">Norma: {param.refRange}</span>
                           )}
                         </div>
                       </div>
@@ -510,7 +510,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
               {/* Scans & Images preview with full-screen zoom */}
               {exam.scans && exam.scans.length > 0 && (
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">
+                  <span className="text-xs font-bold uppercase text-slate-400 block mb-2">
                     Skany i zdjęcia dokumentów ({exam.scans.length}) — kliknij, aby powiększyć
                   </span>
                   <div className="flex gap-2.5 overflow-x-auto pb-1">
@@ -523,7 +523,7 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
                         <img src={scan.url} alt={scan.title} className="w-full h-full object-cover transition group-hover:scale-105" />
                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition p-1 text-center">
                           <Eye className="w-5 h-5 mb-0.5" />
-                          <span className="text-[9px] font-bold uppercase">Podgląd</span>
+                          <span className="text-[11px] font-bold uppercase">Podgląd</span>
                         </div>
                       </div>
                     ))}

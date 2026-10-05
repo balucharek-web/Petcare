@@ -164,7 +164,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
   }, [activePoints]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-teal-200 dark:border-slate-800 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-slate-900 px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-sm">
@@ -175,7 +175,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black tracking-tight">Wykresy Trendów Laboratoryjnych</h2>
-                <span className="text-[10px] font-black uppercase bg-teal-400 text-slate-950 px-2 py-0.5 rounded-full shadow-xs">
+                <span className="text-xs font-black uppercase bg-teal-400 text-slate-950 px-2 py-0.5 rounded-full shadow-xs">
                   Biomarkery Krwi
                 </span>
               </div>
@@ -232,7 +232,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                         }`}
                       >
                         <span>{name}</span>
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        <span className={`text-xs px-1.5 py-0.2 rounded-full font-mono ${
                           isSelected ? 'bg-teal-800 text-teal-100' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                         }`}>
                           {count}
@@ -248,7 +248,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                 <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                         Ostatni pomiar ({stats.latestPoint.date})
                       </span>
                       <div className="flex items-baseline gap-2 mt-0.5">
@@ -304,7 +304,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                       <TrendingUp className="w-4 h-4 text-teal-600" />
                       Krzywa zmian na osi czasu ({activePoints.length} pomiarów)
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-xs text-slate-400">
                       Zielony obszar = norma weterynaryjna
                     </span>
                   </div>
@@ -386,7 +386,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                                     x={cx}
                                     y={cy - 10}
                                     textAnchor="middle"
-                                    className="text-[11px] font-extrabold fill-slate-800 dark:fill-white font-sans"
+                                    className="text-xs font-extrabold fill-slate-800 dark:fill-white font-sans"
                                   >
                                     {p.value}
                                   </text>
@@ -394,7 +394,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                                     x={cx}
                                     y={paddingY + chartH + 18}
                                     textAnchor="middle"
-                                    className="text-[9px] font-semibold fill-slate-400 font-sans"
+                                    className="text-[11px] font-semibold fill-slate-400 font-sans"
                                   >
                                     {p.date}
                                   </text>
@@ -428,7 +428,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                           <span className="font-extrabold text-slate-900 dark:text-white block">
                             {pt.examTitle}
                           </span>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-xs text-slate-400">
                             Data badania: {pt.date}
                           </span>
                         </div>
@@ -439,7 +439,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                           {pt.value} {pt.unit}
                         </span>
                         {pt.refRange && (
-                          <span className="text-[10px] text-slate-400 block">
+                          <span className="text-xs text-slate-400 block">
                             Norma: {pt.refRange}
                           </span>
                         )}
@@ -454,7 +454,7 @@ export const LabTrendsModal: React.FC<LabTrendsModalProps> = ({
                 <Sparkles className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                 <div className="space-y-0.5 leading-relaxed">
                   <span className="font-bold block">Wskazówka profilaktyczna PetCare:</span>
-                  <p className="text-[11px] text-teal-800 dark:text-teal-300">
+                  <p className="text-xs text-teal-800 dark:text-teal-300">
                     Pojedynczy parametr może ulegać chwilowym wahaniom (np. po posiłku lub stresie). Zawsze porównuj wyniki z normami podanymi bezpośrednio przez laboratorium i konsultuj zmiany z lekarzem prowadzącym.
                   </p>
                 </div>

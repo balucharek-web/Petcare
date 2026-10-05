@@ -155,7 +155,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-teal-900 to-slate-900 text-white flex items-center justify-between gap-3 border-b border-teal-800 shrink-0">
@@ -176,15 +176,14 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
               onClick={handleExportCsv}
               disabled={sortedHistory.length === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-600 text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-40"
-              title="Pobierz historię wagi do arkusza CSV"
+              title="Pobierz historię wagi do arkusza CSV" aria-label="Pobierz historię wagi do arkusza CSV"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">CSV</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-xl transition cursor-pointer"
-            >
+              className="p-1.5 text-slate-400 hover:text-white rounded-xl transition cursor-pointer" aria-label="Zamknij">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -195,14 +194,14 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
           {/* Summary Badges */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-center">
-              <span className="text-[10px] uppercase font-bold text-teal-800 block">Aktualna waga</span>
+              <span className="text-xs uppercase font-bold text-teal-800 block">Aktualna waga</span>
               <strong className="text-xl sm:text-2xl font-black text-teal-950 block mt-0.5">
                 {currentWeight} kg
               </strong>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">Trend ogólny</span>
+              <span className="text-xs uppercase font-bold text-slate-500 block">Trend ogólny</span>
               <div className="flex items-center justify-center gap-1 mt-1">
                 {weightDelta > 0 ? (
                   <>
@@ -221,14 +220,14 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">Min / Max</span>
+              <span className="text-xs uppercase font-bold text-slate-500 block">Min / Max</span>
               <span className="text-xs sm:text-sm font-black text-slate-800 block mt-1.5">
                 {minWeight} kg / {maxWeight} kg
               </span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">Liczba pomiarów</span>
+              <span className="text-xs uppercase font-bold text-slate-500 block">Liczba pomiarów</span>
               <span className="text-xl sm:text-2xl font-black text-slate-800 block mt-0.5">
                 {count}
               </span>
@@ -245,7 +244,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
                 </h3>
               </div>
               {count > 1 && (
-                <span className="text-[11px] font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-slate-500">
                   {firstEntry.date} ➔ {lastEntry.date}
                 </span>
               )}
@@ -270,10 +269,10 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
                   <line x1={padX} y1={chartHeight - padY} x2={chartWidth - padX} y2={chartHeight - padY} stroke="#e2e8f0" strokeDasharray="3 3" />
 
                   {/* Y Axis labels */}
-                  <text x={padX - 8} y={padY + 4} textAnchor="end" className="text-[9px] font-bold fill-slate-400">
+                  <text x={padX - 8} y={padY + 4} textAnchor="end" className="text-[11px] font-bold fill-slate-400">
                     {maxWeight}kg
                   </text>
-                  <text x={padX - 8} y={chartHeight - padY + 4} textAnchor="end" className="text-[9px] font-bold fill-slate-400">
+                  <text x={padX - 8} y={chartHeight - padY + 4} textAnchor="end" className="text-[11px] font-bold fill-slate-400">
                     {minWeight}kg
                   </text>
 
@@ -317,7 +316,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
                         x={pt.x}
                         y={pt.y - 10}
                         textAnchor="middle"
-                        className="text-[9px] font-black fill-white"
+                        className="text-[11px] font-black fill-white"
                       >
                         {pt.weightKg} kg
                       </text>
@@ -325,7 +324,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
                         x={pt.x}
                         y={chartHeight - 4}
                         textAnchor="middle"
-                        className="text-[8px] font-semibold fill-slate-400"
+                        className="text-[11px] font-semibold fill-slate-400"
                       >
                         {pt.date.slice(5)}
                       </text>
@@ -384,7 +383,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
-                  <label className="text-[10px] font-bold text-teal-900 block mb-1">Waga (w kg) *</label>
+                  <label className="text-xs font-bold text-teal-900 block mb-1">Waga (w kg) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -397,7 +396,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-teal-900 block mb-1">Data pomiaru *</label>
+                  <label className="text-xs font-bold text-teal-900 block mb-1">Data pomiaru *</label>
                   <input
                     type="date"
                     value={newWeightDate}
@@ -407,7 +406,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-teal-900 block mb-1">Notatka (opcjonalnie)</label>
+                  <label className="text-xs font-bold text-teal-900 block mb-1">Notatka (opcjonalnie)</label>
                   <input
                     type="text"
                     value={newWeightNotes}
@@ -458,7 +457,7 @@ export const WeightTrackerModal: React.FC<WeightTrackerModalProps> = ({
                         </span>
                       </div>
                       {entry.notes && (
-                        <p className="text-[11px] text-slate-500 italic mt-0.5">{entry.notes}</p>
+                        <p className="text-xs text-slate-500 italic mt-0.5">{entry.notes}</p>
                       )}
                     </div>
                   </div>

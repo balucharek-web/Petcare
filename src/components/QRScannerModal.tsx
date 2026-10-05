@@ -143,7 +143,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
         <div className="p-4 flex items-center justify-between border-b border-slate-800 text-white">
@@ -153,13 +153,12 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose,
             </div>
             <div>
               <h3 className="font-bold text-sm sm:text-base">Skaner Kodu QR</h3>
-              <p className="text-[11px] text-slate-400">Skieruj aparat na kod QR z pierwszego telefonu</p>
+              <p className="text-xs text-slate-400">Skieruj aparat na kod QR z pierwszego telefonu</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
-          >
+            className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>

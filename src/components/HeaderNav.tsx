@@ -191,7 +191,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                   alt={activePet?.name}
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover ring-2 ring-teal-500 shadow-xs bg-white shrink-0"
                 />
-                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-teal-600 text-white rounded-full flex items-center justify-center text-[9px] sm:text-[10px] shadow-xs">
+                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-teal-600 text-white rounded-full flex items-center justify-center text-[11px] sm:text-xs shadow-xs">
                   {activePet?.species === 'dog' ? '🐶' : activePet?.species === 'cat' ? '🐱' : '🐾'}
                 </span>
               </div>
@@ -202,7 +202,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </div>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 block leading-tight truncate font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 block leading-tight truncate font-medium">
                   {activePet?.breed || 'Mieszaniec'}
                 </span>
               </div>
@@ -216,7 +216,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                   onClick={() => setShowPetDropdown(false)} 
                 />
                 <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 py-2 z-40 animate-fadeIn">
-                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
                     Twoje zwierzaki
                   </div>
                   {pets.map((p) => (
@@ -243,7 +243,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                           <p className={`text-xs truncate ${p.id === activePet?.id ? 'font-bold text-teal-900 dark:text-teal-200' : 'text-slate-800 dark:text-slate-200'}`}>
                             {p.name}
                           </p>
-                          <p className="text-[10px] text-slate-400 truncate">{p.breed || 'Zwierzak'}</p>
+                          <p className="text-xs text-slate-400 truncate">{p.breed || 'Zwierzak'}</p>
                         </div>
                         {p.id === activePet?.id && (
                           <span className="w-1.5 h-1.5 rounded-full bg-teal-600 shrink-0" />
@@ -292,19 +292,19 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 <div className="flex items-center bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-xl p-0.5 shadow-2xs">
                   <button
                     onClick={onOpenGoogleSync}
-                    title={`Konto Google: ${session.user.email} (kliknij, aby otworzyć panel)`}
+                    title={`Konto Google: ${session.user.email} (kliknij, aby otworzyć panel)`} aria-label={`Konto Google: ${session.user.email} (kliknij, aby otworzyć panel)`}
                     className="flex items-center gap-1 px-2 py-1 text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 text-xs font-bold transition rounded-lg"
                   >
                     <div className="relative">
                       <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                     </div>
-                    <span className="hidden sm:inline text-[11px]">Chmura</span>
+                    <span className="hidden sm:inline text-xs">Chmura</span>
                   </button>
                   <button
                     onClick={handleQuickSync}
                     disabled={isQuickSyncing}
-                    title="Ręczna synchronizacja: kliknij, aby zsynchronizować teraz"
+                    title="Ręczna synchronizacja: kliknij, aby zsynchronizować teraz" aria-label="Ręczna synchronizacja: kliknij, aby zsynchronizować teraz"
                     className="p-1 text-emerald-700 dark:text-emerald-400 hover:text-emerald-950 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg transition cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isQuickSyncing ? 'animate-spin text-teal-600' : ''}`} />
@@ -313,40 +313,29 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               ) : (
                 <button
                   onClick={onOpenGoogleSync}
-                  title="Zaloguj się kontem Google bez hasła, aby włączyć synchronizację"
+                  title="Zaloguj się kontem Google bez hasła, aby włączyć synchronizację" aria-label="Zaloguj się kontem Google bez hasła, aby włączyć synchronizację"
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition text-xs font-bold shadow-2xs cursor-pointer"
                 >
                   <Cloud className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                  <span className="hidden sm:inline text-[11px]">Konto Google</span>
+                  <span className="hidden sm:inline text-xs">Konto Google</span>
                 </button>
               )}
 
               {/* Toast for quick sync */}
               {syncToast && (
-                <div className="absolute top-full mt-1.5 right-0 whitespace-nowrap px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-lg z-50 animate-fadeIn flex items-center gap-1">
+                <div className="absolute top-full mt-1.5 right-0 whitespace-nowrap px-2.5 py-1 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-lg z-50 animate-fadeIn flex items-center gap-1">
                   <span>✓</span>
                   <span>{syncToast}</span>
                 </div>
               )}
             </div>
 
-            {/* Direct QR Transfer / Drugi telefon */}
-            {onOpenQRTransfer && (
-              <button
-                onClick={onOpenQRTransfer}
-                title="Transfer między telefonami: Nadaj lub skanuj kod QR z innego telefonu"
-                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200 border border-teal-200/80 dark:border-teal-800/80 hover:bg-teal-100 dark:hover:bg-teal-900/60 active:scale-95 transition text-xs font-bold shadow-2xs cursor-pointer"
-              >
-                <QrCode className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                <span className="hidden sm:inline text-[11px]">Kod QR</span>
-              </button>
-            )}
 
             {/* Quick action buttons on larger screens (hidden on mobile to keep header clean and prevent overlapping) */}
             <div className="hidden lg:flex items-center gap-1.5">
               <button
                 onClick={onOpenAIScanner}
-                title="Inteligentny Skaner AI (Recepty, leki, krew)"
+                title="Inteligentny Skaner AI (Recepty, leki, krew)" aria-label="Inteligentny Skaner AI (Recepty, leki, krew)"
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white active:scale-95 transition text-xs font-bold shadow-2xs cursor-pointer"
               >
                 <Camera className="w-3.5 h-3.5" />
@@ -355,7 +344,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
               <button
                 onClick={onOpenMedicalReport}
-                title="Raport Medyczny & Książeczka PDF"
+                title="Raport Medyczny & Książeczka PDF" aria-label="Raport Medyczny & Książeczka PDF"
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200 hover:bg-teal-100 dark:hover:bg-teal-900/60 active:scale-95 transition text-xs font-bold border border-teal-200 dark:border-teal-800 shadow-2xs cursor-pointer"
               >
                 <FileText className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
@@ -364,7 +353,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
               <button
                 onClick={onOpenSOSModal}
-                title="Karta Ratunkowa SOS"
+                title="Karta Ratunkowa SOS" aria-label="Karta Ratunkowa SOS"
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 active:scale-95 transition text-xs font-bold border border-rose-200 dark:border-rose-800 shadow-2xs cursor-pointer"
               >
                 <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse" />
@@ -372,15 +361,6 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               </button>
             </div>
 
-            {/* Tools Menu Hub */}
-            <button
-              onClick={onOpenToolsHub}
-              title="Wszystkie Narzędzia (Toksyczność, Skaner AI, Kalkulator, Petsitter, Wydatki)"
-              className="flex items-center gap-1 px-2 min-[360px]:px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 active:scale-95 transition text-xs font-bold border border-teal-200/80 dark:border-teal-800/80 shadow-2xs cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="hidden min-[360px]:inline text-[11px] sm:text-xs">Menu</span>
-            </button>
 
             {/* Notifications Button (Notification Center) */}
             <button
@@ -391,27 +371,11 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             >
               <Bell className="w-4 h-4" />
               {alertCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-rose-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900 animate-pulse">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-rose-500 text-white text-[11px] font-extrabold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900 animate-pulse">
                   {alertCount > 9 ? '9+' : alertCount}
                 </span>
               )}
             </button>
-
-            {/* Subtler Theme Toggle (Light / Dark mode) */}
-            {onToggleTheme && (
-              <button
-                onClick={onToggleTheme}
-                title={theme === 'dark' ? 'Przełącz na tryb jasny' : 'Przełącz na tryb ciemny'}
-                className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer"
-                aria-label="Przełącz tryb motywu"
-              >
-                {theme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-amber-400 animate-fadeIn" />
-                ) : (
-                  <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors" />
-                )}
-              </button>
-            )}
 
             {/* Settings & Backup */}
             <button
@@ -428,8 +392,8 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
       {/* Settings & Backup Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl space-y-5 text-slate-800">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl space-y-5 text-slate-800 dark:text-slate-100">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
                 <Settings className="w-5 h-5 text-teal-600" />
@@ -448,19 +412,51 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             </p>
 
             <div className="space-y-3">
+              {onToggleTheme && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={theme === 'dark'}
+                  onClick={onToggleTheme}
+                  className="w-full flex items-center justify-between py-3 px-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold transition"
+                >
+                  <span className="flex items-center gap-2.5">
+                    {theme === 'dark' ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                    Tryb ciemny
+                  </span>
+                  <span className={`w-11 h-6 rounded-full p-0.5 transition ${theme === 'dark' ? 'bg-teal-600' : 'bg-slate-300'}`}>
+                    <span className={`block w-5 h-5 rounded-full bg-white shadow transition-transform ${theme === 'dark' ? 'translate-x-5' : ''}`} />
+                  </span>
+                </button>
+              )}
+
+              {onOpenQRTransfer && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettingsModal(false);
+                    onOpenQRTransfer();
+                  }}
+                  className="w-full flex items-center gap-2.5 py-3 px-4 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 border border-teal-200 dark:border-teal-800 text-teal-900 dark:text-teal-100 rounded-2xl text-sm font-bold transition"
+                >
+                  <QrCode className="w-4 h-4 text-teal-600" />
+                  Przenieś dane na inny telefon (kod QR)
+                </button>
+              )}
+
               {/* Notifications Option in Settings */}
               <button
                 onClick={() => {
                   setShowSettingsModal(false);
                   onOpenNotifications();
                 }}
-                className="w-full flex items-center justify-between py-3 px-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-900 rounded-2xl text-xs font-bold transition active:scale-98"
+                className="w-full flex items-center justify-between py-3 px-4 bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800 text-teal-900 dark:text-teal-100 rounded-2xl text-xs font-bold transition active:scale-98"
               >
                 <div className="flex items-center gap-2.5">
                   <Bell className="w-4 h-4 text-teal-600" />
                   <span>Powiadomienia w telefonie (Alerty)</span>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-teal-200 text-teal-800">
+                <span className="text-xs uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-teal-200 text-teal-800">
                   Ustawienia
                 </span>
               </button>
@@ -471,13 +467,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                   setShowSettingsModal(false);
                   onOpenGoogleSync();
                 }}
-                className="w-full flex items-center justify-between py-3 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 rounded-2xl text-xs font-bold transition active:scale-98"
+                className="w-full flex items-center justify-between py-3 px-4 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 rounded-2xl text-xs font-bold transition active:scale-98"
               >
                 <div className="flex items-center gap-2.5">
                   <Cloud className="w-4 h-4 text-emerald-600" />
                   <span>Synchronizacja w Chmurze</span>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800">
+                <span className="text-xs uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800">
                   {session.user ? 'Połączono' : 'Auto 24h'}
                 </span>
               </button>
@@ -542,8 +538,8 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               </button>
             </div>
 
-            <div className="pt-2 text-center text-[11px] text-slate-400 border-t border-slate-100">
-              PetCare v1.0 • Aplikacja mobilna dla zwierząt
+            <div className="pt-2 text-center text-xs text-slate-400 border-t border-slate-100">
+              PetCare v{__APP_VERSION__} • Aplikacja mobilna dla zwierząt
             </div>
           </div>
         </div>

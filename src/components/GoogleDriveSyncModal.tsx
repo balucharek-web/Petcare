@@ -235,7 +235,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
         className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -258,7 +258,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
           <button
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-300 transition-colors"
-            title="Zamknij"
+            title="Zamknij" aria-label="Zamknij"
           >
             <X className="w-5 h-5" />
           </button>
@@ -404,12 +404,12 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
                         Pobierz z Dysku Google
                       </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
                         Pobierz dane na to urządzenie
                       </div>
                     </div>
                   </div>
-                  <div className="text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">
+                  <div className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
                     {driveFile ? `Wersja z: ${new Date(driveFile.modifiedTime).toLocaleTimeString('pl-PL')}` : 'Brak pliku w chmurze'}
                   </div>
                 </button>
@@ -428,12 +428,12 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs">
                         Wyślij na Dysk Google
                       </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
                         Zapisz aktualny stan zwierzaka
                       </div>
                     </div>
                   </div>
-                  <div className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
+                  <div className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
                     {driveFile ? 'Zaktualizuj kopię na Dysku' : 'Utwórz nową kopię'}
                   </div>
                 </button>
@@ -455,7 +455,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
                 <strong>Twoje urządzenia:</strong> Aby przenieść dane z telefonu na laptopa, wystarczy zalogować się tym samym kontem i kliknąć <em>„Pobierz z Dysku Google”</em>.
               </li>
               <li>
-                <strong>Plik na Dysku:</strong> Aplikacja tworzy plik <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-[11px]">petcare_sync_data.json</code> wyłącznie na Twoim Dysku Google.
+                <strong>Plik na Dysku:</strong> Aplikacja tworzy plik <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-xs">petcare_sync_data.json</code> wyłącznie na Twoim Dysku Google.
               </li>
             </ul>
           </div>
@@ -463,7 +463,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
 
         {/* Sticky Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between">
-          <div className="text-[11px] text-slate-400 dark:text-slate-500">
+          <div className="text-xs text-slate-400 dark:text-slate-500">
             {lastChecked ? `Ostatnie sprawdzenie: ${lastChecked.toLocaleTimeString('pl-PL')}` : ''}
           </div>
           <button

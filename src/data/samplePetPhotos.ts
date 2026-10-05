@@ -185,3 +185,18 @@ export function getDefaultPhotoForSpecies(species: 'dog' | 'cat' | 'rabbit' | 'f
   const match = SAMPLE_PET_PHOTOS.find((p) => p.species === species);
   return match?.url || SAMPLE_PET_PHOTOS[0].url;
 }
+
+const SPECIES_EMOJI: Record<SamplePetPhoto['species'], string> = {
+  dog: '🐶',
+  cat: '🐱',
+  rabbit: '🐰',
+  ferret: '🦦',
+  bird: '🐦',
+  other: '🐾',
+};
+
+/** Neutral, offline placeholder used until the owner adds a real photo. */
+export function getPlaceholderPhotoForSpecies(species: SamplePetPhoto['species']): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect width="400" height="400" fill="#ccfbf1"/><text x="200" y="250" font-size="160" text-anchor="middle">${SPECIES_EMOJI[species] || SPECIES_EMOJI.other}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}

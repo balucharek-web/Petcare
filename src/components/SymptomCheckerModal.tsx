@@ -186,7 +186,7 @@ export const SymptomCheckerModal: React.FC<SymptomCheckerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-rose-100 dark:border-slate-800 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-rose-700 via-rose-600 to-slate-900 px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-sm">
@@ -197,7 +197,7 @@ export const SymptomCheckerModal: React.FC<SymptomCheckerModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black tracking-tight">Asystent Wczesnych Objawów</h2>
-                <span className="text-[10px] font-black uppercase bg-white text-rose-700 px-2 py-0.5 rounded-full shadow-xs">
+                <span className="text-xs font-black uppercase bg-white text-rose-700 px-2 py-0.5 rounded-full shadow-xs">
                   Triage 24h
                 </span>
               </div>
@@ -250,7 +250,7 @@ export const SymptomCheckerModal: React.FC<SymptomCheckerModalProps> = ({
                       <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white group-hover:text-rose-700 block truncate">
                         {cat.title}
                       </span>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
                         {cat.description}
                       </p>
                     </div>
@@ -260,7 +260,7 @@ export const SymptomCheckerModal: React.FC<SymptomCheckerModalProps> = ({
 
               <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-[11px] leading-relaxed">
+                <p className="text-xs leading-relaxed">
                   Asystent objawów PetCare ma charakter orientacyjny i nie zastępuje profesjonalnego badania weterynaryjnego. W razie wątpliwości zawsze skonsultuj się z lecznicą.
                 </p>
               </div>
@@ -360,12 +360,12 @@ export const SymptomCheckerModal: React.FC<SymptomCheckerModalProps> = ({
               {/* Red flags */}
               {selectedResult.redFlags && selectedResult.redFlags.length > 0 && (
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
-                  <span className="font-extrabold uppercase text-[10px] text-slate-400 block">
+                  <span className="font-extrabold uppercase text-xs text-slate-400 block">
                     Czerwone flagi (objawy alarmowe):
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedResult.redFlags.map((flag: string, idx: number) => (
-                      <span key={idx} className="px-2 py-0.5 rounded-lg bg-rose-100 text-rose-800 text-[11px] font-bold">
+                      <span key={idx} className="px-2 py-0.5 rounded-lg bg-rose-100 text-rose-800 text-xs font-bold">
                         ⚠️ {flag}
                       </span>
                     ))}
@@ -394,7 +394,7 @@ export const SymptomCheckerModal: React.FC<SymptomCheckerModalProps> = ({
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center shrink-0">
-          <span className="text-[11px] text-slate-400">
+          <span className="text-xs text-slate-400">
             W 100% darmowy moduł bezpieczeństwa PetCare
           </span>
           <button

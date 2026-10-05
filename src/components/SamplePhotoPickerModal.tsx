@@ -52,7 +52,7 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
   };
 
   const modalNode = (
-    <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center items-center bg-slate-950/80 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center items-center bg-slate-950/80 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn">
       {/* Click outside to close backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
 
@@ -80,8 +80,7 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -137,7 +136,7 @@ export const SamplePhotoPickerModal: React.FC<SamplePhotoPickerModalProps> = ({
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1 pt-3">
-                    <p className="text-[10px] font-bold text-white truncate text-center">
+                    <p className="text-xs font-bold text-white truncate text-center">
                       {photo.title}
                     </p>
                   </div>
