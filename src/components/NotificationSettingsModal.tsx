@@ -177,7 +177,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-teal-500/10 via-emerald-500/10 to-transparent">
@@ -189,7 +189,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
               <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">
                 Centrum powiadomień
               </h2>
-              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs sm:text-xs text-slate-500 dark:text-slate-400">
                 Alerty zdrowotne, przypomnienia i ustawienia
               </p>
             </div>
@@ -216,7 +216,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
             <Bell className="w-3.5 h-3.5" />
             <span>Alerty i przypomnienia</span>
             {alerts.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-rose-500 text-white animate-pulse">
+              <span className="px-1.5 py-0.2 rounded-full text-xs font-extrabold bg-rose-500 text-white animate-pulse">
                 {alerts.length}
               </span>
             )}
@@ -273,7 +273,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                     {onClearAllAlerts && (
                       <button
                         onClick={onClearAllAlerts}
-                        className="text-[11px] font-semibold text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1 cursor-pointer transition"
+                        className="text-xs font-semibold text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1 cursor-pointer transition"
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>Wyczyść wszystkie</span>
@@ -314,7 +314,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                                       isUrgent
                                         ? 'bg-rose-200/70 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
                                         : isWarning
@@ -326,7 +326,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                                   </span>
 
                                   {alert.petName && (
-                                    <span className="text-[10px] bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-medium border border-slate-200/60 dark:border-slate-700">
+                                    <span className="text-xs bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-medium border border-slate-200/60 dark:border-slate-700">
                                       🐾 {alert.petName}
                                     </span>
                                   )}
@@ -336,7 +336,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                                   {alert.title}
                                 </h4>
 
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
+                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-tight">
                                   {alert.description}
                                 </p>
                               </div>
@@ -357,7 +357,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                           {/* Quick Navigation Action */}
                           {onNavigateToTab && (
                             <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
-                              <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                              <span className="text-xs text-slate-400 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 {alert.daysRemaining < 0
                                   ? `Zaległe o ${Math.abs(alert.daysRemaining)} dni`
@@ -368,7 +368,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
 
                               <button
                                 onClick={() => handleGoToAlert(alert)}
-                                className="text-[11px] font-bold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
+                                className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
                               >
                                 <span>Przejdź do szczegółów</span>
                                 <ChevronRight className="w-3.5 h-3.5" />
@@ -414,7 +414,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                       Powiadomienia Android aktywne
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full">
                     Zezwolono
                   </span>
                 </div>
@@ -448,7 +448,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                     <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
                       Główny przełącznik
                     </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Wszystkie powiadomienia w telefonie
                     </p>
                   </div>
@@ -479,7 +479,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         Przypomnienia o lekach
                       </p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         Powiadomienie o porannych i wieczornych dawkach
                       </p>
                     </div>
@@ -507,7 +507,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         Szczepienia i odrobaczanie
                       </p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         Alert przed zbliżającym się terminem
                       </p>
                     </div>
@@ -535,7 +535,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         Wizyty u weterynarza
                       </p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         Przypomnienie przed zaplanowaną wizytą
                       </p>
                     </div>
@@ -591,7 +591,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
 
         {/* Footer */}
         <div className="p-3.5 sm:p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850 flex justify-between items-center">
-          <span className="text-[10px] text-slate-400">
+          <span className="text-xs text-slate-400">
             {activeTab === 'alerts'
               ? `${alerts.length} aktywnych alertów`
               : 'Konfiguracja lokalna'}

@@ -375,7 +375,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold tracking-widest uppercase text-teal-300 bg-teal-900/60 px-2.5 py-0.5 rounded-full border border-teal-500/40">
+              <span className="text-xs font-bold tracking-widest uppercase text-teal-300 bg-teal-900/60 px-2.5 py-0.5 rounded-full border border-teal-500/40">
                 Własny Kalendarz & Google Sync
               </span>
             </div>
@@ -421,7 +421,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
             </h3>
             <button
               onClick={handleTodayClick}
-              className="text-[11px] font-bold px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950 transition border border-slate-200 dark:border-slate-700"
+              className="text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950 transition border border-slate-200 dark:border-slate-700"
             >
               Dzisiaj
             </button>
@@ -430,14 +430,14 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={handlePrevMonth}
-              title="Poprzedni miesiąc"
+              title="Poprzedni miesiąc" aria-label="Poprzedni miesiąc"
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleNextMonth}
-              title="Następny miesiąc"
+              title="Następny miesiąc" aria-label="Następny miesiąc"
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
             >
               <ChevronRight className="w-4 h-4" />
@@ -446,7 +446,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> Szczepienie</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> Wizyta</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> Badanie</span>
@@ -507,7 +507,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
                         />
                       ))}
                       {dayEvents.length > 4 && (
-                        <span className={`text-[9px] font-bold leading-none ${isSelected ? 'text-white' : 'text-slate-400'}`}>
+                        <span className={`text-[11px] font-bold leading-none ${isSelected ? 'text-white' : 'text-slate-400'}`}>
                           +{dayEvents.length - 4}
                         </span>
                       )}
@@ -527,7 +527,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
         {/* Selected date header & Add button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
               Wybrany dzień
             </span>
             <h4 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -573,7 +573,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
               >
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${ev.badgeColor}`}>
+                    <span className={`px-2 py-0.5 rounded-md text-xs font-extrabold border ${ev.badgeColor}`}>
                       {ev.badgeLabel}
                     </span>
                     <strong className="text-sm text-slate-900 dark:text-white font-extrabold">
@@ -629,7 +629,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
 
       {/* Add Custom Event Modal / Popup */}
       {isAddingEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md p-5 sm:p-6 text-slate-900 dark:text-white space-y-4">
             
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -809,7 +809,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
               >
                 <div>
                   <div className="font-bold text-slate-900 dark:text-white">{med.name}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     Dawka: {med.dosage} • Pory: {med.timesOfDay.map(t => t.time).join(', ')}
                   </div>
                 </div>
@@ -820,7 +820,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
                     const payload = buildMedicationCalendarEvent(pet.name, med.name, amount, firstTime, med.instructions, true);
                     handleOpenGoogleCalendar(payload);
                   }}
-                  className="p-1.5 px-2 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl font-bold text-[10px] flex items-center gap-1 hover:bg-blue-100 transition shrink-0"
+                  className="p-1.5 px-2 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl font-bold text-xs flex items-center gap-1 hover:bg-blue-100 transition shrink-0"
                 >
                   <ExternalLink className="w-3 h-3" />
                   Google Cal

@@ -614,7 +614,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       {/* Hidden fallback HTML inputs */}
       <input
         ref={fileInputCameraRef}
@@ -672,7 +672,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-4 border-2 border-dashed border-teal-400/60 rounded-xl pointer-events-none flex items-center justify-center">
-                <span className="bg-black/60 text-white text-[11px] px-3 py-1 rounded-full backdrop-blur-xs">
+                <span className="bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-xs">
                   Skieruj na receptę lub pudełko leku
                 </span>
               </div>
@@ -688,7 +688,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   type="button"
                   onClick={captureLiveCameraSnapshot}
                   className="w-14 h-14 rounded-full bg-white border-4 border-teal-500 shadow-xl flex items-center justify-center text-teal-600 hover:scale-105 active:scale-95 transition cursor-pointer"
-                  title="Zrób zdjęcie"
+                  title="Zrób zdjęcie" aria-label="Zrób zdjęcie"
                 >
                   <div className="w-8 h-8 rounded-full bg-teal-600"></div>
                 </button>
@@ -756,7 +756,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
                   <button
                     onClick={handleRotateImage}
-                    title="Obróć zdjęcie o 90 stopni (jeśli aparat zrobił je bokiem lub do góry nogami)"
+                    title="Obróć zdjęcie o 90 stopni (jeśli aparat zrobił je bokiem lub do góry nogami)" aria-label="Obróć zdjęcie o 90 stopni (jeśli aparat zrobił je bokiem lub do góry nogami)"
                     className="p-2 rounded-xl bg-black/70 hover:bg-black text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -784,11 +784,11 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   <div className="text-xs text-teal-950 dark:text-teal-100">
                     <p className="font-bold flex items-center gap-1.5">
                       <span>Inteligentne auto-dopasowanie AI</span>
-                      <span className="text-[10px] bg-teal-200/80 dark:bg-teal-900 text-teal-900 dark:text-teal-200 px-2 py-0.5 rounded-full font-bold">
+                      <span className="text-xs bg-teal-200/80 dark:bg-teal-900 text-teal-900 dark:text-teal-200 px-2 py-0.5 rounded-full font-bold">
                         100% Automatycznie
                       </span>
                     </p>
-                    <p className="text-[11px] text-teal-800/80 dark:text-teal-300 mt-0.5">
+                    <p className="text-xs text-teal-800/80 dark:text-teal-300 mt-0.5">
                       Skaner automatycznie rozpoznaje trudne pismo ręczne lekarzy, zagięcia papieru, cienie, daty wizyty oraz zalecenia dawkowania leków.
                     </p>
                   </div>
@@ -849,18 +849,18 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   <p className="leading-relaxed text-slate-700 dark:text-slate-300">
                     {extractedData.summary || 'Przesłane zdjęcie nie przedstawia recepty weterynaryjnej, opakowania leku ani karty informacyjnej z lecznicy. Nie wykryto żadnych leków ani zaleceń weterynaryjnych.'}
                   </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     💡 Wskazówka: Zrób ostre zdjęcie z bliska przedstawiające etykietę/opakowanie leku lub receptę z zaleceniami lekarza weterynarii.
                   </p>
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-[10px] uppercase font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
+                    <span className="text-xs uppercase font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
                       Rozpoznany dokument: {extractedData.type || 'Medyczny'}
                     </span>
                     {extractedData.confidence && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
                         extractedData.confidence === 'high'
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                           : extractedData.confidence === 'medium'
@@ -880,12 +880,12 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowRawDetectedText(!showRawDetectedText)}
-                        className="text-[11px] font-bold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <span>{showRawDetectedText ? '▾ Ukryj odczytany tekst lekarski' : '▸ Pokaż odczytany surowy tekst lekarski (OCR)'}</span>
                       </button>
                       {showRawDetectedText && (
-                        <div className="mt-1.5 p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-36 overflow-y-auto">
+                        <div className="mt-1.5 p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-36 overflow-y-auto">
                           {extractedData.detectedRawText}
                         </div>
                       )}
@@ -963,7 +963,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                         </span>
                       )}
                       {extractedData.visitInfo.city && (
-                        <span className="text-[11px] bg-teal-200/60 dark:bg-teal-900/60 px-2 py-0.5 rounded-md font-semibold">
+                        <span className="text-xs bg-teal-200/60 dark:bg-teal-900/60 px-2 py-0.5 rounded-md font-semibold">
                           {extractedData.visitInfo.city}
                         </span>
                       )}
@@ -1049,7 +1049,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                           <div key={idx} className="p-3 rounded-xl bg-teal-50/60 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-700 text-xs space-y-2">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               <div>
-                                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Nazwa leku</label>
+                                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Nazwa leku</label>
                                 <input
                                   type="text"
                                   value={med.name}
@@ -1062,7 +1062,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                                 />
                               </div>
                               <div>
-                                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Dawkowanie</label>
+                                <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Dawkowanie</label>
                                 <input
                                   type="text"
                                   value={med.dosage}
@@ -1076,7 +1076,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                               </div>
                             </div>
                             <div>
-                              <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Zalecenia i sposób podania</label>
+                              <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-0.5">Zalecenia i sposób podania</label>
                               <input
                                 type="text"
                                 value={med.instructions || ''}
@@ -1096,14 +1096,14 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                                   setExtractedData({ ...extractedData, medications: updated });
                                   setEditingMedIndex(null);
                                 }}
-                                className="px-2.5 py-1 text-[11px] text-rose-600 font-bold hover:underline"
+                                className="px-2.5 py-1 text-xs text-rose-600 font-bold hover:underline"
                               >
                                 Usuń
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setEditingMedIndex(null)}
-                                className="px-3 py-1 bg-teal-600 text-white rounded-lg text-[11px] font-bold shadow-xs hover:bg-teal-500"
+                                className="px-3 py-1 bg-teal-600 text-white rounded-lg text-xs font-bold shadow-xs hover:bg-teal-500"
                               >
                                 Gotowe
                               </button>
@@ -1123,7 +1123,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                               <button
                                 type="button"
                                 onClick={() => setEditingMedIndex(idx)}
-                                className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer"
+                                className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer"
                               >
                                 Popraw
                               </button>
@@ -1133,7 +1133,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                                   const updated = extractedData.medications.filter((_: any, i: number) => i !== idx);
                                   setExtractedData({ ...extractedData, medications: updated });
                                 }}
-                                className="text-[11px] text-slate-400 hover:text-rose-600 cursor-pointer"
+                                className="text-xs text-slate-400 hover:text-rose-600 cursor-pointer"
                                 title="Usuń ten lek z listy"
                               >
                                 ✕
@@ -1141,7 +1141,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                             </div>
                           </div>
                           {med.instructions && (
-                            <p className="text-slate-500 dark:text-slate-400 text-[11px]">{med.instructions}</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-xs">{med.instructions}</p>
                           )}
                         </div>
                       );
@@ -1170,15 +1170,15 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {extractedData.examParameters.map((param: any, idx: number) => (
                       <div key={idx} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">{param.name}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block truncate">{param.name}</span>
                         <div className="flex items-baseline gap-1 mt-0.5">
                           <strong className={`text-sm ${param.status === 'abnormal' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
                             {param.value}
                           </strong>
-                          <span className="text-[10px] text-slate-400">{param.unit}</span>
+                          <span className="text-xs text-slate-400">{param.unit}</span>
                         </div>
                         {param.refRange && (
-                          <span className="text-[9px] text-slate-400 block mt-0.5">Norma: {param.refRange}</span>
+                          <span className="text-[11px] text-slate-400 block mt-0.5">Norma: {param.refRange}</span>
                         )}
                       </div>
                     ))}

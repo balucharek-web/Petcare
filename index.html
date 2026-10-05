@@ -2,7 +2,7 @@
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>PetCare - Zdrowie i Leki Zwierzaka</title>
     <meta name="description" content="Aplikacja mobilna dla opiekuna zwierzaka: książeczka zdrowia, historia szczepień, badań i chorób, dawkowanie leków oraz integracja z kalendarzem Google i telefonem." />
     <meta property="og:title" content="PetCare - Zdrowie i Leki Zwierzaka" />
@@ -27,27 +27,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- Early PWA Prompt & SW Setup -->
-    <script>
-      // Capture beforeinstallprompt immediately on page load
-      window.deferredPWAInstallPrompt = null;
-      try {
-        window.addEventListener('beforeinstallprompt', function(e) {
-          e.preventDefault();
-          window.deferredPWAInstallPrompt = e;
-          window.dispatchEvent(new CustomEvent('pwa-prompt-ready', { detail: e }));
-          console.log('PWA installation prompt captured and ready');
-        });
-      } catch (err) {}
-
-      // Register Service Worker for offline PWA capabilities
-      try {
-        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
-          window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js').catch(function() {});
-          });
-        }
-      } catch (err) {}
-    </script>
+    <script src="/pwa-init.js"></script>
   </head>
   <body class="bg-slate-100 text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
     <div id="root"></div>

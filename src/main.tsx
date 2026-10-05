@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { initStorage } from './services/storage';
 
 // Ensure dark status bar icons (clock, battery, signal) are clearly visible on light mode
 try {
@@ -19,10 +20,12 @@ try {
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  createRoot(rootElement).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  );
+  initStorage().finally(() => {
+    createRoot(rootElement).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+  });
 }
 

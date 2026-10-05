@@ -39,7 +39,7 @@ export const ScanViewerModal: React.FC<ScanViewerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/90 backdrop-blur-md animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex flex-col bg-slate-950/90 backdrop-blur-md animate-fadeIn">
       {/* Top Header Bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-slate-900/80 border-b border-slate-800 text-white z-10">
         <div className="truncate max-w-[65%]">
@@ -51,35 +51,35 @@ export const ScanViewerModal: React.FC<ScanViewerModalProps> = ({
         <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={handleZoomOut}
-            title="Pomniejsz"
+            title="Pomniejsz" aria-label="Pomniejsz"
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 transition"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
           <button
             onClick={handleZoomIn}
-            title="Powiększ"
+            title="Powiększ" aria-label="Powiększ"
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 transition"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
           <button
             onClick={handleRotate}
-            title="Obróć o 90°"
+            title="Obróć o 90°" aria-label="Obróć o 90°"
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 transition"
           >
             <RotateCw className="w-4 h-4" />
           </button>
           <button
             onClick={handleDownload}
-            title="Pobierz skan"
+            title="Pobierz skan" aria-label="Pobierz skan"
             className="p-2 rounded-lg bg-teal-600 hover:bg-teal-500 active:scale-95 text-white transition"
           >
             <Download className="w-4 h-4" />
           </button>
           <button
             onClick={onClose}
-            title="Zamknij"
+            title="Zamknij" aria-label="Zamknij"
             className="p-2 ml-1 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white transition"
           >
             <X className="w-5 h-5" />

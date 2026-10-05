@@ -518,7 +518,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <label className="font-bold text-slate-700 dark:text-slate-200 block text-xs">
                 Zdjęcie i kadr pupila
               </label>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-xs text-slate-400">
                 Przesuwaj w okienku, aby dopasować kadr
               </span>
             </div>
@@ -801,7 +801,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 className="flex items-center justify-between p-3 rounded-2xl bg-teal-50/80 hover:bg-teal-100/80 text-teal-900 transition text-left cursor-pointer"
               >
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-teal-600">Leki dzienne</span>
+                  <span className="text-xs font-bold uppercase text-teal-600">Leki dzienne</span>
                   <p className="font-bold text-xs">{activeMedicationsCount} aktywnych</p>
                 </div>
                 <span className="text-base">💊</span>
@@ -813,7 +813,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-900 transition text-left cursor-pointer"
               >
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-emerald-600">Szczepienia</span>
+                  <span className="text-xs font-bold uppercase text-emerald-600">Szczepienia</span>
                   <p className="font-bold text-xs">{totalVaccinationsCount} wpisów</p>
                 </div>
                 <span className="text-base">💉</span>
@@ -826,7 +826,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   className="flex items-center justify-between p-3 rounded-2xl bg-teal-50/80 hover:bg-teal-100/80 text-teal-950 transition text-left cursor-pointer border border-teal-200/50"
                 >
                   <div>
-                    <span className="text-[10px] font-bold uppercase text-emerald-600">Kleszcze & Pasożyty</span>
+                    <span className="text-xs font-bold uppercase text-emerald-600">Kleszcze & Pasożyty</span>
                     <p className="font-bold text-xs">Tarcza ochronna</p>
                   </div>
                   <span className="text-base">🛡️</span>
@@ -846,11 +846,11 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-bold text-sm text-white">Skaner Recept i Badań AI</h3>
-                  <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
+                  <span className="text-[11px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
                     Gemini
                   </span>
                 </div>
-                <p className="text-[11px] text-teal-200/80">
+                <p className="text-xs text-teal-200/80">
                   Zrób zdjęcie zaleceń lub wyników krwi – AI rozpozna leki i dawkowanie
                 </p>
               </div>
@@ -893,19 +893,19 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="p-3 rounded-2xl bg-amber-50/50 border border-amber-100">
-                <span className="text-[10px] uppercase font-bold text-amber-800 block">Zapotrzebowanie</span>
+                <span className="text-xs uppercase font-bold text-amber-800 block">Zapotrzebowanie</span>
                 <strong className="text-lg font-black text-amber-950 block mt-0.5">
                   ~{estimatedDailyKcal} kcal
                 </strong>
-                <span className="text-[10px] text-amber-700">na dobę</span>
+                <span className="text-xs text-amber-700">na dobę</span>
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Sucha karma (~360kcal)</span>
+                <span className="text-xs uppercase font-bold text-slate-400 block">Sucha karma (~360kcal)</span>
                 <strong className="text-lg font-black text-teal-800 block mt-0.5">
                   ~{estimatedDryFoodGrams} g
                 </strong>
-                <span className="text-[10px] text-slate-500">2 posiłki po {Math.round(estimatedDryFoodGrams / 2)}g</span>
+                <span className="text-xs text-slate-500">2 posiłki po {Math.round(estimatedDryFoodGrams / 2)}g</span>
               </div>
             </div>
           </div>
@@ -942,7 +942,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold border border-rose-200 flex items-center gap-1 cursor-pointer"
               >
                 <span>🍫 Czekolada</span>
-                <span className="text-[9px] uppercase font-black px-1 rounded bg-rose-200 text-rose-900">Śmiertelna</span>
+                <span className="text-[11px] uppercase font-black px-1 rounded bg-rose-200 text-rose-900">Śmiertelna</span>
               </button>
 
               <button
@@ -951,7 +951,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold border border-rose-200 flex items-center gap-1 cursor-pointer"
               >
                 <span>🍇 Winogrona</span>
-                <span className="text-[9px] uppercase font-black px-1 rounded bg-rose-200 text-rose-900">Nerki</span>
+                <span className="text-[11px] uppercase font-black px-1 rounded bg-rose-200 text-rose-900">Nerki</span>
               </button>
 
               <button
@@ -960,7 +960,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold border border-rose-200 flex items-center gap-1 cursor-pointer"
               >
                 <span>💊 Paracetamol</span>
-                <span className="text-[9px] uppercase font-black px-1 rounded bg-rose-200 text-rose-900">Trucizna</span>
+                <span className="text-[11px] uppercase font-black px-1 rounded bg-rose-200 text-rose-900">Trucizna</span>
               </button>
 
               <button
@@ -969,7 +969,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1 cursor-pointer"
               >
                 <span>🥕 Marchewka</span>
-                <span className="text-[9px] uppercase font-black px-1 rounded bg-emerald-200 text-emerald-900">Zdrowa</span>
+                <span className="text-[11px] uppercase font-black px-1 rounded bg-emerald-200 text-emerald-900">Zdrowa</span>
               </button>
             </div>
           </div>
@@ -1119,11 +1119,11 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
             <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Nr Paszportu</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Nr Paszportu</span>
                 <span className="font-semibold text-slate-800">{pet.passportNumber || 'Brak'}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Nr Tatuażu</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Nr Tatuażu</span>
                 <span className="font-semibold text-slate-800">{pet.tattooNumber || 'Brak'}</span>
               </div>
             </div>
@@ -1199,7 +1199,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                     type="button"
                     onClick={onOpenWeightTracker}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
-                    title="Otwórz pełny widok wykresu i tabeli"
+                    title="Otwórz pełny widok wykresu i tabeli" aria-label="Otwórz pełny widok wykresu i tabeli"
                   >
                     <span>Pełny wykres ➔</span>
                   </button>
@@ -1219,7 +1219,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             {entriesCount > 1 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-teal-50/50 p-3 rounded-2xl border border-teal-100/80 text-xs">
                 <div>
-                  <span className="text-[10px] text-teal-800/70 font-semibold block uppercase">Trend ogólny</span>
+                  <span className="text-xs text-teal-800/70 font-semibold block uppercase">Trend ogólny</span>
                   <span className="font-extrabold text-slate-900 flex items-center gap-1 mt-0.5">
                     {weightDelta > 0 ? (
                       <>
@@ -1237,13 +1237,13 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-teal-800/70 font-semibold block uppercase">Najniższa / Najwyższa</span>
+                  <span className="text-xs text-teal-800/70 font-semibold block uppercase">Najniższa / Najwyższa</span>
                   <span className="font-bold text-slate-800 mt-0.5 block">
                     {minWeight} kg / {maxWeight} kg
                   </span>
                 </div>
                 <div className="hidden sm:block">
-                  <span className="text-[10px] text-teal-800/70 font-semibold block uppercase">Liczba ważeń</span>
+                  <span className="text-xs text-teal-800/70 font-semibold block uppercase">Liczba ważeń</span>
                   <span className="font-bold text-slate-800 mt-0.5 block">
                     {entriesCount} pomiary
                   </span>
@@ -1254,7 +1254,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             {/* Interactive SVG Weight Chart */}
             {entriesCount >= 2 && (
               <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
-                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 px-1 mb-1">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1 mb-1">
                   <span>Wykres zmian w czasie</span>
                   <span>Zakres: {firstEntry.date} ➔ {lastEntry.date}</span>
                 </div>
@@ -1306,7 +1306,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                           x={pt.x}
                           y={pt.y - 7}
                           textAnchor="middle"
-                          className="text-[9px] font-bold fill-slate-700"
+                          className="text-[11px] font-bold fill-slate-700"
                         >
                           {pt.weightKg}
                         </text>
@@ -1323,7 +1323,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 <h4 className="text-xs font-bold text-teal-900">Nowy pomiar masy ciała</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold text-teal-800 block mb-0.5">Waga (kg) *</label>
+                    <label className="text-xs font-bold text-teal-800 block mb-0.5">Waga (kg) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -1336,7 +1336,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-teal-800 block mb-0.5">Data pomiaru *</label>
+                    <label className="text-xs font-bold text-teal-800 block mb-0.5">Data pomiaru *</label>
                     <input
                       type="date"
                       value={newWeightDate}
@@ -1346,7 +1346,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-teal-800 block mb-0.5">Notatka (opcjonalnie)</label>
+                    <label className="text-xs font-bold text-teal-800 block mb-0.5">Notatka (opcjonalnie)</label>
                     <input
                       type="text"
                       value={newWeightNotes}
@@ -1380,7 +1380,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 <div className="p-4 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center">
                   <Scale className="w-5 h-5 text-slate-400 mx-auto mb-1 opacity-70" />
                   <p className="text-xs text-slate-500 font-medium">Brak historii pomiarów wagi.</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Kliknij „Nowy pomiar”, aby śledzić wagę i wykres pupila.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Kliknij „Nowy pomiar”, aby śledzić wagę i wykres pupila.</p>
                 </div>
               ) : (
                 displayedHistory.map((entry) => (
@@ -1398,7 +1398,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                           </span>
                         </div>
                         {entry.notes && (
-                          <p className="text-[11px] text-slate-500 italic mt-0.5">{entry.notes}</p>
+                          <p className="text-xs text-slate-500 italic mt-0.5">{entry.notes}</p>
                         )}
                       </div>
                     </div>
@@ -1459,7 +1459,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <div className="p-4 rounded-2xl bg-amber-50/50 border border-dashed border-amber-200 text-center">
                 <Paperclip className="w-6 h-6 text-amber-500 mx-auto mb-1.5 opacity-60" />
                 <p className="text-xs font-semibold text-slate-700">Brak wgranych skanów książeczki</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Zrób zdjęcie stron fizycznej książeczki zdrowia (szczepienia, wpisy, pieczątki lekarza).
                 </p>
               </div>
@@ -1479,7 +1479,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
                     <div className="relative p-2.5 z-10 text-white">
                       <p className="text-xs font-bold truncate leading-tight">{scan.title}</p>
-                      <p className="text-[10px] text-slate-300">{scan.date}</p>
+                      <p className="text-xs text-slate-300">{scan.date}</p>
                     </div>
 
                     <div className="absolute top-2 right-2 flex gap-1.5 z-20">
@@ -1519,7 +1519,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
               <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-100 flex items-start gap-3">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-rose-700 block">Alergie i Nietolerancje</span>
+                  <span className="text-xs font-bold uppercase text-rose-700 block">Alergie i Nietolerancje</span>
                   <p className="text-xs text-rose-900 font-medium">{pet.allergies}</p>
                 </div>
               </div>
@@ -1527,7 +1527,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
 
             {pet.specialNotes && (
               <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-100">
-                <span className="text-[10px] font-bold uppercase text-blue-700 block mb-1">Uwagi Behawioralne</span>
+                <span className="text-xs font-bold uppercase text-blue-700 block mb-1">Uwagi Behawioralne</span>
                 <p className="text-xs text-blue-900 leading-relaxed">{pet.specialNotes}</p>
               </div>
             )}
@@ -1601,7 +1601,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 <h3 className="font-extrabold text-sm text-slate-800 dark:text-white">
                   Kadr zdjęcia pupila: {pet.name}
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-slate-400">
                   Przesuwaj palcem w okienku, aby ustawić idealny kadr
                 </p>
               </div>
@@ -1665,7 +1665,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsAdjustingPhoto(true)}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2 py-0.5 rounded-lg border border-teal-200 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2 py-0.5 rounded-lg border border-teal-200 transition-colors cursor-pointer"
                     title="Wykadruj obecne zdjęcie pupila"
                   >
                     <Crop className="w-3 h-3 text-teal-600" />
@@ -1675,7 +1675,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsSamplePhotoPickerOpen(true)}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-lg border border-slate-200 transition-colors cursor-pointer"
                   title="Wybierz z biblioteki gotowych zdjęć"
                 >
                   <Sparkles className="w-3 h-3 text-teal-600" />
@@ -1699,7 +1699,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   <button
                     type="button"
                     onClick={onOpenMedicalReport}
-                    title="Otwórz oficjalny raport medyczny i książeczkę PDF pupila"
+                    title="Otwórz oficjalny raport medyczny i książeczkę PDF pupila" aria-label="Otwórz oficjalny raport medyczny i książeczkę PDF pupila"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition border border-teal-200 shadow-xs cursor-pointer active:scale-95"
                   >
                     <FileText className="w-3.5 h-3.5 text-teal-600" />
@@ -1721,7 +1721,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   <button
                     type="button"
                     onClick={onOpenDashboardCustomizer}
-                    title="Dostosuj widok strony głównej"
+                    title="Dostosuj widok strony głównej" aria-label="Dostosuj widok strony głównej"
                     className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200 shadow-xs cursor-pointer"
                   >
                     <Sliders className="w-3.5 h-3.5 text-slate-600" />
@@ -1748,17 +1748,17 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 type="button"
                 onClick={onOpenAgeCalculator}
                 className="bg-slate-50 hover:bg-teal-50/70 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 hover:border-teal-200 text-center transition cursor-pointer active:scale-95 group"
-                title="Kliknij, aby otworzyć kalkulator wieku i etapy życia pupila"
+                title="Kliknij, aby otworzyć kalkulator wieku i etapy życia pupila" aria-label="Kliknij, aby otworzyć kalkulator wieku i etapy życia pupila"
               >
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 group-hover:text-teal-700 block truncate">Wiek</span>
+                  <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-slate-400 group-hover:text-teal-700 block truncate">Wiek</span>
                   <Sparkles className="w-2.5 h-2.5 text-teal-600 opacity-60 group-hover:opacity-100 shrink-0" />
                 </div>
-                <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-slate-800 truncate block">
+                <span className="text-xs min-[360px]:text-xs sm:text-sm font-bold text-slate-800 truncate block">
                   {calculateAge(pet.birthDate)}
                 </span>
                 {quickHumanAge && (
-                  <span className="text-[9px] min-[360px]:text-[10px] font-bold text-teal-700 block truncate mt-0.5">
+                  <span className="text-[11px] min-[360px]:text-xs font-bold text-teal-700 block truncate mt-0.5">
                     {quickHumanAge.lifeStage.stageName.split(' ')[0]}
                   </span>
                 )}
@@ -1781,22 +1781,22 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                 title="Kliknij, aby otworzyć pełny wykres i historię pomiarów wagi"
               >
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 group-hover:text-teal-700 block truncate">Waga</span>
+                  <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-slate-400 group-hover:text-teal-700 block truncate">Waga</span>
                   <Scale className="w-2.5 h-2.5 text-teal-600 opacity-60 group-hover:opacity-100 shrink-0" />
                 </div>
-                <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-teal-700 truncate block">
+                <span className="text-xs min-[360px]:text-xs sm:text-sm font-bold text-teal-700 truncate block">
                   {pet.weightKg} kg
                 </span>
-                <span className="text-[9px] min-[360px]:text-[10px] font-bold text-teal-600/80 group-hover:text-teal-700 block truncate mt-0.5">
+                <span className="text-[11px] min-[360px]:text-xs font-bold text-teal-600/80 group-hover:text-teal-700 block truncate mt-0.5">
                   Wykres i pomiary ➔
                 </span>
               </button>
               <div className="bg-slate-50 p-1.5 min-[360px]:p-2.5 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-slate-400 block truncate">Kastracja</span>
-                <span className="text-[11px] min-[360px]:text-xs sm:text-sm font-bold text-slate-800 truncate block">
+                <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-slate-400 block truncate">Kastracja</span>
+                <span className="text-xs min-[360px]:text-xs sm:text-sm font-bold text-slate-800 truncate block">
                   {pet.isNeutered ? 'Tak' : 'Nie'}
                 </span>
-                <span className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-400 block truncate mt-0.5">
+                <span className="text-[11px] min-[360px]:text-xs font-bold text-slate-400 block truncate mt-0.5">
                   {pet.gender === 'male' ? 'Samiec' : 'Samica'}
                 </span>
               </div>
@@ -1815,7 +1815,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   title="Kliknij, aby otworzyć szczegóły urodzin i kalkulator wieku pupila"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block truncate">Urodziny pupila</span>
+                    <span className="text-[11px] uppercase font-extrabold text-teal-700 block truncate">Urodziny pupila</span>
                     <span className="text-xs font-bold text-teal-950 truncate block">
                       {pet.birthDate ? formatBirthday(pet.birthDate) : 'Ustaw datę'}
                     </span>
@@ -1835,7 +1835,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   title="Kliknij, aby otworzyć asystenta objawów i pierwszej pomocy"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-amber-700 block truncate">Objawy & Triage</span>
+                    <span className="text-[11px] uppercase font-extrabold text-amber-700 block truncate">Objawy & Triage</span>
                     <span className="text-xs font-bold text-amber-950 truncate block">
                       Pierwsza pomoc
                     </span>
@@ -1854,7 +1854,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   className="p-2 min-[360px]:p-2.5 rounded-2xl bg-rose-50/70 hover:bg-rose-100/70 text-rose-900 border border-rose-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-rose-700 block truncate">Ostry dyżur 24h</span>
+                    <span className="text-[11px] uppercase font-extrabold text-rose-700 block truncate">Ostry dyżur 24h</span>
                     <span className="text-xs font-bold text-rose-950 truncate block">
                       Kliniki w pobliżu
                     </span>
@@ -1873,7 +1873,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   className="p-2 min-[360px]:p-2.5 rounded-2xl bg-teal-50/70 hover:bg-teal-100/70 text-teal-900 border border-teal-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-teal-700 block truncate">Biomarkery krwi</span>
+                    <span className="text-[11px] uppercase font-extrabold text-teal-700 block truncate">Biomarkery krwi</span>
                     <span className="text-xs font-bold text-teal-950 truncate block">
                       Wykresy trendów
                     </span>
@@ -1892,7 +1892,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   className="p-2 min-[360px]:p-2.5 rounded-2xl bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-900 border border-emerald-200/80 text-left transition flex items-center justify-between gap-1 shadow-2xs cursor-pointer active:scale-98 min-[340px]:col-span-2 sm:col-span-1"
                 >
                   <div className="min-w-0">
-                    <span className="text-[9px] uppercase font-extrabold text-emerald-700 block truncate">Skaner karmy</span>
+                    <span className="text-[11px] uppercase font-extrabold text-emerald-700 block truncate">Skaner karmy</span>
                     <span className="text-xs font-bold text-emerald-950 truncate block">
                       Alergeny i skład
                     </span>
@@ -1916,7 +1916,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             <h4 className="text-xs font-bold text-slate-900 leading-tight">
               Układ kafelków na pulpicie
             </h4>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-xs text-slate-500">
               {visibleWidgets.length} aktywnych kafelków &bull; Przeciągaj kafelki, by ustalić własną kolejność
             </p>
           </div>
@@ -1940,7 +1940,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             type="button"
             onClick={onOpenDashboardCustomizer}
             className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-            title="Dostosuj widoczność modułów"
+            title="Dostosuj widoczność modułów" aria-label="Dostosuj widoczność modułów"
           >
             <Sliders className="w-4 h-4 text-teal-700" />
           </button>
@@ -1956,7 +1956,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             </div>
             <div>
               <span className="font-bold text-white block">Tryb przesuwania kafelków aktywny</span>
-              <p className="text-[11px] text-teal-200/80 leading-tight">
+              <p className="text-xs text-teal-200/80 leading-tight">
                 Chwyć kafelek i przeciągnij w górę lub w dół, albo użyj strzałek ▲ / ▼. Kolejność zapisuje się automatycznie.
               </p>
             </div>
@@ -1966,8 +1966,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             <button
               type="button"
               onClick={handleResetOrder}
-              className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-teal-200 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer"
-              title="Przywróć standardowy porządek modułów"
+              className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-teal-200 text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+              title="Przywróć standardowy porządek modułów" aria-label="Przywróć standardowy porządek modułów"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Domyślna</span>
@@ -1975,7 +1975,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             <button
               type="button"
               onClick={() => setIsReorderMode(false)}
-              className="px-3 py-1 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-[11px] transition shadow-xs cursor-pointer"
+              className="px-3 py-1 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs transition shadow-xs cursor-pointer"
             >
               Gotowe
             </button>
@@ -2020,7 +2020,7 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
                   >
                     <GripVertical className="w-4 h-4 text-teal-400" />
                     <span className="text-xs font-bold text-white flex items-center gap-2">
-                      <span className="w-4 h-4 rounded-full bg-teal-500/30 text-teal-300 text-[10px] flex items-center justify-center font-mono">
+                      <span className="w-4 h-4 rounded-full bg-teal-500/30 text-teal-300 text-xs flex items-center justify-center font-mono">
                         {visibleIndex + 1}
                       </span>
                       {itemMeta.label}

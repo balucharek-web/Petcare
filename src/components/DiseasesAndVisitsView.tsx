@@ -515,7 +515,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-base text-slate-900">{c.name}</h4>
                         <span
-                          className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase ${
                             c.status === 'cured'
                               ? 'bg-emerald-100 text-emerald-800'
                               : c.status === 'chronic'
@@ -552,14 +552,14 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
                   {c.symptoms && (
                     <div className="text-xs bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block mb-0.5">Zaobserwowane objawy</span>
+                      <span className="text-slate-400 font-bold uppercase text-xs block mb-0.5">Zaobserwowane objawy</span>
                       <p className="text-slate-700">{c.symptoms}</p>
                     </div>
                   )}
 
                   {c.treatment && (
                     <div className="text-xs bg-teal-50/60 p-3 rounded-2xl border border-teal-100">
-                      <span className="text-teal-700 font-bold uppercase text-[10px] block mb-0.5">Zastosowane leczenie / zalecenia</span>
+                      <span className="text-teal-700 font-bold uppercase text-xs block mb-0.5">Zastosowane leczenie / zalecenia</span>
                       <p className="text-teal-950 font-medium">{c.treatment}</p>
                     </div>
                   )}
@@ -581,7 +581,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
         <div className="space-y-4">
           <div className="bg-slate-900 text-white rounded-3xl p-5 shadow-sm flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
                 Podsumowanie opieki
               </span>
               <p className="text-xl font-extrabold text-teal-400">
@@ -651,7 +651,7 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
                   {v.treatmentGiven && (
                     <div className="text-xs bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block mb-0.5">Przebieg wizyty / zabiegi</span>
+                      <span className="text-slate-400 font-bold uppercase text-xs block mb-0.5">Przebieg wizyty / zabiegi</span>
                       <p className="text-slate-700">{v.treatmentGiven}</p>
                     </div>
                   )}

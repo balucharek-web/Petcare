@@ -72,7 +72,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden border border-slate-200">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between px-6 py-4 bg-slate-900 text-white print:hidden gap-3">
@@ -94,7 +94,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
                   ? 'bg-emerald-600 text-white' 
                   : 'bg-teal-600 hover:bg-teal-500 text-white shadow-teal-600/30'
               }`}
-              title="Pobierz gotowy dokument PDF na telefon"
+              title="Pobierz gotowy dokument PDF na telefon" aria-label="Pobierz gotowy dokument PDF na telefon"
             >
               {pdfSuccess ? <Check className="w-3.5 h-3.5" /> : <Download className="w-3.5 h-3.5" />}
               <span>{pdfSuccess ? 'Zapisano PDF' : isGeneratingPdf ? 'Generowanie...' : 'Pobierz PDF'}</span>
@@ -103,7 +103,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold transition active:scale-95 border border-slate-700"
-              title="Drukuj"
+              title="Drukuj" aria-label="Drukuj"
             >
               <Printer className="w-3.5 h-3.5 text-teal-400" />
               <span>Drukuj</span>
@@ -113,7 +113,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
               onClick={handleSharePdf}
               disabled={isGeneratingPdf}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold transition active:scale-95 border border-slate-700"
-              title="Udostępnij PDF"
+              title="Udostępnij PDF" aria-label="Udostępnij PDF"
             >
               <Share2 className="w-3.5 h-3.5 text-blue-400" />
               <span className="hidden sm:inline">Udostępnij</span>
@@ -121,8 +121,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            >
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" aria-label="Zamknij">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -144,12 +143,12 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
 
             {/* Chip Badge */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-right">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Nr Mikroczipa (Transponder)</span>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Nr Mikroczipa (Transponder)</span>
               <span className="font-mono text-base font-bold text-slate-900 tracking-wider">
                 {pet.chipNumber || 'BRAK'}
               </span>
               {pet.passportNumber && (
-                <div className="text-[11px] text-slate-600 mt-0.5">Paszport: <strong>{pet.passportNumber}</strong></div>
+                <div className="text-xs text-slate-600 mt-0.5">Paszport: <strong>{pet.passportNumber}</strong></div>
               )}
             </div>
           </div>
@@ -207,7 +206,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
                   <div key={m.id} className="p-3 rounded-xl border border-slate-200 bg-white text-xs">
                     <div className="flex items-center justify-between font-bold text-slate-800">
                       <span>{m.name} ({m.dosage})</span>
-                      <span className="text-[11px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md font-normal">
+                      <span className="text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md font-normal">
                         {m.isChronic ? 'Leczenie stałe' : 'Leczenie czasowe'}
                       </span>
                     </div>
@@ -215,7 +214,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
                       <span>Pory: {m.timesOfDay.map(t => `${t.label} (${t.time}) - ${t.amount}`).join(' • ')}</span>
                     </div>
                     {m.instructions && (
-                      <p className="mt-1 text-slate-500 text-[11px]">Zalecenia: {m.instructions}</p>
+                      <p className="mt-1 text-slate-500 text-xs">Zalecenia: {m.instructions}</p>
                     )}
                   </div>
                 ))}
@@ -247,7 +246,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
                       <td className="p-2.5 font-medium text-slate-900">{v.name}</td>
                       <td className="p-2.5 text-slate-600">{v.dateAdministered}</td>
                       <td className="p-2.5 font-semibold text-emerald-700">{v.validUntil}</td>
-                      <td className="p-2.5 font-mono text-[11px] text-slate-500">{v.batchNumber || '-'}</td>
+                      <td className="p-2.5 font-mono text-xs text-slate-500">{v.batchNumber || '-'}</td>
                       <td className="p-2.5 text-slate-600">{v.vetClinic || '-'}</td>
                     </tr>
                   ))}
@@ -291,8 +290,8 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
                       alt={scan.title}
                       className="w-full h-28 object-cover rounded-lg"
                     />
-                    <p className="text-[11px] font-semibold text-slate-800 truncate mt-1">{scan.title}</p>
-                    <p className="text-[10px] text-slate-400">{scan.date}</p>
+                    <p className="text-xs font-semibold text-slate-800 truncate mt-1">{scan.title}</p>
+                    <p className="text-xs text-slate-400">{scan.date}</p>
                   </div>
                 ))}
               </div>

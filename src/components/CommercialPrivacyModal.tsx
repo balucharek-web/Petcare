@@ -67,7 +67,7 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-fadeIn">
       <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -78,7 +78,7 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-extrabold text-gray-900">Prywatność i Bezpieczeństwo</h2>
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold">
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
                   Standard Google Play
                 </span>
               </div>
@@ -87,8 +87,7 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition cursor-pointer"
-          >
+            className="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition cursor-pointer" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -159,7 +158,7 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
               <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
                 <div>
                   <div className="font-bold text-gray-900 text-xs">Pobierz kopię swoich danych (JSON)</div>
-                  <div className="text-[11px] text-gray-400">Prawo do przenoszenia danych (art. 20 RODO)</div>
+                  <div className="text-xs text-gray-400">Prawo do przenoszenia danych (art. 20 RODO)</div>
                 </div>
                 <button
                   onClick={exportBackupFile}

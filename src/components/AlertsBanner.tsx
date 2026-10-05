@@ -88,12 +88,12 @@ export const AlertsBanner: React.FC<AlertsBannerProps> = ({ alerts, onNavigateTo
                   {primaryAlert.title}
                 </span>
                 {alerts.length > 1 && (
-                  <span className="text-[10px] bg-white/70 px-1.5 py-0.5 rounded-full font-bold">
+                  <span className="text-xs bg-white/70 px-1.5 py-0.5 rounded-full font-bold">
                     +{alerts.length - 1} inne
                   </span>
                 )}
               </div>
-              <p className="text-[11px] opacity-80 mt-0.5 leading-tight">
+              <p className="text-xs opacity-80 mt-0.5 leading-tight">
                 {primaryAlert.description}
               </p>
             </div>
@@ -119,7 +119,7 @@ export const AlertsBanner: React.FC<AlertsBannerProps> = ({ alerts, onNavigateTo
           <button
             type="button"
             onClick={handleClickAlert}
-            className="text-[11px] font-bold text-teal-800 hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-teal-800 hover:underline flex items-center gap-1"
           >
             <span>Szczegóły i kalendarz</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -129,7 +129,7 @@ export const AlertsBanner: React.FC<AlertsBannerProps> = ({ alerts, onNavigateTo
             <button
               type="button"
               onClick={handleEnableNotifications}
-              className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-800 text-white flex items-center gap-1 shadow-2xs transition active:scale-95"
+              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-800 text-white flex items-center gap-1 shadow-2xs transition active:scale-95"
             >
               <Bell className="w-3 h-3" />
               Włącz powiadomienia w telefonie

@@ -6,38 +6,62 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import { createSyncStore } from './syncStore.ts';
+import { createSyncStore, type UserSyncRecord } from './syncStore.ts';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
+export async function createApp({ serveFrontend = true }: { serveFrontend?: boolean } = {}) {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
-
-  app.use(express.json({ limit: '25mb' }));
+  // Small default body limit; only sync/QR uploads and AI image endpoints accept large bodies.
+  const LARGE_BODY_ROUTES = new Set([
+    '/api/cloud-sync/upload',
+    '/api/cloud-sync/generate-qr',
+    '/api/scan-medical',
+    '/api/analyze-pet-document',
+    '/api/analyze-food',
+  ]);
+  const smallJson = express.json({ limit: '1mb' });
+  const largeJson = express.json({ limit: '25mb' });
+  app.use((req, res, next) => (LARGE_BODY_ROUTES.has(req.path) ? largeJson : smallJson)(req, res, next));
 
   // Disable fingerprinting
   app.disable('x-powered-by');
   // Trust exactly one proxy hop (Cloud Run front end) so req.ip cannot be spoofed via X-Forwarded-For
   app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
 
-  // Enterprise HTTP Security Headers (adjusted for AI Studio preview iframe support)
+  const isProduction = process.env.NODE_ENV === 'production';
+  // Vite dev server needs inline scripts (React refresh preamble) and its HMR websocket.
+  const contentSecurityPolicy = [
+    "default-src 'self'",
+    `script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com${isProduction ? '' : " 'unsafe-inline'"}`,
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src 'self' https://*.googleapis.com https://accounts.google.com https://nominatim.openstreetmap.org https://*.firebaseapp.com${isProduction ? '' : ' ws: wss:'}`,
+    "frame-src https://accounts.google.com https://*.firebaseapp.com https://content.googleapis.com",
+    "worker-src 'self' blob:",
+    "media-src 'self' data: blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+
+  // HTTP security headers
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('X-XSS-Protection', '0');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(self), microphone=()');
-    if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    res.setHeader('X-Frame-Options', 'DENY');
+    if (isProduction) {
       res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
-    // Content Security Policy permitting Vite, Google APIs, OpenStreetMap, and AI Studio iframe preview
-    res.setHeader(
-      'Content-Security-Policy',
-      "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https:; style-src 'self' 'unsafe-inline' https:; worker-src 'self' blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' data: blob: https: wss:; media-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self';"
-    );
+    res.setHeader('Content-Security-Policy', contentSecurityPolicy);
     next();
   });
 
@@ -46,8 +70,6 @@ async function startServer() {
     'capacitor://localhost',
     'https://localhost',
     'http://localhost',
-    'https://ais-pre-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app',
-    'https://ais-dev-u4x7tzryti7irk3zakzemp-559140193543.europe-west3.run.app',
     ...(process.env.APP_URL ? [process.env.APP_URL.replace(/\/$/, '')] : []),
     ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean) : []),
   ]);
@@ -115,7 +137,20 @@ async function startServer() {
     message: 'Przekroczono limit zapytań skanera AI. Odczekaj chwilę.',
   });
 
-  const syncStore = createSyncStore(path.resolve(__dirname, 'data'));
+  // Global daily cap on Gemini calls so a leaked client or bot cannot exhaust the API budget.
+  const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT ?? 1000);
+  let aiBudget = { day: new Date().toISOString().slice(0, 10), used: 0 };
+  const aiDailyBudget = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (aiBudget.day !== today) aiBudget = { day: today, used: 0 };
+    if (aiBudget.used >= AI_DAILY_LIMIT) {
+      return res.status(429).json({ success: false, error: 'Dzienny limit analiz AI został wyczerpany. Spróbuj jutro.' });
+    }
+    aiBudget.used++;
+    next();
+  };
+
+  const syncStore = createSyncStore(process.env.SYNC_DATA_DIR || path.resolve(__dirname, 'data'));
   console.log(`Cloud sync storage: ${syncStore.kind}`);
 
   function tokensMatch(provided: unknown, stored: string | undefined): boolean {
@@ -124,6 +159,46 @@ async function startServer() {
     const b = Buffer.from(stored);
     return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
+
+  const MAX_TOKEN_AGE = 60 * 24 * 60 * 60 * 1000;
+  const MAX_SESSIONS_PER_USER = 10;
+  const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
+
+  function issueSessionToken(user: UserSyncRecord): string {
+    const token = 'tok_' + crypto.randomBytes(32).toString('hex');
+    const now = Date.now();
+    const active = (user.sessions || []).filter((s) => now - s.createdAt < MAX_TOKEN_AGE);
+    active.push({ hash: hashToken(token), createdAt: now });
+    user.sessions = active.slice(-MAX_SESSIONS_PER_USER);
+    delete user.token;
+    delete user.tokenCreatedAt;
+    return token;
+  }
+
+  type SessionCheck = 'valid' | 'invalid' | 'expired';
+
+  /** Verifies a session token; migrates a legacy plaintext token to a hashed session (caller persists `user`). */
+  function checkSession(user: UserSyncRecord | undefined, provided: unknown): SessionCheck {
+    if (!user || typeof provided !== 'string' || !provided) return 'invalid';
+    const now = Date.now();
+    const providedHash = hashToken(provided);
+    const match = (user.sessions || []).find((s) => tokensMatch(providedHash, s.hash));
+    if (match) return now - match.createdAt > MAX_TOKEN_AGE ? 'expired' : 'valid';
+    if (user.token && tokensMatch(provided, user.token)) {
+      const createdAt = user.tokenCreatedAt || now;
+      if (now - createdAt > MAX_TOKEN_AGE) return 'expired';
+      user.sessions = [...(user.sessions || []), { hash: providedHash, createdAt }].slice(-MAX_SESSIONS_PER_USER);
+      delete user.token;
+      delete user.tokenCreatedAt;
+      return 'valid';
+    }
+    return 'invalid';
+  }
+
+  const sessionError = (check: SessionCheck) =>
+    check === 'expired'
+      ? 'Twoja sesja wygasła ze względów bezpieczeństwa. Zaloguj się ponownie.'
+      : 'Brak autoryzacji sesji. Zaloguj się ponownie.';
 
   // Enterprise PBKDF2 Password Hashing (100,000 iterations, SHA-512, 32-byte salt)
   function hashPasswordPbkdf2(password: string, salt: string): string {
@@ -306,7 +381,6 @@ async function startServer() {
       }
 
       let user = await syncStore.getUser(normalizedEmail);
-      const generatedToken = 'tok_' + crypto.randomBytes(24).toString('hex');
 
       // 1. Google Provider Sign-in (Cryptographically verified ID Token or OAuth2 Access Token)
       if (provider === 'google' || action === 'google') {
@@ -350,8 +424,6 @@ async function startServer() {
             name: effectiveName,
             avatar: effectiveAvatar,
             provider: 'google',
-            token: generatedToken,
-            tokenCreatedAt: Date.now(),
             lastSyncTime: null,
             petCount: 0,
             payload: {
@@ -365,17 +437,16 @@ async function startServer() {
             }
           };
         } else {
-          user.token = generatedToken;
-          user.tokenCreatedAt = Date.now();
           if (effectiveName) user.name = effectiveName;
           if (effectiveAvatar) user.avatar = effectiveAvatar;
           user.provider = 'google';
         }
+        const sessionToken = issueSessionToken(user);
         await syncStore.putUser(user);
 
         return res.json({
           success: true,
-          token: user.token,
+          token: sessionToken,
           user: {
             email: user.email,
             name: user.name,
@@ -414,8 +485,6 @@ async function startServer() {
           name: name ? String(name).slice(0, 100) : normalizedEmail.split('@')[0],
           avatar: avatar ? String(avatar).slice(0, 500) : '',
           provider: 'email',
-          token: generatedToken,
-          tokenCreatedAt: Date.now(),
           lastSyncTime: null,
           petCount: 0,
           payload: {
@@ -428,11 +497,12 @@ async function startServer() {
             visits: []
           }
         };
+        const sessionToken = issueSessionToken(user);
         await syncStore.putUser(user);
 
         return res.json({
           success: true,
-          token: user.token,
+          token: sessionToken,
           user: {
             email: user.email,
             name: user.name,
@@ -483,13 +553,12 @@ async function startServer() {
         user.hashAlgorithm = 'pbkdf2-sha512';
       }
 
-      user.token = generatedToken;
-      user.tokenCreatedAt = Date.now();
+      const sessionToken = issueSessionToken(user);
       await syncStore.putUser(user);
 
       return res.json({
         success: true,
-        token: user.token,
+        token: sessionToken,
         user: {
           email: user.email,
           name: user.name,
@@ -517,21 +586,9 @@ async function startServer() {
       const normalizedEmail = email.trim().toLowerCase();
       const user = await syncStore.getUser(normalizedEmail);
 
-      if (!user || !tokensMatch(token, user.token)) {
-        return res.status(401).json({ 
-          success: false, 
-          error: 'Brak autoryzacji sesji. Zaloguj się ponownie.' 
-        });
-      }
-
-      // Check token expiration (max 60 days validity)
-      const tokenAgeMs = Date.now() - (user.tokenCreatedAt || 0);
-      const MAX_TOKEN_AGE = 60 * 24 * 60 * 60 * 1000;
-      if (user.tokenCreatedAt && tokenAgeMs > MAX_TOKEN_AGE) {
-        return res.status(401).json({
-          success: false,
-          error: 'Twoja sesja wygasła ze względów bezpieczeństwa. Zaloguj się ponownie.',
-        });
+      const session = checkSession(user, token);
+      if (!user || session !== 'valid') {
+        return res.status(401).json({ success: false, error: sessionError(session) });
       }
 
       const now = new Date().toISOString();
@@ -566,12 +623,13 @@ async function startServer() {
         return res.status(404).json({ success: false, error: 'Nie znaleziono konta w chmurze.' });
       }
 
-      // Strict security: Require matching active session token
-      if (!tokensMatch(token, user.token)) {
-        return res.status(401).json({ 
-          success: false, 
-          error: 'Brak autoryzacji sesji. Wymagany jest ważny token sesji.' 
-        });
+      const hadLegacyToken = Boolean(user.token);
+      const session = checkSession(user, token);
+      if (session !== 'valid') {
+        return res.status(401).json({ success: false, error: sessionError(session) });
+      }
+      if (hadLegacyToken && !user.token) {
+        await syncStore.putUser(user);
       }
 
       return res.json({
@@ -691,7 +749,7 @@ async function startServer() {
       const normalizedEmail = (email || '').trim().toLowerCase();
       const user = await syncStore.getUser(normalizedEmail);
 
-      if (!user || !tokensMatch(token, user.token)) {
+      if (!user || checkSession(user, token) !== 'valid') {
         return res.status(403).json({ success: false, error: 'Wymagane logowanie do wygenerowania kodu.' });
       }
 
@@ -733,6 +791,9 @@ async function startServer() {
         return res.status(404).json({ success: false, error: 'Nieprawidłowy kod parowania lub kod już wygasł.' });
       }
 
+      const pairedToken = issueSessionToken(matchedUser);
+      await syncStore.putUser(matchedUser);
+
       return res.json({
         success: true,
         user: {
@@ -740,7 +801,7 @@ async function startServer() {
           name: matchedUser.name,
           avatar: matchedUser.avatar,
         },
-        token: matchedUser.token,
+        token: pairedToken,
         payload: matchedUser.payload,
         petCount: matchedUser.petCount,
         lastSyncTime: matchedUser.lastSyncTime,
@@ -761,7 +822,7 @@ async function startServer() {
       const normalizedEmail = email.trim().toLowerCase();
       const user = await syncStore.getUser(normalizedEmail);
 
-      if (!user || !tokensMatch(token, user.token)) {
+      if (!user || checkSession(user, token) !== 'valid') {
         return res.status(401).json({ success: false, error: 'Brak autoryzacji do usunięcia tego konta.' });
       }
 
@@ -775,7 +836,7 @@ async function startServer() {
   });
 
   // API Route: AI Medical & Prescription Scanner
-  app.post('/api/scan-medical', aiScanLimiter, async (req, res) => {
+  app.post('/api/scan-medical', aiScanLimiter, aiDailyBudget, async (req, res) => {
     const { imageBase64, mimeType, petSpecies, petName, petWeightKg, deepDecipherMode } = req.body || {};
 
     try {
@@ -992,7 +1053,7 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
   });
 
   // API Route: AI Pet Food & Document Analyzer (Food Lens AI)
-  app.post(['/api/analyze-pet-document', '/api/analyze-food'], aiScanLimiter, async (req, res) => {
+  app.post(['/api/analyze-pet-document', '/api/analyze-food'], aiScanLimiter, aiDailyBudget, async (req, res) => {
     const { imageBase64, mimeType, petSpecies, petName, petAllergies, customPrompt } = req.body || {};
 
     try {
@@ -1283,7 +1344,9 @@ Zwróć WYŁĄCZNIE poprawny obiekt JSON:
   });
 
   // Vite middleware in dev or static files in production
-  if (process.env.NODE_ENV !== 'production') {
+  if (!serveFrontend) {
+    // API-only mode (tests)
+  } else if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true, host: '0.0.0.0' },
       appType: 'spa',
@@ -1296,12 +1359,19 @@ Zwróć WYŁĄCZNIE poprawny obiekt JSON:
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`PetCare server running on http://0.0.0.0:${PORT}`);
-  });
+  return app;
 }
 
-startServer().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
+if (!process.env.VITEST) {
+  createApp()
+    .then((app) => {
+      const PORT = Number(process.env.PORT) || 3000;
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`PetCare server running on http://0.0.0.0:${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to start server:', err);
+      process.exit(1);
+    });
+}

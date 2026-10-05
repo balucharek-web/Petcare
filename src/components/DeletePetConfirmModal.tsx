@@ -20,7 +20,7 @@ export const DeletePetConfirmModal: React.FC<DeletePetConfirmModalProps> = ({
   if (!isOpen || !pet) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-slate-800 dark:text-slate-100">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
@@ -63,7 +63,7 @@ export const DeletePetConfirmModal: React.FC<DeletePetConfirmModalProps> = ({
           <p>
             Czy na pewno chcesz bezpowrotnie usunąć profil pupila <strong>{pet.name}</strong>?
           </p>
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-[11px] space-y-1">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs space-y-1">
             <p className="font-bold text-slate-800 dark:text-slate-200">Wraz z profilem zostaną usunięte:</p>
             <ul className="list-disc list-inside space-y-0.5 text-slate-500 dark:text-slate-400">
               <li>Wszystkie dawki i aktywne leki</li>
@@ -74,7 +74,7 @@ export const DeletePetConfirmModal: React.FC<DeletePetConfirmModalProps> = ({
             </ul>
           </div>
           {isLastPet && (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
               To jedyny zwierzak na Twoim koncie. Po usunięciu będziesz mógł dodać nowego pupila lub załadować dane testowe.
             </p>
           )}

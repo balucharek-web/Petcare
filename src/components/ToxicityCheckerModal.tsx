@@ -78,7 +78,7 @@ export const ToxicityCheckerModal: React.FC<ToxicityCheckerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between gap-3 border-b border-slate-700">
@@ -95,8 +95,7 @@ export const ToxicityCheckerModal: React.FC<ToxicityCheckerModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
-          >
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -202,7 +201,7 @@ export const ToxicityCheckerModal: React.FC<ToxicityCheckerModalProps> = ({
                         <h3 className="font-bold text-sm text-slate-900 leading-tight">
                           {item.name}
                         </h3>
-                        <p className="text-[11px] text-slate-500 line-clamp-1">
+                        <p className="text-xs text-slate-500 line-clamp-1">
                           {item.dangerLevelDescription}
                         </p>
                       </div>
@@ -231,7 +230,7 @@ export const ToxicityCheckerModal: React.FC<ToxicityCheckerModalProps> = ({
                       </div>
 
                       {item.lethalThreshold && (
-                        <div className="bg-slate-100 p-2.5 rounded-xl font-mono text-[11px] text-slate-700">
+                        <div className="bg-slate-100 p-2.5 rounded-xl font-mono text-xs text-slate-700">
                           ⚠️ <strong>Dawka krytyczna:</strong> {item.lethalThreshold}
                         </div>
                       )}

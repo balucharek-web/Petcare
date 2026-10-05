@@ -99,3 +99,34 @@
   }
 }
 
+
+/* Accessibility: visible keyboard focus */
+:focus-visible {
+  outline: 2px solid #0d9488;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark mode fallback for light surfaces/text that have no explicit dark: variant */
+html.dark .bg-white:not([class*="dark:bg-"]) { background-color: #1e293b; }
+html.dark .bg-slate-50:not([class*="dark:bg-"]),
+html.dark .bg-gray-50:not([class*="dark:bg-"]) { background-color: #0f172a; }
+html.dark .bg-slate-100:not([class*="dark:bg-"]) { background-color: #334155; }
+html.dark .text-slate-900:not([class*="dark:text-"]),
+html.dark .text-slate-800:not([class*="dark:text-"]),
+html.dark .text-gray-900:not([class*="dark:text-"]),
+html.dark .text-gray-800:not([class*="dark:text-"]) { color: #f1f5f9; }
+html.dark .text-slate-700:not([class*="dark:text-"]),
+html.dark .text-slate-600:not([class*="dark:text-"]),
+html.dark .text-gray-700:not([class*="dark:text-"]),
+html.dark .text-gray-600:not([class*="dark:text-"]) { color: #cbd5e1; }
+html.dark .border-slate-100:not([class*="dark:border-"]),
+html.dark .border-slate-200:not([class*="dark:border-"]) { border-color: #334155; }

@@ -16,6 +16,8 @@ import {
   CalendarCustomEvent
 } from '../types/pet';
 
+import { idbGetAll, idbSet, idbDelete } from './indexedDbService';
+
 const STORAGE_KEYS = {
   PETS: 'petcare_pets_v2',
   ACTIVE_PET_ID: 'petcare_active_pet_id_v2',
@@ -36,6 +38,53 @@ const STORAGE_KEYS = {
 };
 
 const memoryStore: Record<string, string> = {};
+
+// Data keys live in IndexedDB (no ~5 MB quota). memoryStore is the synchronous
+// cache hydrated by initStorage() before the app renders.
+const IDB_KEYS = new Set<string>(
+  Object.values(STORAGE_KEYS).filter((k) => k !== STORAGE_KEYS.LAST_LOCAL_MODIFIED)
+);
+let idbReady = false;
+
+export async function initStorage(): Promise<void> {
+  try {
+    const persisted = await idbGetAll();
+    for (const key of IDB_KEYS) {
+      if (persisted[key] !== undefined) {
+        memoryStore[key] = persisted[key];
+        continue;
+      }
+      let legacy: string | null = null;
+      try { legacy = localStorage.getItem(key); } catch {}
+      if (legacy !== null) {
+        await idbSet(key, legacy);
+        memoryStore[key] = legacy;
+      }
+    }
+    idbReady = true;
+    for (const key of IDB_KEYS) {
+      if (memoryStore[key] !== undefined) {
+        try { localStorage.removeItem(key); } catch {}
+      }
+    }
+    if (navigator.storage?.persist) {
+      navigator.storage.persist().catch(() => {});
+    }
+  } catch (err) {
+    idbReady = false;
+    console.warn('[Storage] IndexedDB unavailable, falling back to localStorage', err);
+  }
+}
+
+function persistToIdb(key: string, value: string | null): void {
+  const op = value === null ? idbDelete(key) : idbSet(key, value);
+  op.catch((err) => {
+    console.warn(`[Storage] IndexedDB write failed for ${key}`, err);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('petcare_storage_quota_warning'));
+    }
+  });
+}
 
 type StorageChangeListener = (key: string) => void;
 const changeListeners: Set<StorageChangeListener> = new Set();
@@ -67,6 +116,9 @@ function notifyStorageChanged(key: string) {
 }
 
 function safeGetItem(key: string): string | null {
+  if (idbReady && IDB_KEYS.has(key)) {
+    return memoryStore[key] ?? null;
+  }
   try {
     return localStorage.getItem(key);
   } catch {
@@ -77,6 +129,12 @@ function safeGetItem(key: string): string | null {
 function safeSetItem(key: string, value: string): void {
   // Always update memory store for instantaneous availability and zero-crash guarantee
   memoryStore[key] = value;
+
+  if (idbReady && IDB_KEYS.has(key)) {
+    persistToIdb(key, value);
+    notifyStorageChanged(key);
+    return;
+  }
 
   try {
     localStorage.setItem(key, value);
@@ -122,6 +180,12 @@ function safeSetItem(key: string, value: string): void {
 }
 
 function safeRemoveItem(key: string): void {
+  if (idbReady && IDB_KEYS.has(key)) {
+    delete memoryStore[key];
+    persistToIdb(key, null);
+    notifyStorageChanged(key);
+    return;
+  }
   try {
     localStorage.removeItem(key);
   } catch {

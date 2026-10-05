@@ -17,7 +17,7 @@ import {
 import { Pet, Vaccination, Medication, MedicalExam, MedicalCondition, VetVisit, DashboardConfig } from './types/pet';
 import { storage } from './services/storage';
 import { HeaderNav } from './components/HeaderNav';
-import { BottomNav, NavTab } from './components/BottomNav';
+import { BottomNav, NavTab, HEALTH_TABS } from './components/BottomNav';
 import { PetProfileView } from './components/PetProfileView';
 import { MedicationsView } from './components/MedicationsView';
 import { VaccinationsView } from './components/VaccinationsView';
@@ -50,6 +50,7 @@ import { QRTransferModal } from './components/QRTransferModal';
 import { syncWidgetWithLatestData } from './services/nativeWidget';
 import { NoPetsView } from './components/NoPetsView';
 import { haptics } from './services/hapticsService';
+import { useAutoLabelAssociation } from './hooks/useAutoLabelAssociation';
 
 const HealthPassportModal = lazy(() => import('./components/HealthPassportModal').then((m) => ({ default: m.HealthPassportModal })));
 const MedicalReportModal = lazy(() => import('./components/MedicalReportModal').then((m) => ({ default: m.MedicalReportModal })));
@@ -77,6 +78,7 @@ const WeightTrackerModal = lazy(() => import('./components/WeightTrackerModal').
 
 export default function App() {
   const { isInstalled } = usePWAInstall();
+  useAutoLabelAssociation();
   const [session, setSession] = useState<CloudSession>(() => getStoredSession());
   const [pets, setPets] = useState<Pet[]>(() => {
     return storage.getPets();
@@ -266,30 +268,23 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = subscribeToCloudSync((newSession) => {
       setSession(newSession);
-      if (newSession.user) {
-        const currentPets = storage.getPets();
-        setPets(currentPets);
-        const targetPetId = activePetId || currentPets[0]?.id || '';
-        setActivePetId(targetPetId);
-        if (targetPetId) {
-          setVaccinations(storage.getVaccinations(targetPetId));
-          setMedications(storage.getMedications(targetPetId));
-          setExams(storage.getExams(targetPetId));
-          setConditions(storage.getConditions(targetPetId));
-          setVisits(storage.getVisits(targetPetId));
-        }
-      } else {
-        setPets([]);
-        setActivePetId('');
-        setVaccinations([]);
-        setMedications([]);
-        setExams([]);
-        setConditions([]);
-        setVisits([]);
-      }
+      // Always mirror local storage: signOut() clears storage itself, while guest
+      // sessions (no cloud account) must keep their locally saved pets.
+      const currentPets = storage.getPets();
+      setPets(currentPets);
+      const storedActiveId = storage.getActivePetId();
+      const targetPetId = currentPets.some((p) => p.id === storedActiveId)
+        ? storedActiveId
+        : currentPets[0]?.id || '';
+      setActivePetId(targetPetId);
+      setVaccinations(targetPetId ? storage.getVaccinations(targetPetId) : []);
+      setMedications(targetPetId ? storage.getMedications(targetPetId) : []);
+      setExams(targetPetId ? storage.getExams(targetPetId) : []);
+      setConditions(targetPetId ? storage.getConditions(targetPetId) : []);
+      setVisits(targetPetId ? storage.getVisits(targetPetId) : []);
     });
     return () => unsubscribe();
-  }, [activePetId]);
+  }, []);
 
   useEffect(() => {
     if (activePet?.id) {
@@ -304,6 +299,7 @@ export default function App() {
 
   // Mutations with automatic cloud synchronization for authenticated user
   const handleSelectPet = (petId: string) => {
+    storage.setActivePetId(petId);
     setActivePetId(petId);
   };
 
@@ -318,6 +314,7 @@ export default function App() {
     const newPets = [...pets, newPet];
     setPets(newPets);
     storage.savePets(newPets);
+    storage.setActivePetId(newPet.id);
     setActivePetId(newPet.id);
     uploadToCloud().catch(() => {});
   };
@@ -327,6 +324,7 @@ export default function App() {
     const remainingPets = storage.getPets();
     setPets(remainingPets);
     const nextPetId = remainingPets[0]?.id || '';
+    storage.setActivePetId(nextPetId);
     setActivePetId(nextPetId);
     if (nextPetId) {
       setVaccinations(storage.getVaccinations(nextPetId));
@@ -453,7 +451,7 @@ export default function App() {
             </div>
 
             <div className="space-y-1.5 max-w-sm">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-800 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-950 px-3 py-0.5 rounded-full border border-teal-200 dark:border-teal-800">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-teal-800 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-950 px-3 py-0.5 rounded-full border border-teal-200 dark:border-teal-800">
                 Witaj w PetCare
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -475,7 +473,7 @@ export default function App() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="font-extrabold text-sm block">Dodaj nowego zwierzaka</span>
-                  <p className="text-[11px] text-teal-100 mt-0.5 leading-tight">
+                  <p className="text-xs text-teal-100 mt-0.5 leading-tight">
                     Rozpocznij tworzenie książeczki zdrowia
                   </p>
                 </div>
@@ -491,7 +489,7 @@ export default function App() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="font-extrabold text-xs sm:text-sm block">Przenieś dane kodem QR</span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
                     Zeskanuj kod z drugiego telefonu
                   </p>
                 </div>
@@ -507,7 +505,7 @@ export default function App() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="font-extrabold text-xs sm:text-sm block">Przywróć z Dysku Google</span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
                     Pobierz wcześniej zapisaną kopię
                   </p>
                 </div>
@@ -659,6 +657,31 @@ export default function App() {
                 />
               )}
 
+              {HEALTH_TABS.includes(currentTab) && (
+                <div role="tablist" aria-label="Zdrowie" className="grid grid-cols-3 gap-1 p-1 mb-4 rounded-2xl bg-slate-200/70 dark:bg-slate-800">
+                  {([
+                    ['vaccinations', 'Szczepienia'],
+                    ['exams', 'Badania'],
+                    ['diseases', 'Wizyty'],
+                  ] as [NavTab, string][]).map(([tab, label]) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={currentTab === tab}
+                      onClick={() => setCurrentTab(tab)}
+                      className={`min-h-11 rounded-xl text-sm font-bold transition ${
+                        currentTab === tab
+                          ? 'bg-white dark:bg-slate-950 text-teal-700 dark:text-teal-300 shadow-sm'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {currentTab === 'vaccinations' && (
                 <VaccinationsView
                   pet={activePet}
@@ -704,6 +727,7 @@ export default function App() {
         <BottomNav
           currentTab={currentTab}
           onTabChange={setCurrentTab}
+          onOpenMore={() => setIsToolsHubOpen(true)}
           activeMedsCount={activeMedsCount}
           expiringVaccinesCount={expiringVaccinesCount}
         />

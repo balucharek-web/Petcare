@@ -156,7 +156,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Top Header Actions (Not Printed) */}
         <div className="no-print p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between gap-3 border-b border-slate-800">
@@ -179,7 +179,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
                   ? 'bg-emerald-600 text-white' 
                   : 'bg-teal-600 hover:bg-teal-500 text-white shadow-teal-600/30'
               }`}
-              title="Pobierz gotowy dokument PDF na telefon"
+              title="Pobierz gotowy dokument PDF na telefon" aria-label="Pobierz gotowy dokument PDF na telefon"
             >
               {pdfSuccess ? <Check className="w-3.5 h-3.5" /> : <Download className="w-3.5 h-3.5" />}
               <span>{pdfSuccess ? 'Zapisano PDF' : isGeneratingPdf ? 'Generowanie...' : 'Pobierz PDF'}</span>
@@ -188,7 +188,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold transition active:scale-95 border border-slate-700"
-              title="Otwórz podgląd wydruku w systemie Android lub przeglądarce"
+              title="Otwórz podgląd wydruku w systemie Android lub przeglądarce" aria-label="Otwórz podgląd wydruku w systemie Android lub przeglądarce"
             >
               <Printer className="w-3.5 h-3.5 text-teal-400" />
               <span>Drukuj</span>
@@ -198,7 +198,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
               onClick={handleSharePdf}
               disabled={isGeneratingPdf}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold transition active:scale-95 border border-slate-700"
-              title="Udostępnij PDF przez WhatsApp, Email lub Dysk Google"
+              title="Udostępnij PDF przez WhatsApp, Email lub Dysk Google" aria-label="Udostępnij PDF przez WhatsApp, Email lub Dysk Google"
             >
               <Share2 className="w-3.5 h-3.5 text-blue-400" />
               <span className="hidden sm:inline">Udostępnij</span>
@@ -209,7 +209,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition ${
                 copied ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
               }`}
-              title="Kopiuj tekstowe podsumowanie"
+              title="Kopiuj tekstowe podsumowanie" aria-label="Kopiuj tekstowe podsumowanie"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{copied ? 'Skopiowano' : 'Kopiuj'}</span>
@@ -217,8 +217,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
-            >
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition" aria-label="Zamknij">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -235,7 +234,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
                 className="w-16 h-16 rounded-2xl object-cover ring-2 ring-slate-900 shadow-sm"
               />
               <div>
-                <span className="text-[10px] uppercase font-mono tracking-widest text-teal-700 font-bold">
+                <span className="text-xs uppercase font-mono tracking-widest text-teal-700 font-bold">
                   KARTA ZDROWIA PACJENTA WETERYNARYJNEGO
                 </span>
                 <h1 className="text-2xl font-black text-slate-900 leading-tight">
@@ -283,19 +282,19 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
           {/* Vital metrics */}
           <div className="grid grid-cols-4 gap-3 text-center">
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Waga</span>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Waga</span>
               <span className="text-base font-bold text-slate-900">{pet.weightKg} kg</span>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Wiek</span>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Wiek</span>
               <span className="text-base font-bold text-slate-900">{calculateAge(pet.birthDate)}</span>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Urodzenie</span>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Urodzenie</span>
               <span className="text-xs font-semibold text-slate-800">{pet.birthDate || '-'}</span>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Umaszczenie</span>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Umaszczenie</span>
               <span className="text-xs font-semibold text-slate-800 truncate block">{pet.color || '-'}</span>
             </div>
           </div>
@@ -360,7 +359,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
                     {vaccinations.slice(0, 6).map(v => (
                       <tr key={v.id}>
                         <td className="p-2.5 font-bold text-slate-900">{v.name}</td>
-                        <td className="p-2.5 uppercase text-[10px] text-slate-500 font-mono">{v.category}</td>
+                        <td className="p-2.5 uppercase text-xs text-slate-500 font-mono">{v.category}</td>
                         <td className="p-2.5">{v.dateAdministered}</td>
                         <td className="p-2.5 font-bold text-emerald-700">{v.validUntil}</td>
                         <td className="p-2.5 text-slate-500">{v.batchNumber || v.vetClinic || '-'}</td>
@@ -393,7 +392,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-200">
                         {exam.keyParameters.map((p, idx) => (
                           <div key={idx} className="bg-white p-2 rounded-lg border border-slate-100">
-                            <span className="text-[10px] text-slate-500 block">{p.name}</span>
+                            <span className="text-xs text-slate-500 block">{p.name}</span>
                             <span className={`font-bold ${p.isFlagged ? 'text-rose-600' : 'text-slate-800'}`}>
                               {p.value} {p.unit || ''}
                             </span>
@@ -410,7 +409,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
           {/* Primary Vet Clinic Contact */}
           <div className="p-4 rounded-2xl bg-teal-50/60 border border-teal-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
             <div>
-              <span className="text-[10px] uppercase font-bold text-teal-800 block">Prowadzący Lekarz Weterynarii</span>
+              <span className="text-xs uppercase font-bold text-teal-800 block">Prowadzący Lekarz Weterynarii</span>
               <strong className="text-slate-900 text-sm">{pet.vetClinicName || 'Gabinet weterynaryjny'}</strong>
               <p className="text-slate-600">{pet.vetDoctorName || 'Lekarz prowadzący'}</p>
             </div>
@@ -425,7 +424,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
           </div>
 
           {/* Footer note */}
-          <div className="pt-4 border-t border-slate-200 text-center text-[10px] text-slate-400">
+          <div className="pt-4 border-t border-slate-200 text-center text-xs text-slate-400">
             Wygenerowano automatycznie z aplikacji mobilnej PetCare. Dokument ma charakter informacyjny dla lekarza weterynarii.
           </div>
         </div>

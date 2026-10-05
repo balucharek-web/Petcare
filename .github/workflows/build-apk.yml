@@ -34,6 +34,9 @@ jobs:
       - name: Sprawdzenie typów (tsc)
         run: npm run lint
 
+      - name: Testy automatyczne (Vitest)
+        run: npm test
+
       - name: Kompilacja aplikacji webowej (Vite)
         run: npm run build
 
