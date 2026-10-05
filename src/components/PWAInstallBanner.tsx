@@ -150,6 +150,7 @@ export const PWAInstallBanner: React.FC = () => {
               </h3>
               <button
                 onClick={() => setShowGuide(false)}
+                aria-label="Zamknij"
                 className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />

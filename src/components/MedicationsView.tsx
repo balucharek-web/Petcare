@@ -226,7 +226,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
 
   // Compute daily schedule items
   const dailySlots = activeMeds.flatMap(med => 
-    med.timesOfDay.map(slot => ({
+    (med.timesOfDay ?? []).map(slot => ({
       medication: med,
       slot,
     }))
@@ -1157,6 +1157,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setMedicationToDelete(null)}
+                aria-label="Zamknij"
                 className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"
               >
                 Anuluj

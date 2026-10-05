@@ -32,7 +32,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
   if (!isOpen) return null;
 
   const handlePrint = async () => {
-    await triggerPrint(`PetCare-${pet.name}-Książeczka-Zdrowia`);
+    await triggerPrint(`PetCare-${pet.name}-Książeczka-Zdrowia`, 'printable-passport');
   };
 
   const handleDownloadPdf = async () => {
@@ -128,7 +128,7 @@ export const HealthPassportModal: React.FC<HealthPassportModalProps> = ({
         </div>
 
         {/* Printable Document Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-800 font-sans print:p-0">
+        <div id="printable-passport" className="p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-800 font-sans print:p-0">
           {/* Document Title Banner */}
           <div className="border-b-2 border-teal-600 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>

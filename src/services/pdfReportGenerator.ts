@@ -11,10 +11,37 @@ interface NativePrintPluginInterface {
 
 const NativePrint = registerPlugin<NativePrintPluginInterface>('NativePrint');
 
+const PRINT_ROOT_ID = 'print-root';
+
+/**
+ * Copies the given element into a dedicated top-level container and marks the
+ * document so that print CSS hides everything else (app screen, modal chrome).
+ */
+export function preparePrintArea(elementId?: string): boolean {
+  if (typeof document === 'undefined') return false;
+  document.getElementById(PRINT_ROOT_ID)?.remove();
+  const source = elementId ? document.getElementById(elementId) : null;
+  if (!source) {
+    document.documentElement.classList.remove('print-isolated');
+    return false;
+  }
+  const clone = source.cloneNode(true) as HTMLElement;
+  clone.removeAttribute('id');
+  clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+  const root = document.createElement('div');
+  root.id = PRINT_ROOT_ID;
+  root.appendChild(clone);
+  document.body.appendChild(root);
+  document.documentElement.classList.add('print-isolated');
+  return true;
+}
+
 /**
  * Triggers native system printing (Android Print Spooler or browser print dialog).
+ * When `elementId` is given, only that element is printed.
  */
-export async function triggerPrint(jobName = 'PetCare-Raport-Medyczny'): Promise<boolean> {
+export async function triggerPrint(jobName = 'PetCare-Raport-Medyczny', elementId?: string): Promise<boolean> {
+  preparePrintArea(elementId);
   try {
     if (Capacitor.isNativePlatform()) {
       await NativePrint.print({ jobName });

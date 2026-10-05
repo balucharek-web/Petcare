@@ -32,4 +32,13 @@ describe('storage', () => {
     storage.saveDashboardConfig({ ...migrated, shortcuts: true });
     expect(storage.getDashboardConfig().shortcuts).toBe(true);
   });
+
+  it('fills in a missing dose schedule so medication screens do not crash', async () => {
+    const { storage } = await import('../src/services/storage');
+    storage.saveMedications([
+      { id: 'm1', petId: 'p1', name: 'Onsior' } as unknown as Parameters<typeof storage.saveMedications>[0][number],
+    ]);
+
+    expect(storage.getMedications()[0].timesOfDay).toEqual([]);
+  });
 });

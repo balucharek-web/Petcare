@@ -639,6 +639,7 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
               </h3>
               <button
                 onClick={() => setIsAddingEvent(false)}
+                aria-label="Zamknij"
                 className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
               >
                 <X className="w-4 h-4" />

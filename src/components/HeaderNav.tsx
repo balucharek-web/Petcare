@@ -402,6 +402,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               <button
                 onClick={() => setShowSettingsModal(false)}
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                aria-label="Zamknij"
               >
                 ✕
               </button>

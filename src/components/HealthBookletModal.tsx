@@ -85,11 +85,11 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
       setIsExporting(true);
       const shared = await sharePetMedicalReportPdf(reportPayload);
       if (!shared) {
-        await triggerPrint(`Ksiazeczka_${pet.name}`);
+        await triggerPrint(`Ksiazeczka_${pet.name}`, 'printable-booklet');
       }
     } catch (err) {
       console.warn('Fallback print:', err);
-      window.print();
+      await triggerPrint(`Ksiazeczka_${pet.name}`, 'printable-booklet');
     } finally {
       setIsExporting(false);
     }
@@ -441,6 +441,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
           {/* ======================================================== */}
           <div 
             ref={bookletRef}
+            id="printable-booklet"
             className={`${viewMode === 'print' ? 'block' : 'hidden print:block'} bg-white p-4 sm:p-8 rounded-2xl shadow-sm border border-slate-200 print:border-none print:shadow-none print:p-0 w-full max-w-[210mm] mx-auto text-slate-800`}
           >
             {/* Header / Passport Title */}
