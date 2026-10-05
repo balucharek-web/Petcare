@@ -236,11 +236,13 @@ export interface DashboardConfig {
   healthAlerts: boolean;
   vetContact: boolean;
   order?: DashboardWidgetKey[];
+  shortcutsMergedIntoToday?: boolean;
 }
 
 export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   todayQuickActions: true,
-  shortcuts: true,
+  shortcuts: false,
+  shortcutsMergedIntoToday: true,
   nutritionCalculator: true,
   weightTracker: true,
   chipAndDocs: true,

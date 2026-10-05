@@ -28,6 +28,8 @@ interface TodayQuickActionsWidgetProps {
   onOpenVetCard: () => void;
   onOpenTimeline: () => void;
   onOpenMedications: () => void;
+  onOpenVaccinations?: () => void;
+  onOpenParasiteProtection?: () => void;
   onOpenFamilySharing: () => void;
   onOpenWeightModal: () => void;
   onToggleHideWidget: () => void;
@@ -42,6 +44,8 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
   onOpenVetCard,
   onOpenTimeline,
   onOpenMedications,
+  onOpenVaccinations,
+  onOpenParasiteProtection,
   onOpenFamilySharing,
   onOpenWeightModal,
   onToggleHideWidget,
@@ -152,14 +156,14 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-extrabold text-gray-900 tracking-tight">
-                Dzisiejsze zadania i profilaktyka
+                Dziś
               </h3>
               <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full">
                 {pet.name}
               </span>
             </div>
             <p className="text-xs text-gray-500 font-medium">
-              Szybkie akcje i status zdrowia na dziś
+              Leki, terminy i profilaktyka
             </p>
           </div>
         </div>
@@ -354,7 +358,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
         </button>
         <button
           type="button"
-          onClick={onOpenTimeline}
+          onClick={onOpenVaccinations || onOpenTimeline}
           className="flex items-center gap-2.5 p-2.5 bg-white/90 border border-gray-100 rounded-2xl text-left hover:bg-white cursor-pointer min-h-[44px]"
         >
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
@@ -372,7 +376,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
       {/* PREVENTATIVE HEALTH STATUS ROW */}
       <div className="mt-3.5 pt-3 border-t border-emerald-100/80 grid grid-cols-3 gap-1.5 sm:gap-2 text-center text-xs relative z-10">
         {/* Odrobaczenie */}
-        <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
+        <button type="button" onClick={onOpenParasiteProtection || onOpenTimeline} className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs text-center hover:bg-white hover:border-emerald-200 cursor-pointer min-h-[44px] min-w-0">
           <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Odrobaczenie
           </span>
@@ -384,10 +388,10 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           }`}>
             {dewormingDaysAgo !== null && dewormingDaysAgo > 90 ? '⚠️ Czas powtórzyć' : '✓ Zalecane co 3 mies.'}
           </span>
-        </div>
+        </button>
 
         {/* Kleszcze / Pasożyty */}
-        <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
+        <button type="button" onClick={onOpenParasiteProtection || onOpenTimeline} className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs text-center hover:bg-white hover:border-emerald-200 cursor-pointer min-h-[44px] min-w-0">
           <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Kleszcze & Pchły
           </span>
@@ -405,10 +409,10 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           }`}>
             {tickDaysUntil !== null && tickDaysUntil > 0 ? '✓ Ochrona aktywna' : 'Podaj preparat'}
           </span>
-        </div>
+        </button>
 
         {/* Wścieklizna */}
-        <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
+        <button type="button" onClick={onOpenVaccinations || onOpenTimeline} className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs text-center hover:bg-white hover:border-emerald-200 cursor-pointer min-h-[44px] min-w-0">
           <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Wścieklizna
           </span>
@@ -422,7 +426,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           }`}>
             {rabiesDaysUntil !== null && rabiesDaysUntil > 0 ? '✓ Szczepienie OK' : 'Zaszczep pupila'}
           </span>
-        </div>
+        </button>
       </div>
     </div>
   );
