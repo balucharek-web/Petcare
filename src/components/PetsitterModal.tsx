@@ -188,8 +188,8 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs animate-fadeIn">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Telefon właściciela</label>
-                  <input
+                  <label htmlFor="sitter-field-1" className="font-bold text-slate-700 block mb-1">Telefon właściciela</label>
+                  <input id="sitter-field-1"
                     type="tel"
                     placeholder="np. +48 600 000 000"
                     value={ownerPhone}
@@ -198,8 +198,8 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Drugi kontakt awaryjny (rodzina/sąsiad)</label>
-                  <input
+                  <label htmlFor="sitter-field-2" className="font-bold text-slate-700 block mb-1">Drugi kontakt awaryjny (rodzina/sąsiad)</label>
+                  <input id="sitter-field-2"
                     type="tel"
                     placeholder="np. +48 700 000 000"
                     value={secondaryPhone}
@@ -210,8 +210,8 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Zwyczaje, lęki i zachowanie</label>
-                <textarea
+                <label htmlFor="sitter-field-3" className="font-bold text-slate-700 block mb-1">Zwyczaje, lęki i zachowanie</label>
+                <textarea id="sitter-field-3"
                   rows={2}
                   value={habitsAndFears}
                   onChange={(e) => setHabitsAndFears(e.target.value)}
@@ -220,8 +220,8 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Ulubione smaczki, zabawy i nagrody</label>
-                <input
+                <label htmlFor="sitter-field-4" className="font-bold text-slate-700 block mb-1">Ulubione smaczki, zabawy i nagrody</label>
+                <input id="sitter-field-4"
                   type="text"
                   value={favoriteTreats}
                   onChange={(e) => setFavoriteTreats(e.target.value)}
@@ -230,8 +230,8 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Specjalne instrukcje domowe</label>
-                <textarea
+                <label htmlFor="sitter-field-5" className="font-bold text-slate-700 block mb-1">Specjalne instrukcje domowe</label>
+                <textarea id="sitter-field-5"
                   rows={2}
                   value={specialInstructions}
                   onChange={(e) => setSpecialInstructions(e.target.value)}

@@ -713,10 +713,10 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="calendar-field-1" className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Tytuł wydarzenia *
                 </label>
-                <input
+                <input id="calendar-field-1"
                   type="text"
                   required
                   value={newTitle}
@@ -728,10 +728,10 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="calendar-field-2" className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Data
                   </label>
-                  <input
+                  <input id="calendar-field-2"
                     type="date"
                     required
                     value={selectedDate}
@@ -741,10 +741,10 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="calendar-field-3" className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Godzina (opcjonalnie)
                   </label>
-                  <input
+                  <input id="calendar-field-3"
                     type="time"
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
@@ -754,10 +754,10 @@ export const CalendarHubView: React.FC<CalendarHubViewProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="calendar-field-4" className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Notatki / Adres
                 </label>
-                <input
+                <input id="calendar-field-4"
                   type="text"
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}

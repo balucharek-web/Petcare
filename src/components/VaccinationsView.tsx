@@ -239,8 +239,8 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Kategoria</label>
-              <select
+              <label htmlFor="vacc-field-1" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Kategoria</label>
+              <select id="vacc-field-1"
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-bold text-slate-800"
@@ -254,8 +254,8 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Nr serii (batch)</label>
-              <input
+              <label htmlFor="vacc-field-2" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Nr serii (batch)</label>
+              <input id="vacc-field-2"
                 type="text"
                 placeholder="np. RB-88914-A"
                 value={formBatch}
@@ -267,8 +267,8 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data podania *</label>
-              <input
+              <label htmlFor="vacc-field-3" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data podania *</label>
+              <input id="vacc-field-3"
                 type="date"
                 required
                 value={formAdminDate}
@@ -277,8 +277,8 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Ważne do (termin) *</label>
-              <input
+              <label htmlFor="vacc-field-4" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Ważne do (termin) *</label>
+              <input id="vacc-field-4"
                 type="date"
                 required
                 value={formValidUntil}
@@ -290,8 +290,8 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Klinika / Gabinet</label>
-              <input
+              <label htmlFor="vacc-field-5" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Klinika / Gabinet</label>
+              <input id="vacc-field-5"
                 type="text"
                 placeholder="Klinika Weterynaryjna"
                 value={formClinic}
@@ -300,8 +300,8 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Lekarz weterynarii</label>
-              <input
+              <label htmlFor="vacc-field-6" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Lekarz weterynarii</label>
+              <input id="vacc-field-6"
                 type="text"
                 placeholder="dr wet."
                 value={formDoctor}
@@ -313,8 +313,8 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
 
           <div className="grid grid-cols-3 gap-2.5 items-center">
             <div className="col-span-2">
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Uwagi / Zalecenia</label>
-              <input
+              <label htmlFor="vacc-field-7" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Uwagi / Zalecenia</label>
+              <input id="vacc-field-7"
                 type="text"
                 placeholder="np. Wpis w paszporcie s. 8, bez powikłań"
                 value={formNotes}

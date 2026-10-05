@@ -250,8 +250,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
         <form onSubmit={handleSaveVisit} className="space-y-3 text-sm">
           <div>
-            <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Cel wizyty / Powód *</label>
-            <input
+            <label htmlFor="visit-field-1" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Cel wizyty / Powód *</label>
+            <input id="visit-field-1"
               type="text"
               required
               placeholder="np. Kontrola okresowa, Badanie krwi, Zabieg"
@@ -263,8 +263,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data wizyty *</label>
-              <input
+              <label htmlFor="visit-field-2" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data wizyty *</label>
+              <input id="visit-field-2"
                 type="date"
                 required
                 value={vDate}
@@ -273,8 +273,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Godzina</label>
-              <input
+              <label htmlFor="visit-field-3" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Godzina</label>
+              <input id="visit-field-3"
                 type="time"
                 value={vTime}
                 onChange={(e) => setVTime(e.target.value)}
@@ -285,8 +285,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Klinika / Gabinet</label>
-              <input
+              <label htmlFor="visit-field-4" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Klinika / Gabinet</label>
+              <input id="visit-field-4"
                 type="text"
                 placeholder="np. Klinika Weterynaryjna"
                 value={vClinic}
@@ -295,8 +295,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Lekarz</label>
-              <input
+              <label htmlFor="visit-field-5" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Lekarz</label>
+              <input id="visit-field-5"
                 type="text"
                 placeholder="dr wet."
                 value={vDoctor}
@@ -308,8 +308,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Koszt (PLN)</label>
-              <input
+              <label htmlFor="visit-field-6" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Koszt (PLN)</label>
+              <input id="visit-field-6"
                 type="number"
                 step="1"
                 placeholder="np. 150"
@@ -319,8 +319,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Następna wizyta</label>
-              <input
+              <label htmlFor="visit-field-7" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Następna wizyta</label>
+              <input id="visit-field-7"
                 type="date"
                 value={vNextDate}
                 onChange={(e) => setVNextDate(e.target.value)}
@@ -330,8 +330,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
           </div>
 
           <div>
-            <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Przebieg i zalecenia</label>
-            <input
+            <label htmlFor="visit-field-8" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Przebieg i zalecenia</label>
+            <input id="visit-field-8"
               type="text"
               placeholder="np. Podano antybiotyk, kontrola za 7 dni"
               value={vTreatment}
@@ -379,8 +379,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
         <form onSubmit={handleSaveCondition} className="space-y-3 text-sm">
           <div>
-            <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Nazwa choroby / diagnozy *</label>
-            <input
+            <label htmlFor="visit-field-9" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Nazwa choroby / diagnozy *</label>
+            <input id="visit-field-9"
               type="text"
               required
               placeholder="np. Alergia pokarmowa, Zapalenie ucha"
@@ -392,8 +392,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data diagnozy</label>
-              <input
+              <label htmlFor="visit-field-10" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data diagnozy</label>
+              <input id="visit-field-10"
                 type="date"
                 required
                 value={cDate}
@@ -402,8 +402,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Status</label>
-              <select
+              <label htmlFor="visit-field-11" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Status</label>
+              <select id="visit-field-11"
                 value={cStatus}
                 onChange={(e) => setCStatus(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-slate-900 focus:outline-teal-600"
@@ -416,8 +416,8 @@ export const DiseasesAndVisitsView: React.FC<DiseasesAndVisitsViewProps> = ({
           </div>
 
           <div>
-            <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Zalecenia i opis leczenia</label>
-            <input
+            <label htmlFor="visit-field-12" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Zalecenia i opis leczenia</label>
+            <input id="visit-field-12"
               type="text"
               placeholder="np. Dieta eliminacyjna, unikać kurczaka"
               value={cNotes}

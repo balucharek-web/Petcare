@@ -230,10 +230,10 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
 
         <form onSubmit={handleSave} className="space-y-3 text-sm">
           <div>
-            <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">
+            <label htmlFor="exam-field-1" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">
               Tytuł / Rodzaj badania *
             </label>
-            <input
+            <input id="exam-field-1"
               type="text"
               required
               placeholder="np. Morfologia i biochemia krwi, USG jamy brzusznej"
@@ -245,8 +245,8 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Kategoria</label>
-              <select
+              <label htmlFor="exam-field-2" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Kategoria</label>
+              <select id="exam-field-2"
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-bold text-slate-800"
@@ -263,8 +263,8 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Status wyniku</label>
-              <select
+              <label htmlFor="exam-field-3" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Status wyniku</label>
+              <select id="exam-field-3"
                 value={formStatus}
                 onChange={(e) => setFormStatus(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-bold text-slate-800"
@@ -278,8 +278,8 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data badania *</label>
-              <input
+              <label htmlFor="exam-field-4" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Data badania *</label>
+              <input id="exam-field-4"
                 type="date"
                 required
                 value={formDate}
@@ -288,8 +288,8 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Kolejna kontrola</label>
-              <input
+              <label htmlFor="exam-field-5" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Kolejna kontrola</label>
+              <input id="exam-field-5"
                 type="date"
                 value={formNextDate}
                 onChange={(e) => setFormNextDate(e.target.value)}
@@ -300,8 +300,8 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Klinika</label>
-              <input
+              <label htmlFor="exam-field-6" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Klinika</label>
+              <input id="exam-field-6"
                 type="text"
                 placeholder="np. Klinika Weterynaryjna"
                 value={formClinic}
@@ -310,8 +310,8 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Lekarz</label>
-              <input
+              <label htmlFor="exam-field-7" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Lekarz</label>
+              <input id="exam-field-7"
                 type="text"
                 placeholder="dr wet."
                 value={formDoctor}
@@ -323,8 +323,8 @@ export const ExamsAndTestsView: React.FC<ExamsAndTestsViewProps> = ({
 
           <div className="grid grid-cols-3 gap-2.5 items-center">
             <div className="col-span-2">
-              <label className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Podsumowanie wyników *</label>
-              <input
+              <label htmlFor="exam-field-8" className="font-bold text-slate-800 block mb-1 text-xs sm:text-sm">Podsumowanie wyników *</label>
+              <input id="exam-field-8"
                 type="text"
                 required
                 placeholder="np. Wszystkie parametry w normie"

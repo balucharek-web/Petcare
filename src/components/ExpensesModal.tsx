@@ -247,8 +247,8 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Tytuł / Nazwa *</label>
-                  <input
+                  <label htmlFor="expense-field-1" className="font-bold text-slate-700 block mb-1">Tytuł / Nazwa *</label>
+                  <input id="expense-field-1"
                     type="text"
                     required
                     placeholder="np. Wizyta kontrolna, karma Royal Canin, obroża Foresto"
@@ -259,8 +259,8 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Kwota (zł) *</label>
-                  <input
+                  <label htmlFor="expense-field-2" className="font-bold text-slate-700 block mb-1">Kwota (zł) *</label>
+                  <input id="expense-field-2"
                     type="number"
                     step="0.01"
                     required
@@ -272,8 +272,8 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Kategoria</label>
-                  <select
+                  <label htmlFor="expense-field-3" className="font-bold text-slate-700 block mb-1">Kategoria</label>
+                  <select id="expense-field-3"
                     value={category}
                     onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
                     className="w-full p-2.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-emerald-600"
@@ -287,8 +287,8 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Data</label>
-                  <input
+                  <label htmlFor="expense-field-4" className="font-bold text-slate-700 block mb-1">Data</label>
+                  <input id="expense-field-4"
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
@@ -298,8 +298,8 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Notatka (opcjonalnie)</label>
-                <input
+                <label htmlFor="expense-field-5" className="font-bold text-slate-700 block mb-1">Notatka (opcjonalnie)</label>
+                <input id="expense-field-5"
                   type="text"
                   placeholder="np. Paragon ze sklepu zoologicznego"
                   value={notes}
