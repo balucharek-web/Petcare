@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeMedicalScan } from '../aiResult';
+import { normalizeMedicalScan } from '../aiResult.ts';
 
 describe('normalizeMedicalScan', () => {
   it('drops hallucinated data when the model says the image is not a document', () => {

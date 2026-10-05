@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import { normalizeMedicalScan } from './aiResult';
+import { normalizeMedicalScan } from './aiResult.ts';
 import { createSyncStore, type UserSyncRecord } from './syncStore.ts';
 
 dotenv.config();
