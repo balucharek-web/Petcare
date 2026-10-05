@@ -57,7 +57,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <nav
       aria-label="Główna nawigacja"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 shadow-lg pb-[env(safe-area-inset-bottom,0px)] transition-colors"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-lg pb-[env(safe-area-inset-bottom,0px)] transition-colors"
     >
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 sm:h-[4.25rem] px-1">
         {items.map((item) => {
