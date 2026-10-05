@@ -13,10 +13,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
+export async function createApp({ serveFrontend = true }: { serveFrontend?: boolean } = {}) {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
-
   // Small default body limit; only sync/QR uploads and AI image endpoints accept large bodies.
   const LARGE_BODY_ROUTES = new Set([
     '/api/cloud-sync/upload',
@@ -152,7 +150,7 @@ async function startServer() {
     next();
   };
 
-  const syncStore = createSyncStore(path.resolve(__dirname, 'data'));
+  const syncStore = createSyncStore(process.env.SYNC_DATA_DIR || path.resolve(__dirname, 'data'));
   console.log(`Cloud sync storage: ${syncStore.kind}`);
 
   function tokensMatch(provided: unknown, stored: string | undefined): boolean {
@@ -1346,7 +1344,9 @@ Zwróć WYŁĄCZNIE poprawny obiekt JSON:
   });
 
   // Vite middleware in dev or static files in production
-  if (process.env.NODE_ENV !== 'production') {
+  if (!serveFrontend) {
+    // API-only mode (tests)
+  } else if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true, host: '0.0.0.0' },
       appType: 'spa',
@@ -1359,12 +1359,19 @@ Zwróć WYŁĄCZNIE poprawny obiekt JSON:
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`PetCare server running on http://0.0.0.0:${PORT}`);
-  });
+  return app;
 }
 
-startServer().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
+if (!process.env.VITEST) {
+  createApp()
+    .then((app) => {
+      const PORT = Number(process.env.PORT) || 3000;
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`PetCare server running on http://0.0.0.0:${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to start server:', err);
+      process.exit(1);
+    });
+}

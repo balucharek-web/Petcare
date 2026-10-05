@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Capacitor plugins and the JS bridge are resolved via reflection/annotations
+-keep class com.getcapacitor.** { *; }
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+-keep class * extends com.getcapacitor.Plugin { *; }
+-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }
+-keep class pl.petcare.asystent.** { *; }
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
