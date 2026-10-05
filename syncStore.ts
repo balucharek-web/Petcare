@@ -47,6 +47,8 @@ export interface SyncStore {
   deleteTransfer(id: string): Promise<void>;
   /** Removes expired transfers and returns how many are still active. */
   pruneTransfers(now: number): Promise<number>;
+  /** Atomically increments the AI call counter for the given day and returns the new value. */
+  incrementAiUsage(day: string): Promise<number>;
 }
 
 export function createSyncStore(dataDir: string): SyncStore {
@@ -135,6 +137,15 @@ class FileSyncStore implements SyncStore {
       if (now > rec.expiresAt) this.transfers.delete(id);
     }
     return this.transfers.size;
+  }
+
+  private readonly aiUsage = new Map<string, number>();
+
+  async incrementAiUsage(day: string) {
+    const used = (this.aiUsage.get(day) ?? 0) + 1;
+    this.aiUsage.clear();
+    this.aiUsage.set(day, used);
+    return used;
   }
 }
 
@@ -261,5 +272,15 @@ class FirestoreSyncStore implements SyncStore {
     await Promise.all(expired.docs.map((d) => this.db.recursiveDelete(d.ref)));
     const active = await transfers.where('expiresAt', '>=', now).count().get();
     return active.data().count;
+  }
+
+  async incrementAiUsage(day: string) {
+    const ref = this.db.collection('aiUsage').doc(day);
+    return this.db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const used = ((snap.exists ? snap.get('count') : 0) as number) + 1;
+      tx.set(ref, { count: used, expireAt: new Date(Date.parse(day) + 8 * 24 * 60 * 60 * 1000) });
+      return used;
+    });
   }
 }

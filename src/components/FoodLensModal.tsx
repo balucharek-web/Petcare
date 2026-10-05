@@ -363,7 +363,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
       for (const url of uniqueUrls) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), 45000);
 
           const r = await fetch(url, {
             method: 'POST',
@@ -381,6 +381,12 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
 
           if (r.ok) {
             const data = await r.json();
+            if (data && data.notFoodLabel) {
+              setErrorMsg(data.error || 'Na zdjęciu nie rozpoznano etykiety karmy.');
+              haptics.warning();
+              setIsAnalyzing(false);
+              return;
+            }
             if (data && data.success) {
               const extractedIngredients = data.ingredientsText || data.text || '';
               if (extractedIngredients) {

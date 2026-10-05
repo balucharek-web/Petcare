@@ -906,11 +906,17 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
                         Dodaj wszystko jednym kliknięciem:
                       </h4>
                       <p className="text-xs text-teal-100 font-medium">
-                        Leki do apteczki + Wizyta z {formatPolishDateDisplay(extractedData.visitInfo?.date) || '12 marca 2026 r.'} + Badanie kontrolne w kalendarzu
+                        Leki do apteczki + Wizyta z {formatPolishDateDisplay(extractedData.visitInfo?.date) || 'dzisiaj'} + Badanie kontrolne w kalendarzu
                       </p>
                     </div>
                   </div>
                 </div>
+
+                <p role="note" className="text-xs text-white bg-white/15 rounded-xl px-3 py-2 leading-relaxed">
+                  {extractedData.confidence === 'estimated'
+                    ? '⚠️ AI odczytało ten dokument z niską pewnością. Dokładnie sprawdź nazwy leków, dawki i daty poniżej i popraw je przed zapisaniem.'
+                    : 'Sprawdź nazwy leków, dawki i daty poniżej przed zapisaniem. AI może się pomylić, a każdy wiersz możesz edytować.'}
+                </p>
 
                 <button
                   type="button"
