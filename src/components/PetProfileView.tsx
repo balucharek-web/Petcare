@@ -309,8 +309,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
   };
 
   const WIDGET_TITLES: Record<DashboardWidgetKey, { label: string; desc: string }> = {
-    todayQuickActions: { label: 'Dzisiejsze zadania i profilaktyka', desc: 'Szybkie odznaczanie leków i profilaktyka' },
-    shortcuts: { label: 'Szybkie skróty', desc: 'Dzisiejsze leki i szczepienia' },
+    todayQuickActions: { label: 'Dziś', desc: 'Dzisiejsze leki, terminy i profilaktyka' },
+    shortcuts: { label: 'Szybkie skróty (dodatkowe)', desc: 'Liczba leków i szczepień – to samo jest w widżecie „Dziś”' },
     aiScanner: { label: 'Skaner Recept AI', desc: 'Odczyt recept i wyników badań' },
     nutritionCalculator: { label: 'Kalkulator Żywienia', desc: 'RER / MER i zapotrzebowanie' },
     toxicChecker: { label: 'Czy może to zjeść?', desc: 'Baza toksyczności jedzenia' },
@@ -767,6 +767,8 @@ export const PetProfileView: React.FC<PetProfileViewProps> = ({
             onOpenVetCard={onOpenVetCard || onOpenMedicalReport}
             onOpenTimeline={onOpenHealthTimeline || (() => onNavigateToTab('calendar'))}
             onOpenMedications={() => onNavigateToTab('medications')}
+            onOpenVaccinations={() => onNavigateToTab('vaccinations')}
+            onOpenParasiteProtection={onOpenParasiteProtection}
             onOpenFamilySharing={onOpenFamilySharing || (() => {})}
             onOpenWeightModal={() => setIsAddingWeight(true)}
             onOpenHomeScreenWidgetModal={onOpenHomeScreenWidgetModal}

@@ -702,6 +702,7 @@ export const storage = {
           ...DEFAULT_DASHBOARD_CONFIG,
           ...parsed,
           weightTracker: parsed?.weightTracker !== undefined ? parsed.weightTracker : true,
+          ...(parsed?.shortcutsMergedIntoToday ? {} : { shortcuts: false, shortcutsMergedIntoToday: true }),
           order: finalOrder,
         };
       } catch {}

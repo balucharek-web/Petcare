@@ -22,4 +22,14 @@ describe('storage', () => {
     expect(((await idbGet('petcare_pets_v2')) as string).length).toBeGreaterThan(12 * 1024 * 1024);
     expect(storage.getPets()[0].photoUrl?.length).toBeGreaterThan(12 * 1024 * 1024);
   });
+
+  it('hides the duplicated shortcuts widget once for existing dashboards', async () => {
+    const { storage } = await import('../src/services/storage');
+    storage.saveDashboardConfig({ ...storage.getDashboardConfig(), shortcuts: true, shortcutsMergedIntoToday: undefined });
+    const migrated = storage.getDashboardConfig();
+    expect(migrated.shortcuts).toBe(false);
+    expect(migrated.todayQuickActions).toBe(true);
+    storage.saveDashboardConfig({ ...migrated, shortcuts: true });
+    expect(storage.getDashboardConfig().shortcuts).toBe(true);
+  });
 });
