@@ -25,7 +25,10 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
   initStorage().finally(() => {
     createRoot(rootElement, {
-      onUncaughtError: (error) => reportError(error, { source: 'react-uncaught' }),
+      onUncaughtError: (error) => {
+        console.error('[PetCare] Uncaught render error:', error);
+        reportError(error, { source: 'react-uncaught' });
+      },
       onCaughtError: (error) => reportError(error, { source: 'react-caught' }),
     }).render(
       <StrictMode>

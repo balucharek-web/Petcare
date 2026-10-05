@@ -31,6 +31,7 @@ import { AlertsBanner } from './components/AlertsBanner';
 import { BackupReminderBanner } from './components/BackupReminderBanner';
 import { getUpcomingAlerts } from './services/notifications';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { useAndroidBackButton } from './hooks/useAndroidBackButton';
 
 // Cloud Sync & QR Transfer
 import { GoogleSyncModal } from './components/GoogleSyncModal';
@@ -88,6 +89,18 @@ export default function App() {
     return storage.getActivePetId();
   });
   const [currentTab, setCurrentTab] = useState<NavTab>('profile');
+  const [showExitHint, setShowExitHint] = useState(false);
+  useAndroidBackButton<NavTab>({
+    currentTab,
+    homeTab: 'profile',
+    setCurrentTab,
+    onExitHint: () => setShowExitHint(true),
+  });
+  useEffect(() => {
+    if (!showExitHint) return;
+    const timer = setTimeout(() => setShowExitHint(false), 2000);
+    return () => clearTimeout(timer);
+  }, [showExitHint]);
 
   // Dashboard configuration (customization of visible widgets on home screen)
   const [dashboardConfig, setDashboardConfig] = useState<DashboardConfig>(() => storage.getDashboardConfig());
@@ -544,6 +557,12 @@ export default function App() {
           />
         )}
 
+        {showExitHint && (
+          <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[10000] bg-slate-900 text-white px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg whitespace-nowrap">
+            Naciśnij Wstecz ponownie, aby wyjść
+          </div>
+        )}
+
         {restoreToast && (
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 font-bold text-xs animate-bounce">
             <Cloud className="w-4 h-4 text-emerald-100 animate-spin" />
@@ -560,6 +579,12 @@ export default function App() {
         {!isInstalled && <PWAInstallBanner />}
 
         {/* Google Drive auto-restore notification */}
+        {showExitHint && (
+          <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[10000] bg-slate-900 text-white px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg whitespace-nowrap">
+            Naciśnij Wstecz ponownie, aby wyjść
+          </div>
+        )}
+
         {restoreToast && (
           <div className="bg-emerald-600 text-white px-4 py-2.5 text-xs flex items-center justify-center gap-2 font-bold shadow-md animate-pulse">
             <Cloud className="w-4 h-4 text-emerald-100" />

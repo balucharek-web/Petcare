@@ -537,7 +537,10 @@ export const storage = {
     let all: Medication[] = [];
     if (raw) {
       try {
-        all = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        all = Array.isArray(parsed)
+          ? parsed.map((m: Medication) => (Array.isArray(m.timesOfDay) ? m : { ...m, timesOfDay: [] }))
+          : [];
       } catch {
         all = [];
       }

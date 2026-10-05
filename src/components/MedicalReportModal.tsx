@@ -71,7 +71,7 @@ export const MedicalReportModal: React.FC<MedicalReportModalProps> = ({
   };
 
   const handlePrint = async () => {
-    await triggerPrint(`PetCare-${pet.name}-Raport-Medyczny`);
+    await triggerPrint(`PetCare-${pet.name}-Raport-Medyczny`, 'printable-medical-report');
   };
 
   const handleDownloadPdf = async () => {

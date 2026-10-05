@@ -83,19 +83,63 @@
   padding-bottom: env(safe-area-inset-bottom, 0.5rem);
 }
 
+@media screen {
+  #print-root {
+    display: none !important;
+  }
+}
+
 @media print {
-  body {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .no-print, nav, header, button, .print\:hidden, .no-print * {
     display: none !important;
   }
-  #printable-medical-report, #printable-booklet, #printable-passport {
-    padding: 0 !important;
-    margin: 0 !important;
+  html.print-isolated body > *:not(#print-root) {
+    display: none !important;
+  }
+  #print-root {
+    display: block !important;
+    width: 100% !important;
+  }
+  #print-root > * {
+    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  #print-root,
+  #print-root * {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  #print-root tr,
+  #print-root li,
+  #print-root img,
+  #print-root .rounded-xl,
+  #print-root .rounded-2xl {
+    break-inside: avoid;
+  }
+  #print-root h2,
+  #print-root h3,
+  #print-root h4 {
+    break-after: avoid;
   }
 }
 
@@ -116,6 +160,7 @@
 }
 
 /* Dark mode fallback for light surfaces/text that have no explicit dark: variant */
+@media screen {
 html.dark .bg-white:not([class*="dark:bg-"]) { background-color: #1e293b; }
 html.dark .bg-slate-50:not([class*="dark:bg-"]),
 html.dark .bg-gray-50:not([class*="dark:bg-"]) { background-color: #0f172a; }
@@ -130,3 +175,4 @@ html.dark .text-gray-700:not([class*="dark:text-"]),
 html.dark .text-gray-600:not([class*="dark:text-"]) { color: #cbd5e1; }
 html.dark .border-slate-100:not([class*="dark:border-"]),
 html.dark .border-slate-200:not([class*="dark:border-"]) { border-color: #334155; }
+}

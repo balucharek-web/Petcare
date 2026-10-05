@@ -650,6 +650,7 @@ export const AIScannerModal: React.FC<AIScannerModalProps> = ({
             </div>
           </div>
           <button
+            aria-label="Zamknij"
             onClick={() => {
               stopLiveCamera();
               onClose();

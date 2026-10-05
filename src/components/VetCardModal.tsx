@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Pet, Medication, Vaccination, MedicalCondition, MedicalExam } from '../types/pet';
-import { downloadPetMedicalReportPdf } from '../services/pdfReportGenerator';
+import { downloadPetMedicalReportPdf, triggerPrint } from '../services/pdfReportGenerator';
 
 interface VetCardModalProps {
   isOpen: boolean;
@@ -120,7 +120,7 @@ Kontakt do właściciela: ${pet.vetPhone || 'Sprawdź w aplikacji'}`;
   };
 
   const handlePrint = () => {
-    window.print();
+    void triggerPrint(`PetCare-${pet.name}-Karta-Pacjenta`, 'printable-vet-card');
   };
 
   return (
@@ -150,7 +150,7 @@ Kontakt do właściciela: ${pet.vetPhone || 'Sprawdź w aplikacji'}`;
         </div>
 
         {/* Content Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 bg-slate-50/50">
+        <div id="printable-vet-card" className="p-5 sm:p-6 overflow-y-auto space-y-5 bg-slate-50/50">
           {/* Main Pet Profile Summary Card */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-4">
             <img
