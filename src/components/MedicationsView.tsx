@@ -484,7 +484,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
                 {editingMed ? 'Edytuj lek' : 'Dodaj nowy lek'}
               </h3>
-              <span className="text-[10px] text-teal-700 font-semibold">
+              <span className="text-xs text-teal-700 font-semibold">
                 {activeCfg.label} • {activeCfg.defaultDose}
               </span>
             </div>
@@ -502,7 +502,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
           {/* Row 1: Nazwa i Postać */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label className="font-bold text-slate-700 block mb-0.5 text-[11px]">
+              <label className="font-bold text-slate-700 block mb-0.5 text-xs">
                 Nazwa leku lub suplementu *
               </label>
               <input
@@ -515,7 +515,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
               />
             </div>
             <div>
-              <label className="font-bold text-slate-700 block mb-0.5 text-[11px]">
+              <label className="font-bold text-slate-700 block mb-0.5 text-xs">
                 Postać leku
               </label>
               <select
@@ -539,7 +539,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                 <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 block">
                   Pory i dawkowanie leku
                 </span>
-                <span className="text-[11px] text-teal-800 font-semibold">
+                <span className="text-xs text-teal-800 font-semibold">
                   Wybierz dawkę z listy lub kliknij szybki przycisk poniżej
                 </span>
               </div>
@@ -564,7 +564,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
             {/* Quick dosage preset chips (1 tap sets dose for all hours) */}
             {activeCfg.presets && activeCfg.presets.length > 0 && (
               <div className="bg-white/80 p-2 rounded-xl border border-teal-100">
-                <span className="text-[11px] font-bold text-slate-600 block mb-1.5">
+                <span className="text-xs font-bold text-slate-600 block mb-1.5">
                   ⚡ Szybki wybór dawki (ustawia dla wszystkich pór):
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -633,7 +633,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                               setCustomSlotIds(prev => ({ ...prev, [slot.id]: false }));
                               handleUpdateTimeSlot(slot.id, 'amount', activeCfg.presets[0]?.value || '1 dawka');
                             }}
-                            className="px-2 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 text-[11px] font-extrabold border border-teal-300 shrink-0 whitespace-nowrap active:scale-95 transition"
+                            className="px-2 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-extrabold border border-teal-300 shrink-0 whitespace-nowrap active:scale-95 transition"
                             title="Powrót do wyboru z gotowej listy"
                           >
                             📋 Lista
@@ -686,7 +686,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                   {formMonthlyDemand} {currentUnitLabel}
                 </strong>
               </span>
-              <span className="text-[11px] text-slate-500 font-bold">
+              <span className="text-xs text-slate-500 font-bold">
                 {Math.round(formDailyTotal * 100) / 100} / dzień
               </span>
             </div>
@@ -774,7 +774,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
       <div className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 text-white rounded-3xl p-5 shadow-md">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="text-[10px] font-bold tracking-widest uppercase text-teal-200">
+            <span className="text-xs font-bold tracking-widest uppercase text-teal-200">
               Harmonogram na dziś
             </span>
             <h2 className="text-xl font-extrabold flex items-center gap-2">
@@ -832,7 +832,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                         <span className={`font-bold text-sm ${completed ? 'line-through opacity-80' : ''}`}>
                           {medication.name}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-semibold">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 font-semibold">
                           {slot.label} ({slot.time})
                         </span>
                       </div>
@@ -863,7 +863,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
               </div>
               <div>
                 <h3 className="font-extrabold text-sm sm:text-base">Miesięczne Zapotrzebowanie na Leki</h3>
-                <p className="text-[11px] text-slate-400">Automatyczne przeliczenie dawek (tabletki, syropy, krople)</p>
+                <p className="text-xs text-slate-400">Automatyczne przeliczenie dawek (tabletki, syropy, krople)</p>
               </div>
             </div>
           </div>
@@ -881,11 +881,11 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                         <span>{getMedicationIcon(med.form)}</span>
                         <span>{med.name}</span>
                       </span>
-                      <span className="text-[11px] text-teal-400 font-semibold">
+                      <span className="text-xs text-teal-400 font-semibold">
                         {med.timesOfDay.map(t => `${t.label}: ${t.amount}`).join(' + ')}
                       </span>
                     </div>
-                    <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">
                       {demand.dailyUnits} {unitWord}/dzień
                     </span>
                   </div>
@@ -895,7 +895,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                     <strong className="text-emerald-400 font-extrabold text-sm">
                       {demand.monthlyUnits} {unitWord}
                       {demand.packagesNeededMonthly && (
-                        <span className="text-slate-300 font-normal text-[11px] ml-1">
+                        <span className="text-slate-300 font-normal text-xs ml-1">
                           (~{demand.packagesNeededMonthly} op.)
                         </span>
                       )}
@@ -978,7 +978,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
 
                 {/* Doses breakdown */}
                 <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-1.5">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Pory i dawki</span>
+                  <span className="text-xs uppercase font-bold text-slate-400 block">Pory i dawki</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {med.timesOfDay.map((slot) => (
                       <div
@@ -1011,7 +1011,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                       <Calculator className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-extrabold text-teal-800 tracking-wider block">
+                      <span className="text-xs uppercase font-extrabold text-teal-800 tracking-wider block">
                         Zapotrzebowanie na 30 dni (1 miesiąc)
                       </span>
                       <p className="text-xs text-teal-900 font-medium">
@@ -1025,7 +1025,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
                       {demand.monthlyUnits} <span className="text-xs font-semibold text-teal-700">{unitLabel}</span>
                     </div>
                     {demand.packagesNeededMonthly && (
-                      <span className="text-[11px] text-teal-700 block font-medium">
+                      <span className="text-xs text-teal-700 block font-medium">
                         Potrzebne: <strong>{demand.packagesNeededMonthly}</strong> {demand.packagesNeededMonthly === 1 ? 'opakowanie' : demand.packagesNeededMonthly < 5 ? 'opakowania' : 'opakowań'} ({med.packageSize} szt.)
                       </span>
                     )}
@@ -1140,7 +1140,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
 
       {/* Delete Confirmation Modal */}
       {medicationToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl space-y-4 text-center text-slate-800">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />

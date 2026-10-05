@@ -141,11 +141,11 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
               <h3 className="text-sm font-extrabold text-gray-900 tracking-tight">
                 Dzisiejsze zadania i profilaktyka
               </h3>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full">
+              <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full">
                 {pet.name}
               </span>
             </div>
-            <p className="text-[11px] text-gray-500 font-medium">
+            <p className="text-xs text-gray-500 font-medium">
               Szybkie akcje i status zdrowia na dziś
             </p>
           </div>
@@ -156,22 +156,22 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           {onOpenHomeScreenWidgetModal && (
             <button
               onClick={onOpenHomeScreenWidgetModal}
-              title="Dodaj ten widżet na pulpit telefonu (Android Home Screen)"
+              title="Dodaj ten widżet na pulpit telefonu (Android Home Screen)" aria-label="Dodaj ten widżet na pulpit telefonu (Android Home Screen)"
               className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/90 rounded-xl transition-all cursor-pointer text-xs flex items-center gap-1 font-bold shadow-2xs active:scale-95"
             >
               <LayoutGrid className="w-3.5 h-3.5 text-teal-600" />
-              <span className="text-[11px]">Pulpit telefonu</span>
+              <span className="text-xs">Pulpit telefonu</span>
             </button>
           )}
 
           {/* Hide optional widget button */}
           <button
             onClick={onToggleHideWidget}
-            title="Ukryj ten widżet (możesz go włączyć w Dostosuj Pulpit)"
+            title="Ukryj ten widżet (możesz go włączyć w Dostosuj Pulpit)" aria-label="Ukryj ten widżet (możesz go włączyć w Dostosuj Pulpit)"
             className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 rounded-xl transition-colors cursor-pointer text-xs flex items-center gap-1"
           >
             <EyeOff className="w-4 h-4" />
-            <span className="hidden sm:inline text-[11px] font-medium">Ukryj</span>
+            <span className="hidden sm:inline text-xs font-medium">Ukryj</span>
           </button>
         </div>
       </div>
@@ -185,7 +185,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center group-hover:scale-105 transition">
             <FileHeart className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-rose-700 text-center leading-tight truncate w-full">
+          <span className="text-[11px] min-[360px]:text-xs sm:text-xs font-bold text-gray-800 group-hover:text-rose-700 text-center leading-tight truncate w-full">
             Karta Lekarza
           </span>
         </button>
@@ -197,7 +197,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center group-hover:scale-105 transition">
             <History className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-teal-700 text-center leading-tight truncate w-full">
+          <span className="text-[11px] min-[360px]:text-xs sm:text-xs font-bold text-gray-800 group-hover:text-teal-700 text-center leading-tight truncate w-full">
             Oś Czasu
           </span>
         </button>
@@ -209,7 +209,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center group-hover:scale-105 transition">
             <Pill className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-amber-700 text-center leading-tight truncate w-full">
+          <span className="text-[11px] min-[360px]:text-xs sm:text-xs font-bold text-gray-800 group-hover:text-amber-700 text-center leading-tight truncate w-full">
             Apteczka
           </span>
         </button>
@@ -221,7 +221,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           <div className="w-6 h-6 min-[360px]:w-7 min-[360px]:h-7 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition">
             <Users className="w-3.5 h-3.5 min-[360px]:w-4 min-[360px]:h-4" />
           </div>
-          <span className="text-[9px] min-[360px]:text-[10px] sm:text-xs font-bold text-gray-800 group-hover:text-indigo-700 text-center leading-tight truncate w-full">
+          <span className="text-[11px] min-[360px]:text-xs sm:text-xs font-bold text-gray-800 group-hover:text-indigo-700 text-center leading-tight truncate w-full">
             Współopiekun
           </span>
         </button>
@@ -236,7 +236,7 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
           </span>
           <button
             onClick={onOpenMedications}
-            className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-0.5 cursor-pointer"
+            className="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-0.5 cursor-pointer"
           >
             Zarządzaj apteczką <ChevronRight className="w-3 h-3" />
           </button>
@@ -288,14 +288,14 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
                         <span className={`text-xs font-bold truncate ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                           {med.name}
                         </span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md">
+                        <span className="text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md">
                           {schedule.time}
                         </span>
-                        <span className="text-[10px] font-medium text-emerald-700">
+                        <span className="text-xs font-medium text-emerald-700">
                           {schedule.amount}
                         </span>
                       </div>
-                      <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                      <p className="text-xs text-gray-500 truncate mt-0.5">
                         {isCompleted && logNotes ? (
                           <span className="text-emerald-700 font-semibold">{logNotes}</span>
                         ) : (
@@ -326,13 +326,13 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
       <div className="mt-3.5 pt-3 border-t border-emerald-100/80 grid grid-cols-3 gap-1.5 sm:gap-2 text-center text-xs relative z-10">
         {/* Odrobaczenie */}
         <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
-          <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-gray-400 block mb-0.5 truncate">
+          <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Odrobaczenie
           </span>
-          <div className="font-extrabold text-gray-800 text-[11px] min-[360px]:text-xs truncate">
+          <div className="font-extrabold text-gray-800 text-xs min-[360px]:text-xs truncate">
             {dewormingDaysAgo !== null ? `${dewormingDaysAgo} dni temu` : 'Brak danych'}
           </div>
-          <span className={`text-[9px] min-[360px]:text-[10px] font-semibold block mt-0.5 truncate ${
+          <span className={`text-[11px] min-[360px]:text-xs font-semibold block mt-0.5 truncate ${
             dewormingDaysAgo !== null && dewormingDaysAgo > 90 ? 'text-rose-600' : 'text-emerald-600'
           }`}>
             {dewormingDaysAgo !== null && dewormingDaysAgo > 90 ? '⚠️ Czas powtórzyć' : '✓ Zalecane co 3 mies.'}
@@ -341,15 +341,15 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
 
         {/* Kleszcze / Pasożyty */}
         <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
-          <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-gray-400 block mb-0.5 truncate">
+          <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Kleszcze & Pchły
           </span>
-          <div className="font-extrabold text-gray-800 text-[11px] min-[360px]:text-xs truncate">
+          <div className="font-extrabold text-gray-800 text-xs min-[360px]:text-xs truncate">
             {tickDaysUntil !== null 
               ? (tickDaysUntil > 0 ? `Jeszcze ${tickDaysUntil} dni` : 'Wygasła') 
               : 'Brak danych'}
           </div>
-          <span className={`text-[9px] min-[360px]:text-[10px] font-semibold block mt-0.5 truncate ${
+          <span className={`text-[11px] min-[360px]:text-xs font-semibold block mt-0.5 truncate ${
             tickDaysUntil !== null && tickDaysUntil > 7 
               ? 'text-emerald-600' 
               : tickDaysUntil !== null 
@@ -362,15 +362,15 @@ export const TodayQuickActionsWidget: React.FC<TodayQuickActionsWidgetProps> = (
 
         {/* Wścieklizna */}
         <div className="p-1.5 min-[360px]:p-2.5 bg-white/90 border border-gray-100 rounded-2xl shadow-2xs">
-          <span className="text-[9px] min-[360px]:text-[10px] uppercase font-bold text-gray-400 block mb-0.5 truncate">
+          <span className="text-[11px] min-[360px]:text-xs uppercase font-bold text-gray-400 block mb-0.5 truncate">
             Wścieklizna
           </span>
-          <div className="font-extrabold text-gray-800 text-[11px] min-[360px]:text-xs truncate">
+          <div className="font-extrabold text-gray-800 text-xs min-[360px]:text-xs truncate">
             {rabiesDaysUntil !== null 
               ? (rabiesDaysUntil > 0 ? `Ważne (${rabiesDaysUntil} d.)` : 'Wygasło!') 
               : 'Brak danych'}
           </div>
-          <span className={`text-[9px] min-[360px]:text-[10px] font-semibold block mt-0.5 truncate ${
+          <span className={`text-[11px] min-[360px]:text-xs font-semibold block mt-0.5 truncate ${
             rabiesDaysUntil !== null && rabiesDaysUntil > 30 ? 'text-emerald-600' : 'text-rose-600'
           }`}>
             {rabiesDaysUntil !== null && rabiesDaysUntil > 0 ? '✓ Szczepienie OK' : 'Zaszczep pupila'}

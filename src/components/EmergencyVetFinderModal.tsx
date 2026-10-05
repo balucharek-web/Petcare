@@ -491,7 +491,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
   )}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-rose-100 flex flex-col h-[94vh] max-h-[94vh]">
         {/* Compact Header */}
         <div className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 px-4 py-3 text-white flex items-center justify-between shrink-0 shadow-sm">
@@ -502,11 +502,11 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black tracking-tight">Kliniki Całodobowe 24/7</h2>
-                <span className="text-[10px] font-black uppercase bg-white text-rose-700 px-2 py-0.5 rounded-full shadow-xs">
+                <span className="text-xs font-black uppercase bg-white text-rose-700 px-2 py-0.5 rounded-full shadow-xs">
                   SOS Polska
                 </span>
               </div>
-              <p className="text-[11px] text-rose-100">
+              <p className="text-xs text-rose-100">
                 Ostre dyżury weterynaryjne 24h w całej Polsce • Wszystkie wsie i miasta
               </p>
             </div>
@@ -575,7 +575,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                         className="w-full text-left px-3 py-2 hover:bg-rose-50 transition flex items-center justify-between group"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0 ${
+                          <span className={`text-[11px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0 ${
                             item.type === 'wieś' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
                           }`}>
                             {item.type || 'miejscowość'}
@@ -585,13 +585,13 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                               {item.name}
                             </span>
                             {item.details && (
-                              <span className="text-[11px] text-slate-500">
+                              <span className="text-xs text-slate-500">
                                 ({item.details})
                               </span>
                             )}
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold text-rose-600 opacity-0 group-hover:opacity-100 transition shrink-0 ml-1">
+                        <span className="text-xs font-bold text-rose-600 opacity-0 group-hover:opacity-100 transition shrink-0 ml-1">
                           Wybierz &rarr;
                         </span>
                       </button>
@@ -619,7 +619,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
               onClick={handleGetGPSLocation}
               disabled={isLocating}
               className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0 active:scale-95 disabled:opacity-50"
-              title="Włącz systemową lokalizację GPS"
+              title="Włącz systemową lokalizację GPS" aria-label="Włącz systemową lokalizację GPS"
             >
               <Compass className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{isLocating ? 'Lokalizuję...' : 'Pobierz z GPS'}</span>
@@ -631,7 +631,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
           {gpsNotice && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-900 space-y-1.5 shadow-2xs">
               <div className="flex items-start justify-between gap-2">
-                <span className="font-medium leading-relaxed text-[11px]">{gpsNotice.message}</span>
+                <span className="font-medium leading-relaxed text-xs">{gpsNotice.message}</span>
                 <button
                   type="button"
                   onClick={() => setGpsNotice(null)}
@@ -645,7 +645,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                   <button
                     type="button"
                     onClick={() => openNativeAppSettings()}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition shadow-2xs"
                   >
                     <span>⚙️ Otwórz uprawnienia aplikacji w Androidzie</span>
                   </button>
@@ -656,14 +656,14 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                   <button
                     type="button"
                     onClick={() => openNativeLocationSettings()}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition shadow-2xs"
                   >
                     <span>⚙️ Otwórz Ustawienia GPS w telefonie</span>
                   </button>
                 </div>
               )}
               <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                <span className="text-[10px] font-bold text-amber-800">Wybierz szybko:</span>
+                <span className="text-xs font-bold text-amber-800">Wybierz szybko:</span>
                 {[
                   { name: 'Mikołów', label: '📍 Mikołów (Śląsk)' },
                   { name: 'Katowice', label: 'Katowice' },
@@ -677,7 +677,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                     key={c.name}
                     type="button"
                     onClick={() => handleSelectCity(c.name)}
-                    className="text-[11px] font-bold bg-white hover:bg-rose-50 text-slate-800 hover:text-rose-700 border border-amber-300 hover:border-rose-300 px-2 py-0.5 rounded-lg shadow-2xs transition"
+                    className="text-xs font-bold bg-white hover:bg-rose-50 text-slate-800 hover:text-rose-700 border border-amber-300 hover:border-rose-300 px-2 py-0.5 rounded-lg shadow-2xs transition"
                   >
                     {c.label}
                   </button>
@@ -689,7 +689,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
           {/* Row 2: Location badge, Voivodeship select, and radius filter */}
           <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs">
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+              <span className="text-xs font-bold text-slate-600 flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                 {currentCityName ? (
                   <span className="font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-lg flex items-center gap-1">
@@ -721,7 +721,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                 <button
                   type="button"
                   onClick={() => setVetFilterType('all')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                  className={`px-2 py-0.5 rounded-md text-xs font-bold transition flex items-center gap-1 ${
                     vetFilterType === 'all'
                       ? 'bg-white text-slate-900 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -732,7 +732,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                 <button
                   type="button"
                   onClick={() => setVetFilterType('24h')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                  className={`px-2 py-0.5 rounded-md text-xs font-bold transition flex items-center gap-1 ${
                     vetFilterType === '24h'
                       ? 'bg-rose-600 text-white shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -747,7 +747,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                 id={voivodeshipSelectId}
                 value={selectedVoivodeship}
                 onChange={(e) => setSelectedVoivodeship(e.target.value)}
-                className="py-1 px-2 bg-white border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                className="py-1 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-rose-500 focus:outline-none"
               >
                 <option value="all">Wszystkie woj. (16)</option>
                 {voivodeships.map((v) => (
@@ -767,7 +767,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                       key={pill.label}
                       type="button"
                       onClick={() => setMaxRadiusKm(pill.value)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition ${
+                      className={`text-xs font-bold px-2 py-0.5 rounded-lg border transition ${
                         maxRadiusKm === pill.value
                           ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
                           : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200'
@@ -793,13 +793,13 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                 </div>
                 <div>
                   <span className="font-black text-slate-900">{pet.name}</span>
-                  <span className="text-slate-600 text-[11px] block">
+                  <span className="text-slate-600 text-xs block">
                     {pet.species === 'dog' ? 'Pies' : pet.species === 'cat' ? 'Kot' : 'Zwierzak'} • {pet.weightKg} kg
                   </span>
                 </div>
               </div>
               {pet.allergies && (
-                <span className="text-[10px] bg-rose-200 text-rose-900 px-2 py-0.5 rounded-lg font-bold">
+                <span className="text-xs bg-rose-200 text-rose-900 px-2 py-0.5 rounded-lg font-bold">
                   Alergie: {pet.allergies}
                 </span>
               )}
@@ -818,7 +818,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
               {selectedVoivodeship !== 'all' ? ` (woj. ${selectedVoivodeship})` : ''}
             </span>
             {userCoords && (
-              <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px] shrink-0">
+              <span className="text-emerald-700 font-bold flex items-center gap-1 text-xs shrink-0">
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
                 Sortowanie od najbliższej (Mikołów i okolice)
               </span>
@@ -890,38 +890,38 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                         </span>
 
                         {clinic.open24h ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5 text-emerald-600" />
                             Dyżur 24h / 7 dni
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5 text-blue-600" />
                             {clinic.hours || 'Przychodnia dzienna'}
                           </span>
                         )}
 
                         {isNearest && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
+                          <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
                             ★ NAJBLIŻSZY DYŻUR
                           </span>
                         )}
 
                         {clinic.distanceKm !== null && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 flex items-center gap-1">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 flex items-center gap-1">
                             <Navigation className="w-2.5 h-2.5 text-teal-600" />
                             <span>{clinic.distanceKm} km stąd ({estimateDriveTime(clinic.distanceKm)})</span>
                           </span>
                         )}
 
                         {clinic.distanceKm !== null && clinic.distanceKm > 2 && clinic.distanceKm <= 35 && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
                             🚗 Miasto ościenne ({clinic.city})
                           </span>
                         )}
 
                         {clinic.distanceKm !== null && clinic.distanceKm <= 2 && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
                             📍 Na miejscu ({clinic.city})
                           </span>
                         )}
@@ -931,11 +931,11 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                         <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                         <span className="font-extrabold text-slate-800">{clinic.city}:</span>
                         <span className="text-slate-800 font-semibold">{cleanAddress}</span>
-                        <span className="text-slate-400 text-[11px]">(woj. {clinic.voivodeship})</span>
+                        <span className="text-slate-400 text-xs">(woj. {clinic.voivodeship})</span>
                       </p>
 
                       {clinic.notes && (
-                        <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100 italic">
+                        <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100 italic">
                           {clinic.notes}
                         </p>
                       )}
@@ -945,7 +945,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                           {clinic.services.map((srv) => (
                             <span
                               key={srv}
-                              className="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md"
+                              className="text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md"
                             >
                               {srv}
                             </span>
@@ -989,7 +989,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                         setSavedClinicId(clinic.id);
                         setTimeout(() => setSavedClinicId(null), 3000);
                       }}
-                      className={`w-full py-1.5 px-3 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 border ${
+                      className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border ${
                         pet.emergencyClinicPhone === clinic.phone || savedClinicId === clinic.id
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -1023,7 +1023,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
                 <p className="font-bold text-sm text-slate-900">
                   Szukasz innego gabinetu w {currentCityName ? currentCityName.split('(')[0].trim() : 'swojej okolicy'}?
                 </p>
-                <p className="text-slate-600 text-[11px] mt-0.5">
+                <p className="text-slate-600 text-xs mt-0.5">
                   Otwórz wyszukiwarkę wszystkich lokalnych weterynarzy i przychodni bezpośrednio w Google Maps
                 </p>
               </div>
@@ -1042,7 +1042,7 @@ export const EmergencyVetFinderModal: React.FC<EmergencyVetFinderModalProps> = (
 
         {/* Footer */}
         <div className="p-3 bg-slate-50 border-t border-slate-200/90 flex items-center justify-between gap-2 text-xs shrink-0">
-          <span className="text-slate-500 text-[11px] truncate">
+          <span className="text-slate-500 text-xs truncate">
             Dyżury 24/7 • Wszystkie wsie i miasta w Polsce • Zawsze zadzwoń przed wyjazdem
           </span>
           <button

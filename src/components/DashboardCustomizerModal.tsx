@@ -223,7 +223,7 @@ export const DashboardCustomizerModal: React.FC<DashboardCustomizerModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-teal-900 to-slate-900 text-white flex items-center justify-between gap-3 border-b border-teal-800">
@@ -267,7 +267,7 @@ export const DashboardCustomizerModal: React.FC<DashboardCustomizerModalProps> =
               type="button"
               onClick={handleResetDefaults}
               className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold transition flex items-center gap-1 text-xs"
-              title="Przywróć domyślny układ i kolejność"
+              title="Przywróć domyślny układ i kolejność" aria-label="Przywróć domyślny układ i kolejność"
             >
               <RotateCcw className="w-3 h-3 text-slate-400" />
               Domyślne
@@ -275,7 +275,7 @@ export const DashboardCustomizerModal: React.FC<DashboardCustomizerModalProps> =
           </div>
         </div>
 
-        <div className="px-4 py-2 bg-teal-50/60 border-b border-teal-100/70 text-[11px] text-teal-900 flex items-center gap-2">
+        <div className="px-4 py-2 bg-teal-50/60 border-b border-teal-100/70 text-xs text-teal-900 flex items-center gap-2">
           <span className="font-bold shrink-0">💡 Wskazówka:</span>
           <span>Chwyć za ikonę kropek (⠿), aby przeciągnąć kafelek w inne miejsce lub użyj strzałek ▲ / ▼.</span>
         </div>
@@ -341,7 +341,7 @@ export const DashboardCustomizerModal: React.FC<DashboardCustomizerModalProps> =
                   onClick={() => handleToggle(item.key)}
                   className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none"
                 >
-                  <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold flex items-center justify-center shrink-0">
                     {index + 1}
                   </span>
 
@@ -353,7 +353,7 @@ export const DashboardCustomizerModal: React.FC<DashboardCustomizerModalProps> =
                     <strong className="text-xs sm:text-sm text-slate-900 block leading-tight truncate">
                       {item.label}
                     </strong>
-                    <span className="text-[11px] text-slate-500 block leading-tight mt-0.5 truncate">
+                    <span className="text-xs text-slate-500 block leading-tight mt-0.5 truncate">
                       {item.desc}
                     </span>
                   </div>

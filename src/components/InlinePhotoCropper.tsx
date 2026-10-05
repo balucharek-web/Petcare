@@ -242,7 +242,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
   return (
     <div className={`flex flex-col items-center bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-4 rounded-3xl border border-slate-200/90 dark:border-slate-700/80 ${className}`}>
       {title && (
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
           {title}
         </span>
       )}
@@ -304,7 +304,7 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
           <div className="absolute w-2 h-2 rounded-full bg-teal-400/80 pointer-events-none" />
 
           {/* Drag Hint badge */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-black/65 backdrop-blur-xs rounded-full text-[9px] font-bold text-white pointer-events-none flex items-center gap-1 shadow whitespace-nowrap opacity-90 group-hover:opacity-100">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-black/65 backdrop-blur-xs rounded-full text-[11px] font-bold text-white pointer-events-none flex items-center gap-1 shadow whitespace-nowrap opacity-90 group-hover:opacity-100">
             <Move className="w-2.5 h-2.5 text-teal-400" />
             <span>Przesuń kadr</span>
           </div>
@@ -363,8 +363,8 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
             <button
               type="button"
               onClick={handleRotate}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold transition cursor-pointer"
-              title="Obróć o 90 stopni"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-semibold transition cursor-pointer"
+              title="Obróć o 90 stopni" aria-label="Obróć o 90 stopni"
             >
               <RotateCw className="w-3 h-3 text-teal-600 dark:text-teal-400" />
               <span>Obróć</span>
@@ -373,8 +373,8 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-[11px] font-semibold transition cursor-pointer"
-              title="Wyśrodkuj kadr"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-semibold transition cursor-pointer"
+              title="Wyśrodkuj kadr" aria-label="Wyśrodkuj kadr"
             >
               <RotateCcw className="w-3 h-3 text-slate-500 dark:text-slate-400" />
               <span>Reset</span>
@@ -394,8 +394,8 @@ export const InlinePhotoCropper: React.FC<InlinePhotoCropperProps> = ({
             <button
               type="button"
               onClick={onOpenSampleGallery}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 text-[11px] font-semibold transition border border-teal-200/80 cursor-pointer"
-              title="Wybierz z biblioteki ras"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 text-xs font-semibold transition border border-teal-200/80 cursor-pointer"
+              title="Wybierz z biblioteki ras" aria-label="Wybierz z biblioteki ras"
             >
               <Sparkles className="w-3 h-3 text-teal-600" />
               <span>Galeria</span>

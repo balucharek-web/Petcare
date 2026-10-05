@@ -81,11 +81,11 @@ export const PWAInstallBanner: React.FC = () => {
             <div className="truncate">
               <p className="font-bold text-white text-xs sm:text-sm truncate flex items-center gap-1.5">
                 <span>Zainstaluj PetCare na telefonie</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-500/40 font-bold uppercase tracking-wider text-emerald-100">
+                <span className="text-xs px-1.5 py-0.2 rounded-md bg-emerald-500/40 font-bold uppercase tracking-wider text-emerald-100">
                   PWA
                 </span>
               </p>
-              <p className="text-[11px] text-teal-100 truncate">Własna ikona • Pełny ekran • Działa offline</p>
+              <p className="text-xs text-teal-100 truncate">Własna ikona • Pełny ekran • Działa offline</p>
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export const PWAInstallBanner: React.FC = () => {
             <button
               onClick={handleDismiss}
               className="p-1 text-teal-200 hover:text-white transition rounded-lg hover:bg-white/10"
-              title="Ukryj"
+              title="Ukryj" aria-label="Ukryj"
             >
               <X className="w-4 h-4" />
             </button>
@@ -141,7 +141,7 @@ export const PWAInstallBanner: React.FC = () => {
 
       {/* Guide Modal */}
       {showGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl space-y-4 text-slate-800">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
@@ -168,7 +168,7 @@ export const PWAInstallBanner: React.FC = () => {
                   <Info className="w-4 h-4 shrink-0 text-amber-600" />
                   Jesteś w oknie podglądu czatu:
                 </p>
-                <p className="text-[11px] leading-relaxed text-amber-800">
+                <p className="text-xs leading-relaxed text-amber-800">
                   Android ze względów bezpieczeństwa blokuje instalowanie aplikacji z wnętrza ramki czatu.
                   Otwórz aplikację w osobnej karcie przeglądarki Chrome:
                 </p>
@@ -226,11 +226,11 @@ export const PWAInstallBanner: React.FC = () => {
                   <Download className="w-4 h-4 text-emerald-600" />
                   Chcesz fizyczny plik .APK?
                 </span>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
+                <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
                   GitHub & Online
                 </span>
               </div>
-              <p className="text-[11px] leading-relaxed text-slate-600">
+              <p className="text-xs leading-relaxed text-slate-600">
                 Możesz pobrać plik instalacyjny <strong>.apk</strong> na dwa sposoby:
               </p>
               
@@ -245,17 +245,17 @@ export const PWAInstallBanner: React.FC = () => {
 
               {/* GitHub Actions */}
               <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 space-y-2">
-                <div className="font-semibold text-slate-800 text-[11px] flex items-center justify-between">
+                <div className="font-semibold text-slate-800 text-xs flex items-center justify-between">
                   <span>🐱 <strong>Przez GitHub Actions</strong> (Automatycznie)</span>
-                  <span className="text-[9px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded font-bold">Zalecane</span>
+                  <span className="text-[11px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded font-bold">Zalecane</span>
                 </div>
-                <p className="text-[10px] text-slate-500 leading-tight">
+                <p className="text-xs text-slate-500 leading-tight">
                   W projekcie przygotowaliśmy już gotowy plik automatyzacji (<code>.github/workflows/build-apk.yml</code>). Pobierz paczkę ZIP z kodem i wgraj do swojego repozytorium GitHub:
                 </p>
                 <a
                   href="/petcare-project.zip"
                   download="petcare-project.zip"
-                  className="w-full py-1.5 px-2.5 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-center font-bold text-[11px] flex items-center justify-center gap-1.5 transition"
+                  className="w-full py-1.5 px-2.5 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-center font-bold text-xs flex items-center justify-center gap-1.5 transition"
                 >
                   <FolderDown className="w-3.5 h-3.5 text-teal-600" />
                   <span>Pobierz paczkę kodu (.ZIP do wgrania na GitHub)</span>

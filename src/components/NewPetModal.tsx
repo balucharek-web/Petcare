@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, X, Heart, Sparkles } from 'lucide-react';
 import { Pet, Species, Gender } from '../types/pet';
 import { SamplePhotoPickerModal } from './SamplePhotoPickerModal';
-import { getDefaultPhotoForSpecies } from '../data/samplePetPhotos';
+import { getPlaceholderPhotoForSpecies } from '../data/samplePetPhotos';
 import { InlinePhotoCropper } from './InlinePhotoCropper';
 
 interface NewPetModalProps {
@@ -19,7 +19,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
   const [name, setName] = useState('');
   const [species, setSpecies] = useState<Species>('dog');
   const [breed, setBreed] = useState('');
-  const [gender, setGender] = useState<Gender>('female');
+  const [gender, setGender] = useState<Gender | ''>('');
   const [birthDate, setBirthDate] = useState('2023-01-01');
   const [weightKg, setWeightKg] = useState('10');
   const [chipNumber, setChipNumber] = useState('');
@@ -31,7 +31,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
   const [vetDoctorName, setVetDoctorName] = useState('');
   const [vetPhone, setVetPhone] = useState('');
   const [emergencyClinicPhone, setEmergencyClinicPhone] = useState('');
-  const [photoUrl, setPhotoUrl] = useState(() => getDefaultPhotoForSpecies('dog'));
+  const [photoUrl, setPhotoUrl] = useState(() => getPlaceholderPhotoForSpecies('dog'));
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState<string>('');
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [hasCustomPhoto, setHasCustomPhoto] = useState(false);
@@ -41,7 +41,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
   const handleSpeciesChange = (newSpecies: Species) => {
     setSpecies(newSpecies);
     if (!hasCustomPhoto) {
-      const defaultUrl = getDefaultPhotoForSpecies(newSpecies);
+      const defaultUrl = getPlaceholderPhotoForSpecies(newSpecies);
       setPhotoUrl(defaultUrl);
       setCroppedPhotoUrl(defaultUrl);
     }
@@ -55,7 +55,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !gender) return;
 
     const newWeight = parseFloat(weightKg) || 1;
     const finalPhoto = croppedPhotoUrl || photoUrl;
@@ -96,7 +96,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+      <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
         <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
@@ -105,8 +105,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
             </h3>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
-            >
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg" aria-label="Zamknij">
               ✕
             </button>
           </div>
@@ -118,7 +117,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
                 <label className="font-bold text-slate-700 block text-xs">
                   Zdjęcie i kadr pupila
                 </label>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-xs text-slate-400">
                   Przesuwaj w okienku, aby ustawić kadr
                 </span>
               </div>
@@ -139,6 +138,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               <input
                 type="text"
                 required
+                autoComplete="off"
                 placeholder="np. Borys, Bella, Puszek"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -165,10 +165,12 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">Płeć</label>
               <select
+                required
                 value={gender}
                 onChange={(e) => setGender(e.target.value as Gender)}
                 className="w-full p-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200 text-xs text-slate-900"
               >
+                <option value="" disabled>Wybierz</option>
                 <option value="female">Samica</option>
                 <option value="male">Samiec</option>
               </select>
@@ -233,7 +235,7 @@ export const NewPetModal: React.FC<NewPetModalProps> = ({
           </div>
 
           <div>
-            <label className="font-semibold text-slate-700 block mb-1">Numer Mikroczipa *</label>
+            <label className="font-semibold text-slate-700 block mb-1">Numer mikroczipa <span className="font-normal text-slate-500">(opcjonalnie)</span></label>
             <input
               type="text"
               placeholder="15 cyfr mikroczipa (np. 616093900...)"

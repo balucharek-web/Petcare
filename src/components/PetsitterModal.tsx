@@ -114,7 +114,7 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="no-print p-4 sm:p-5 bg-gradient-to-r from-purple-900 to-slate-900 text-white flex items-center justify-between gap-3 border-b border-purple-800">
@@ -151,8 +151,7 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
-            >
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition" aria-label="Zamknij">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -260,7 +259,7 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
             <div className="space-y-4 text-xs">
               {/* Emergency Contacts */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                <span className="text-xs uppercase font-bold text-slate-400 block tracking-wider">
                   Numery alarmowe
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -347,7 +346,7 @@ export const PetsitterModal: React.FC<PetsitterModalProps> = ({
                           <strong className="text-teal-950 font-bold">{med.name}</strong>
                           <span className="font-bold text-teal-800">{med.dosage}</span>
                         </div>
-                        <p className="text-[11px] text-teal-700">
+                        <p className="text-xs text-teal-700">
                           Godziny: {med.timesOfDay?.map(t => t.time).join(', ')} &bull; {med.instructions}
                         </p>
                       </div>

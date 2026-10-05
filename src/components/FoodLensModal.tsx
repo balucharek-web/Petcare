@@ -523,7 +523,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-emerald-200 dark:border-slate-800 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-sm">
@@ -534,7 +534,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black tracking-tight">Skaner Karmy & Alergenów</h2>
-                <span className="text-[10px] font-black uppercase bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full shadow-xs">
+                <span className="text-xs font-black uppercase bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full shadow-xs">
                   Food Lens AI
                 </span>
               </div>
@@ -610,7 +610,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                     <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                       Zdjęcie etykiety karmy
                     </span>
-                    <span className="text-[11px] text-teal-700 dark:text-teal-400 font-semibold block">
+                    <span className="text-xs text-teal-700 dark:text-teal-400 font-semibold block">
                       ✓ Przesłano do analizy AI
                     </span>
                   </div>
@@ -639,7 +639,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 border-2 border-dashed border-teal-400/50 rounded-2xl pointer-events-none m-3 flex items-center justify-center">
-                  <span className="bg-black/60 text-white text-[11px] font-semibold px-3 py-1 rounded-full backdrop-blur-xs">
+                  <span className="bg-black/60 text-white text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-xs">
                     Skieruj aparat na skład karmy
                   </span>
                 </div>
@@ -656,7 +656,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                     type="button"
                     onClick={stopLiveCamera}
                     className="p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white text-xs transition cursor-pointer"
-                    title="Zamknij wizjer"
+                    title="Zamknij wizjer" aria-label="Zamknij wizjer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -716,7 +716,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
 
             {/* Textarea for manual ingredients paste */}
             <div className="space-y-1.5 pt-1">
-              <span className="text-[11px] font-semibold text-slate-500 block">
+              <span className="text-xs font-semibold text-slate-500 block">
                 Lub wklej tekst składu ręcznie:
               </span>
               <textarea
@@ -747,14 +747,14 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               <Loader2 className="w-5 h-5 animate-spin text-teal-600 shrink-0" />
               <div className="text-xs">
                 <span className="font-extrabold block">Gemini AI analizuje etykietę karmy...</span>
-                <span className="text-[11px] text-teal-700/80 dark:text-teal-400">Rozpoznaję składniki, procent mięsa i alergeny {pet.name}</span>
+                <span className="text-xs text-teal-700/80 dark:text-teal-400">Rozpoznaję składniki, procent mięsa i alergeny {pet.name}</span>
               </div>
             </div>
           )}
 
           {/* Quick test sample buttons */}
           <div className="space-y-1.5 pt-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
               Przetestuj na gotowych próbkach składu:
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -766,7 +766,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                     setInputText(sample.text);
                     handleAnalyzeText(sample.text);
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100/90 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 border border-teal-200/80 dark:border-teal-800 text-[11px] font-bold transition cursor-pointer active:scale-95"
+                  className="px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100/90 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 border border-teal-200/80 dark:border-teal-800 text-xs font-bold transition cursor-pointer active:scale-95"
                 >
                   ⚡ {sample.name}
                 </button>
@@ -781,11 +781,11 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               {analysisResult.productName && (
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Wykryta karma:</span>
+                    <span className="text-xs uppercase font-bold text-slate-400 block">Wykryta karma:</span>
                     <strong className="text-slate-900 dark:text-white font-extrabold text-sm">{analysisResult.productName}</strong>
                   </div>
                   {analysisResult.foodType && (
-                    <span className="px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-bold text-[10px] border border-teal-200 dark:border-teal-800 uppercase">
+                    <span className="px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-bold text-xs border border-teal-200 dark:border-teal-800 uppercase">
                       {analysisResult.foodType}
                     </span>
                   )}
@@ -796,7 +796,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               {analysisResult.score && (
                 <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between shadow-md">
                   <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-300 block">
+                    <span className="text-xs uppercase font-bold tracking-wider text-slate-300 block">
                       Ocena jakości karmy wg dietetyków PetCare:
                     </span>
                     <span className="text-xs font-black text-teal-300 block mt-0.5">
@@ -870,7 +870,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                     <span className="font-extrabold block">
                       Pierwszy składnik receptury: {analysisResult.firstIngredient}
                     </span>
-                    <span className="text-[11px] opacity-90 block mt-0.5">
+                    <span className="text-xs opacity-90 block mt-0.5">
                       {/zboż|pszenic|kukurydz|ryż|jęczmień/i.test(analysisResult.firstIngredient)
                         ? 'Główną bazą i największą częścią tej karmy są tanie ziarna zbóż (wypełniacz), a nie mięso!'
                         : 'Karma bazuje w przewadze na źródle mięsnym.'}
@@ -882,7 +882,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               {/* Meat Breakdown Detail */}
               {analysisResult.meatBreakdown && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded-2xl text-xs text-amber-950 dark:text-amber-100 space-y-1">
-                  <span className="font-black text-[11px] uppercase tracking-wider block text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                  <span className="font-black text-xs uppercase tracking-wider block text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
                     🥩 Prawdziwy bilans mięsa:
                   </span>
                   <p className="font-semibold text-xs leading-relaxed">
@@ -894,21 +894,21 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               {/* Composition Breakdown Grid */}
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                  <span className="text-xs uppercase font-bold text-slate-400 block mb-1">
                     Jakość źródła białka
                   </span>
                   <span className="font-extrabold text-slate-800 dark:text-slate-100 block">
                     {analysisResult.meatQuality}
                   </span>
                   {analysisResult.meatPercentage && (
-                    <span className="text-[11px] text-teal-600 dark:text-teal-400 font-bold block mt-0.5">
+                    <span className="text-xs text-teal-600 dark:text-teal-400 font-bold block mt-0.5">
                       Mięso: {analysisResult.meatPercentage}
                     </span>
                   )}
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                  <span className="text-xs uppercase font-bold text-slate-400 block mb-1">
                     Obecność zbóż
                   </span>
                   <span className={`font-extrabold block ${
@@ -922,7 +922,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               {/* Marketing Tricks Banner */}
               {analysisResult.marketingTricks && analysisResult.marketingTricks.length > 0 && (
                 <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-2xl text-xs text-indigo-950 dark:text-indigo-200 space-y-1">
-                  <span className="font-bold text-[10px] uppercase text-indigo-700 dark:text-indigo-400 block">
+                  <span className="font-bold text-xs uppercase text-indigo-700 dark:text-indigo-400 block">
                     🎭 Wykryty trik marketingowy producenta:
                   </span>
                   {analysisResult.marketingTricks.map((trick, i) => (
@@ -936,12 +936,12 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               {/* Fillers List */}
               {analysisResult.fillers.length > 0 && (
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-                  <span className="font-bold text-slate-500 uppercase text-[10px] block">
+                  <span className="font-bold text-slate-500 uppercase text-xs block">
                     Zidentyfikowane wypełniacze i tanie zamienniki:
                   </span>
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {analysisResult.fillers.map((f, i) => (
-                      <span key={i} className="px-2 py-0.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-[11px]">
+                      <span key={i} className="px-2 py-0.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs">
                         &bull; {f}
                       </span>
                     ))}
@@ -957,22 +957,22 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
                     Profil makroskładników:
                   </span>
                   {analysisResult.macronutrients.isCalculatedNFE && (
-                    <span className="text-[10px] font-bold text-teal-700 dark:text-teal-300">
+                    <span className="text-xs font-bold text-teal-700 dark:text-teal-300">
                       Metoda NFE Weende
                     </span>
                   )}
                 </span>
                 <div className="grid grid-cols-3 gap-2 text-center pt-1">
                   <div className="bg-white/80 dark:bg-slate-800/80 p-2 rounded-xl border border-teal-100 dark:border-teal-900">
-                    <span className="text-[10px] text-slate-400 font-bold block">Białko</span>
+                    <span className="text-xs text-slate-400 font-bold block">Białko</span>
                     <strong className="text-teal-900 dark:text-teal-200 text-xs font-black">{analysisResult.macronutrients.protein}</strong>
                   </div>
                   <div className="bg-white/80 dark:bg-slate-800/80 p-2 rounded-xl border border-teal-100 dark:border-teal-900">
-                    <span className="text-[10px] text-slate-400 font-bold block">Tłuszcz</span>
+                    <span className="text-xs text-slate-400 font-bold block">Tłuszcz</span>
                     <strong className="text-teal-900 dark:text-teal-200 text-xs font-black">{analysisResult.macronutrients.fat}</strong>
                   </div>
                   <div className="bg-white/80 dark:bg-slate-800/80 p-2 rounded-xl border border-teal-100 dark:border-teal-900">
-                    <span className="text-[10px] text-slate-400 font-bold block">Węglowodany</span>
+                    <span className="text-xs text-slate-400 font-bold block">Węglowodany</span>
                     <strong className="text-teal-900 dark:text-teal-200 text-xs font-black">{analysisResult.macronutrients.carbs}</strong>
                   </div>
                 </div>
@@ -981,7 +981,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
               {/* Veterinary Dietary Advice */}
               {analysisResult.vetAdvice && (
                 <div className="p-3.5 bg-teal-50/80 dark:bg-teal-950/70 border border-teal-200 dark:border-teal-800 rounded-2xl text-xs text-teal-950 dark:text-teal-100 space-y-1">
-                  <span className="font-black text-[10px] uppercase tracking-wider text-teal-700 dark:text-teal-300 block">
+                  <span className="font-black text-xs uppercase tracking-wider text-teal-700 dark:text-teal-300 block">
                     💡 Wskazówka dietetyczna PetCare:
                   </span>
                   <p className="font-semibold text-xs leading-relaxed">
@@ -995,7 +995,7 @@ export const FoodLensModal: React.FC<FoodLensModalProps> = ({
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center shrink-0">
-          <span className="text-[11px] text-slate-400">
+          <span className="text-xs text-slate-400">
             W 100% darmowy moduł analizy diety PetCare
           </span>
           <button

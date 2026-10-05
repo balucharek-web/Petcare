@@ -300,7 +300,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 to-teal-950 text-white flex items-center justify-between gap-3 border-b border-slate-800">
@@ -317,8 +317,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
-          >
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -347,12 +346,12 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({
                         {tool.label}
                       </strong>
                       {tool.badge && (
-                        <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-teal-100 text-teal-800">
+                        <span className="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-teal-100 text-teal-800">
                           {tool.badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                    <p className="text-xs text-slate-500 leading-tight mt-0.5">
                       {tool.desc}
                     </p>
                   </div>

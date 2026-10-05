@@ -211,7 +211,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden text-slate-900 dark:text-slate-100">
         
         {/* Modal Header */}
@@ -221,7 +221,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
               <ShieldCheck className="w-7 h-7 text-emerald-300" />
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-300">
                 Inteligentna Profilaktyka
               </span>
               <h2 className="text-lg sm:text-xl font-extrabold flex items-center gap-2">
@@ -234,8 +234,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 active:scale-95 transition text-white/80 hover:text-white"
-          >
+            className="p-2 rounded-full hover:bg-white/10 active:scale-95 transition text-white/80 hover:text-white" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -253,7 +252,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                 <span className="font-extrabold text-slate-800 dark:text-slate-200">
                   Radar Aktywności Kleszczy:
                 </span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${tickSeasonData.badgeColor}`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-extrabold ${tickSeasonData.badgeColor}`}>
                   {tickSeasonData.level}
                 </span>
               </div>
@@ -281,18 +280,18 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                     : 'bg-rose-50/80 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/60'
                 }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Bug className="w-3.5 h-3.5" />
                       Kleszcze & Pchły
                     </span>
                     {isProtected ? (
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-extrabold ${
                         isWarning ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'
                       }`}>
                         {isWarning ? `Kończy się (${daysLeft} dni)` : 'Chroniony'}
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-600 text-white">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-600 text-white">
                         Brak ochrony!
                       </span>
                     )}
@@ -306,7 +305,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Ważne do: <strong className="text-slate-700 dark:text-slate-200">{latestTickFlea.validUntil}</strong>
                       </div>
-                      <div className="mt-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      <div className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
                         {daysLeft > 0 ? (
                           <span>Pozostało jeszcze <strong>{daysLeft} dni</strong> aktywnego działania.</span>
                         ) : (
@@ -340,18 +339,18 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                     : 'bg-rose-50/80 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/60'
                 }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Pill className="w-3.5 h-3.5" />
                       Odrobaczanie
                     </span>
                     {isProtected ? (
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-extrabold ${
                         isWarning ? 'bg-amber-500 text-white' : 'bg-teal-600 text-white'
                       }`}>
                         {isWarning ? `Termin blisko` : 'Aktualne'}
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-600 text-white">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-600 text-white">
                         Do wykonania!
                       </span>
                     )}
@@ -365,7 +364,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Kolejne: <strong className="text-slate-700 dark:text-slate-200">{latestDeworming.validUntil}</strong>
                       </div>
-                      <div className="mt-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      <div className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
                         {daysLeft > 0 ? (
                           <span>Kolejne zalecane za <strong>{daysLeft} dni</strong>.</span>
                         ) : (
@@ -458,7 +457,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                       key={p.name}
                       type="button"
                       onClick={() => handleSelectPreset(p)}
-                      className={`text-[11px] py-1 px-2.5 rounded-lg border font-semibold transition ${
+                      className={`text-xs py-1 px-2.5 rounded-lg border font-semibold transition ${
                         productName === p.name
                           ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border-emerald-400 font-bold'
                           : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
@@ -597,7 +596,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
           <div className="space-y-3">
             <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
               <span>Historia Podań ({protections.length})</span>
-              <span className="text-[11px] font-normal lowercase">posortowane od najnowszych</span>
+              <span className="text-xs font-normal lowercase">posortowane od najnowszych</span>
             </h3>
 
             {protections.length === 0 ? (
@@ -620,7 +619,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${
+                          <span className={`px-2 py-0.5 rounded-md text-xs font-extrabold ${
                             item.type === 'tick_flea'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                               : 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300'
@@ -630,10 +629,10 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                           <strong className="text-sm text-slate-900 dark:text-white font-extrabold">
                             {item.productName}
                           </strong>
-                          <span className="text-slate-400 text-[11px]">({item.form})</span>
+                          <span className="text-slate-400 text-xs">({item.form})</span>
                         </div>
 
-                        <div className="text-slate-600 dark:text-slate-300 text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <div className="text-slate-600 dark:text-slate-300 text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span>Podano: <strong>{item.dateAdministered}</strong></span>
                           <span>•</span>
                           <span>
@@ -646,7 +645,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                         </div>
 
                         {item.notes && (
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 italic">
                             {item.notes}
                           </p>
                         )}
@@ -657,7 +656,7 @@ export const ParasiteProtectionModal: React.FC<ParasiteProtectionModalProps> = (
                         <button
                           onClick={() => handleOpenGoogleCalendar(item)}
                           title="Dodaj termin ponownego podania do Kalendarza Google"
-                          className="p-1.5 px-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 flex items-center gap-1 font-bold text-[11px] transition"
+                          className="p-1.5 px-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 flex items-center gap-1 font-bold text-xs transition"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>Google Cal</span>

@@ -96,7 +96,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-4 bg-black/85 backdrop-blur-xs animate-fadeIn print:p-0 print:bg-white print:static">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-4 bg-black/85 backdrop-blur-xs animate-fadeIn print:p-0 print:bg-white print:static">
       <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] print:max-h-none print:shadow-none print:w-full print:rounded-none">
         
         {/* Top Header Bar */}
@@ -109,7 +109,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
               <h2 className="text-xs sm:text-sm font-black truncate">
                 Karta Zdrowia: {pet.name}
               </h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate">
+              <p className="text-xs sm:text-xs text-slate-400 truncate">
                 Dokumentacja weterynaryjna &bull; Gotowa do druku lub PDF
               </p>
             </div>
@@ -147,7 +147,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
               type="button"
               onClick={handleDownloadPdf}
               disabled={isExporting}
-              title="Pobierz oficjalny plik PDF na telefon lub komputer"
+              title="Pobierz oficjalny plik PDF na telefon lub komputer" aria-label="Pobierz oficjalny plik PDF na telefon lub komputer"
               className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 active:scale-95 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer disabled:opacity-50"
             >
               {exportSuccess ? (
@@ -167,7 +167,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
             <button
               type="button"
               onClick={handleShareOrPrint}
-              title="Drukuj lub udostępnij"
+              title="Drukuj lub udostępnij" aria-label="Drukuj lub udostępnij"
               className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
             >
               <Printer className="w-4 h-4 text-teal-400" />
@@ -177,8 +177,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
             {/* Close */}
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer ml-1"
-            >
+              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer ml-1" aria-label="Zamknij">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -229,7 +228,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-100 text-teal-800 mb-1">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-teal-100 text-teal-800 mb-1">
                       {pet.species === 'dog' ? 'PIES' : pet.species === 'cat' ? 'KOT' : 'ZWIERZĘ DOMOWE'}
                     </span>
                     <h1 className="text-xl font-black text-slate-900 leading-tight">
@@ -244,19 +243,19 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                 {/* Quick Info Grid */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-[11px] text-slate-500 block font-semibold">Wiek:</span>
+                    <span className="text-xs text-slate-500 block font-semibold">Wiek:</span>
                     <strong className="text-slate-900 font-bold">{calculateAge(pet.birthDate)}</strong>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-[11px] text-slate-500 block font-semibold">Waga:</span>
+                    <span className="text-xs text-slate-500 block font-semibold">Waga:</span>
                     <strong className="text-teal-700 font-bold">{pet.weightKg ? `${pet.weightKg} kg` : 'Brak danych'}</strong>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-[11px] text-slate-500 block font-semibold">Numer Mikroczipa:</span>
-                    <strong className="text-slate-900 font-mono text-[11px] break-all">{pet.chipNumber || 'Brak'}</strong>
+                    <span className="text-xs text-slate-500 block font-semibold">Numer Mikroczipa:</span>
+                    <strong className="text-slate-900 font-mono text-xs break-all">{pet.chipNumber || 'Brak'}</strong>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-[11px] text-slate-500 block font-semibold">Kastracja:</span>
+                    <span className="text-xs text-slate-500 block font-semibold">Kastracja:</span>
                     <strong className="text-slate-900 font-bold">{pet.isNeutered ? 'TAK' : 'NIE'}</strong>
                   </div>
                 </div>
@@ -265,7 +264,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                   <div className="mt-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center gap-2 text-xs">
                     <Building className="w-4 h-4 text-teal-600 shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-[10px] text-slate-500 block">Lecznica prowadząca:</span>
+                      <span className="text-xs text-slate-500 block">Lecznica prowadząca:</span>
                       <strong className="text-slate-900 truncate block">{pet.vetClinicName}</strong>
                     </div>
                   </div>
@@ -299,7 +298,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                     <Pill className="w-4 h-4 text-amber-500" />
                     <span>Leki i Suplementy ({medications.length})</span>
                   </h3>
-                  <span className="text-[11px] text-slate-500 font-semibold">
+                  <span className="text-xs text-slate-500 font-semibold">
                     {medications.filter(m => m.isActive).length} aktywnych
                   </span>
                 </div>
@@ -317,18 +316,18 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                           <h4 className="font-extrabold text-sm text-slate-900">
                             {m.name}
                           </h4>
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 shrink-0">
+                          <span className="px-2 py-0.5 rounded-md text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900 shrink-0">
                             {m.isChronic ? 'Lek stały' : 'Kuracja'}
                           </span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-amber-200/50">
                           <div>
-                            <span className="text-[10px] text-slate-500 block font-semibold">Dawka:</span>
+                            <span className="text-xs text-slate-500 block font-semibold">Dawka:</span>
                             <strong className="text-slate-900 font-bold text-xs">{m.dosage || '1 dawka'}</strong>
                           </div>
                           <div>
-                            <span className="text-[10px] text-slate-500 block font-semibold">Pory podawania:</span>
+                            <span className="text-xs text-slate-500 block font-semibold">Pory podawania:</span>
                             <strong className="text-teal-800 font-bold text-xs">
                               {m.timesOfDay && m.timesOfDay.length > 0 
                                 ? m.timesOfDay.map(t => `${t.label || ''} (${t.time})`).join(', ') 
@@ -337,7 +336,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
                           <div>
                             <span className="text-slate-400">Okres: </span>
                             <span className="font-medium text-slate-800">{m.startDate} {m.endDate ? `➔ ${m.endDate}` : '(Stałe)'}</span>
@@ -376,12 +375,12 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                           <h4 className="font-extrabold text-sm text-slate-900">
                             {v.name}
                           </h4>
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-teal-100 text-teal-900 shrink-0">
+                          <span className="px-2 py-0.5 rounded-md text-xs font-black uppercase tracking-wider bg-teal-100 text-teal-900 shrink-0">
                             Ważne do: {v.validUntil}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-teal-200/50 text-[11px]">
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-teal-200/50 text-xs">
                           <div>
                             <span className="text-slate-500 block">Data podania:</span>
                             <strong className="text-slate-800 font-mono">{v.dateAdministered}</strong>
@@ -414,10 +413,10 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                       <div key={e.id} className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-xs space-y-1">
                         <div className="flex items-center justify-between">
                           <strong className="font-extrabold text-slate-900 text-sm">{e.title}</strong>
-                          <span className="font-mono text-[10px] text-slate-500">{e.date}</span>
+                          <span className="font-mono text-xs text-slate-500">{e.date}</span>
                         </div>
                         <p className="text-slate-700"><strong>Wynik:</strong> {e.summary || 'Prawidłowy'}</p>
-                        {e.clinic && <p className="text-slate-500 text-[11px]">🏥 {e.clinic}</p>}
+                        {e.clinic && <p className="text-slate-500 text-xs">🏥 {e.clinic}</p>}
                       </div>
                     ))}
 
@@ -425,10 +424,10 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                       <div key={v.id} className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-xs space-y-1">
                         <div className="flex items-center justify-between">
                           <strong className="font-extrabold text-teal-900 text-sm">Wizyta: {v.reason}</strong>
-                          <span className="font-mono text-[10px] text-slate-500">{v.date}</span>
+                          <span className="font-mono text-xs text-slate-500">{v.date}</span>
                         </div>
                         <p className="text-slate-700"><strong>Zalecenia:</strong> {v.treatmentGiven || v.diagnosis || 'Kontrola okresowa'}</p>
-                        {v.clinic && <p className="text-slate-500 text-[11px]">🏥 {v.clinic} {v.doctor ? `(${v.doctor})` : ''}</p>}
+                        {v.clinic && <p className="text-slate-500 text-xs">🏥 {v.clinic} {v.doctor ? `(${v.doctor})` : ''}</p>}
                       </div>
                     ))}
                   </div>
@@ -447,13 +446,13 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
             {/* Header / Passport Title */}
             <div className="flex flex-col-reverse sm:flex-row items-start justify-between border-b-2 border-teal-600 pb-4 mb-4 sm:mb-6 gap-3">
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] sm:text-2xs font-extrabold uppercase tracking-widest text-teal-700 mb-0.5">
+                <div className="text-xs sm:text-2xs font-extrabold uppercase tracking-widest text-teal-700 mb-0.5">
                   Oficjalna Karta Zdrowia Zwierzęcia Domowego &bull; PetCare
                 </div>
                 <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight break-words">
                   Książeczka Zdrowia: {pet.name}
                 </h1>
-                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                <p className="text-xs sm:text-xs text-slate-500 mt-0.5">
                   Wygenerowano z systemu PetCare &bull; Data: {new Date().toLocaleDateString('pl-PL')}
                 </p>
               </div>
@@ -468,7 +467,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                   />
                 )}
                 <div>
-                  <span className="inline-block px-2.5 py-1 bg-teal-50 text-teal-800 text-[11px] sm:text-xs font-black rounded-lg border border-teal-200 uppercase">
+                  <span className="inline-block px-2.5 py-1 bg-teal-50 text-teal-800 text-xs sm:text-xs font-black rounded-lg border border-teal-200 uppercase">
                     {pet.species === 'dog' ? 'PIES / CANINE' : pet.species === 'cat' ? 'KOT / FELINE' : pet.species || 'ZWIERZĘ DOMOWE'}
                   </span>
                 </div>
@@ -478,39 +477,39 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
             {/* Grid 1: Basic Info & Owner */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-5 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 text-xs">
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Gatunek / Rasa:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Gatunek / Rasa:</span>
                 <span className="font-bold text-slate-900 break-words">{pet.breed || 'Mieszaniec'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Płeć:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Płeć:</span>
                 <span className="font-bold text-slate-900">{pet.gender === 'female' ? 'Samica' : 'Samiec'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Wiek:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Wiek:</span>
                 <span className="font-bold text-slate-900">{calculateAge(pet.birthDate)}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Waga aktualna:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Waga aktualna:</span>
                 <span className="font-bold text-teal-700">{pet.weightKg ? `${pet.weightKg} kg` : 'Brak danych'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Numer Mikroczipa:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Numer Mikroczipa:</span>
                 <span className="font-mono font-bold text-slate-900 break-all">{pet.chipNumber || 'Brak'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Paszport UE:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Paszport UE:</span>
                 <span className="font-mono font-bold text-slate-900">{pet.passportNumber || 'Brak'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Umaszczenie:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Umaszczenie:</span>
                 <span className="font-bold text-slate-900">{pet.color || 'Standardowe'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Kastracja / Sterylizacja:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Kastracja / Sterylizacja:</span>
                 <span className="font-bold text-slate-900">{pet.isNeutered ? 'TAK' : 'NIE'}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-semibold text-[11px] block">Lecznica prowadząca:</span>
+                <span className="text-slate-500 font-semibold text-xs block">Lecznica prowadząca:</span>
                 <span className="font-bold text-slate-900 truncate">{pet.vetClinicName || 'Nie przypisano'}</span>
               </div>
             </div>
@@ -518,7 +517,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
             {/* Warnings */}
             {(pet.allergies || conditions.length > 0) && (
               <div className="mb-5 p-3 bg-rose-50 border-2 border-rose-300 rounded-xl text-rose-950 text-xs">
-                <div className="font-black flex items-center gap-1.5 uppercase text-rose-800 mb-1 text-[11px]">
+                <div className="font-black flex items-center gap-1.5 uppercase text-rose-800 mb-1 text-xs">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>Ważne Informacje Medyczne &bull; Alergie &bull; Choroby Przewlekłe</span>
                 </div>
@@ -561,7 +560,7 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
                         <td className="p-2 font-bold border-r border-slate-200">{v.name}</td>
                         <td className="p-2 font-mono font-bold text-teal-800 border-r border-slate-200">{v.validUntil}</td>
                         <td className="p-2 border-r border-slate-200">{v.vetClinic || 'Lecznica'}</td>
-                        <td className="p-2 text-center text-[10px] text-slate-400 italic">Podpisano</td>
+                        <td className="p-2 text-center text-xs text-slate-400 italic">Podpisano</td>
                       </tr>
                     ))}
                   </tbody>
@@ -655,13 +654,13 @@ export const HealthBookletModal: React.FC<HealthBookletModalProps> = ({
               </div>
               <div>
                 <p className="font-bold text-slate-800">Pieczęć Przychodni Weterynaryjnej / Lekarza:</p>
-                <div className="border border-dashed border-slate-300 rounded-xl h-14 sm:h-16 mt-2 flex items-center justify-center text-[10px] text-slate-400">
+                <div className="border border-dashed border-slate-300 rounded-xl h-14 sm:h-16 mt-2 flex items-center justify-center text-xs text-slate-400">
                   MIEJSCE NA PIECZĘĆ LEKARZA WETERYNARII
                 </div>
               </div>
             </div>
 
-            <div className="text-center text-[10px] text-slate-400 mt-5 print:mt-10">
+            <div className="text-center text-xs text-slate-400 mt-5 print:mt-10">
               Dokument wygenerowany cyfrowo w aplikacji PetCare. Zachowaj ten wydruk lub plik PDF w dokumentacji domowej pupila.
             </div>
           </div>

@@ -204,7 +204,7 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 px-5 sm:px-6 py-4 text-white flex items-center justify-between">
@@ -219,8 +219,7 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition text-white"
-          >
+            className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition text-white" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -262,7 +261,7 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
                 <span className="text-teal-400">{result.humanAge}</span>
                 <span className="text-2xl font-bold text-slate-300">lat</span>
               </div>
-              <p className="text-[11px] text-slate-300 max-w-xs mx-auto">
+              <p className="text-xs text-slate-300 max-w-xs mx-auto">
                 {selectedSpecies === 'dog' ? (
                   result.dogSize === 'small' ? 'Pies małej rasy (≤10 kg)' :
                   result.dogSize === 'medium' ? 'Pies średniej rasy (10–25 kg)' :
@@ -286,7 +285,7 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
               </span>
               <button
                 onClick={resetToPetValues}
-                className="text-[11px] font-semibold text-teal-700 hover:text-teal-900 transition underline underline-offset-2"
+                className="text-xs font-semibold text-teal-700 hover:text-teal-900 transition underline underline-offset-2"
               >
                 Przywróć dane {pet.name}
               </button>
@@ -306,7 +305,7 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
                 onChange={(e) => setSelectedYears(parseInt(e.target.value))}
                 className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
               />
-              <div className="flex justify-between text-[10px] text-slate-400">
+              <div className="flex justify-between text-xs text-slate-400">
                 <span>0 lat</span>
                 <span>5 lat</span>
                 <span>10 lat</span>
@@ -357,7 +356,7 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
                       }`}
                     >
                       <div className="font-bold leading-tight">{s.label}</div>
-                      <div className="text-[10px] opacity-80">{s.range}</div>
+                      <div className="text-xs opacity-80">{s.range}</div>
                     </button>
                   ))}
                 </div>
@@ -370,7 +369,7 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
             <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <span className="font-bold text-amber-950 block">Dlaczego mit „1 rok = 7 lat” jest błędny?</span>
-              <p className="text-[11px] leading-relaxed text-amber-900">
+              <p className="text-xs leading-relaxed text-amber-900">
                 Pies w wieku 1 roku osiąga dojrzałość płciową i emocjonalną odpowiadającą ludzkiemu 15-latkowi (nie 7-latkowi!). 
                 W wieku 2 lat to już ok. 24 lata ludzkie. Później tempo zwalnia, a rasy olbrzymie starzeją się znacznie szybciej niż małe czworonogi.
               </p>
@@ -399,14 +398,14 @@ export const AgeCalculatorModal: React.FC<AgeCalculatorModalProps> = ({
             {/* Diet tip */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-xs text-emerald-900">
               <span className="font-bold block text-emerald-950 mb-0.5">🥗 Wskazówka żywieniowa dla tego etapu:</span>
-              <p className="text-[11px] text-emerald-800 leading-relaxed">{result.lifeStage.dietaryTips}</p>
+              <p className="text-xs text-emerald-800 leading-relaxed">{result.lifeStage.dietaryTips}</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500">
+          <span className="text-xs text-slate-500">
             Oparte o wytyczne weterynaryjne AAHA & AAFP
           </span>
           <button

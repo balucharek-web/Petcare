@@ -203,7 +203,7 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
               <label className="font-bold text-slate-800 text-xs sm:text-sm">
                 Nazwa preparatu / szczepionki *
               </label>
-              <span className="text-[11px] text-teal-700 font-semibold">
+              <span className="text-xs text-teal-700 font-semibold">
                 Wpisz lub kliknij sugestię poniżej
               </span>
             </div>
@@ -362,7 +362,7 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
       {/* Top Banner */}
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between gap-3">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600 block">
+          <span className="text-xs font-bold uppercase tracking-wider text-teal-600 block">
             Profilaktyka weterynaryjna
           </span>
           <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
@@ -413,7 +413,7 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-base text-slate-900">{vac.name}</h3>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${
                         vac.category === 'rabies' 
                           ? 'bg-rose-100 text-rose-800'
                           : vac.category === 'deworming'
@@ -486,11 +486,11 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
                 {/* Dates & Clinic */}
                 <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Data szczepienia</span>
+                    <span className="text-slate-400 block text-xs uppercase font-bold">Data szczepienia</span>
                     <strong className="text-slate-800">{vac.dateAdministered}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Lekarz / Gabinet</span>
+                    <span className="text-slate-400 block text-xs uppercase font-bold">Lekarz / Gabinet</span>
                     <strong className="text-slate-800">{vac.vetDoctor || vac.vetClinic || '-'}</strong>
                   </div>
                 </div>
@@ -504,7 +504,7 @@ export const VaccinationsView: React.FC<VaccinationsViewProps> = ({
                 {/* Attachments preview */}
                 {vac.attachmentUrls && vac.attachmentUrls.length > 0 && (
                   <div className="pt-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">
+                    <span className="text-xs font-bold uppercase text-slate-400 block mb-1.5">
                       Załączony skan / wpis paszportowy
                     </span>
                     <div className="flex gap-2 overflow-x-auto pb-1">

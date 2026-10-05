@@ -133,7 +133,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-fadeIn">
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -144,7 +144,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-extrabold text-gray-900">Tryb Współwłaściciela</h2>
-                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-[10px] font-bold">
+                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold">
                   Rodzina & Petsitter
                 </span>
               </div>
@@ -153,8 +153,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition cursor-pointer"
-          >
+            className="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition cursor-pointer" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -225,7 +224,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
                 className="p-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-2xl flex flex-col items-center gap-1 text-center transition cursor-pointer"
               >
                 <Pill className="w-5 h-5 text-amber-700" />
-                <span className="text-[11px] font-bold text-amber-900">Podano lek</span>
+                <span className="text-xs font-bold text-amber-900">Podano lek</span>
               </button>
 
               <button
@@ -233,7 +232,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
                 className="p-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-2xl flex flex-col items-center gap-1 text-center transition cursor-pointer"
               >
                 <Utensils className="w-5 h-5 text-emerald-700" />
-                <span className="text-[11px] font-bold text-emerald-900">Nakarmiono</span>
+                <span className="text-xs font-bold text-emerald-900">Nakarmiono</span>
               </button>
 
               <button
@@ -241,7 +240,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
                 className="p-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-2xl flex flex-col items-center gap-1 text-center transition cursor-pointer"
               >
                 <Footprints className="w-5 h-5 text-blue-700" />
-                <span className="text-[11px] font-bold text-blue-900">Spacer</span>
+                <span className="text-xs font-bold text-blue-900">Spacer</span>
               </button>
 
               <button
@@ -249,7 +248,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
                 className="p-2.5 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 rounded-2xl flex flex-col items-center gap-1 text-center transition cursor-pointer"
               >
                 <Droplet className="w-5 h-5 text-cyan-700" />
-                <span className="text-[11px] font-bold text-cyan-900">Woda</span>
+                <span className="text-xs font-bold text-cyan-900">Woda</span>
               </button>
             </div>
           </div>
@@ -261,7 +260,7 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
                 <Clock className="w-4 h-4 text-indigo-600" />
                 Dziennik opieki w domu
               </span>
-              <span className="text-[11px] text-gray-400">Ostatnie akcje</span>
+              <span className="text-xs text-gray-400">Ostatnie akcje</span>
             </div>
 
             <div className="space-y-2">
@@ -275,12 +274,12 @@ export const FamilySharingModal: React.FC<FamilySharingModalProps> = ({
                       <div className="font-bold text-gray-900">
                         {act.label}
                       </div>
-                      <div className="text-[11px] text-gray-500">
+                      <div className="text-xs text-gray-500">
                         Wpisał(a): <span className="font-semibold text-indigo-700">{act.author}</span>
                       </div>
                     </div>
                   </div>
-                  <span className="text-[11px] font-mono font-bold text-gray-500">
+                  <span className="text-xs font-mono font-bold text-gray-500">
                     {formatTime(act.timestamp)}
                   </span>
                 </div>

@@ -160,7 +160,7 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-900 to-slate-900 text-white flex items-center justify-between gap-3 border-b border-emerald-800">
@@ -181,15 +181,14 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
               onClick={handleExportCsv}
               disabled={allExpenses.length === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-40"
-              title="Pobierz arkusz kalkulacyjny CSV z polskimi znakami do Excela"
+              title="Pobierz arkusz kalkulacyjny CSV z polskimi znakami do Excela" aria-label="Pobierz arkusz kalkulacyjny CSV z polskimi znakami do Excela"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Pobierz CSV</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
-            >
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition" aria-label="Zamknij">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -200,27 +199,27 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-2.5">
             <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
-              <span className="text-[10px] uppercase font-bold text-emerald-800 block">Łącznie</span>
+              <span className="text-xs uppercase font-bold text-emerald-800 block">Łącznie</span>
               <strong className="text-lg sm:text-xl font-black text-emerald-950 block mt-0.5">
                 {totalAmount.toLocaleString('pl-PL')} zł
               </strong>
-              <span className="text-[10px] text-emerald-700 block">{allExpenses.length} pozycji</span>
+              <span className="text-xs text-emerald-700 block">{allExpenses.length} pozycji</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-center">
-              <span className="text-[10px] uppercase font-bold text-teal-800 block">Ten miesiąc</span>
+              <span className="text-xs uppercase font-bold text-teal-800 block">Ten miesiąc</span>
               <strong className="text-lg sm:text-xl font-black text-teal-950 block mt-0.5">
                 {thisMonthAmount.toLocaleString('pl-PL')} zł
               </strong>
-              <span className="text-[10px] text-teal-700 block">Bieżący okres</span>
+              <span className="text-xs text-teal-700 block">Bieżący okres</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">W roku {currentYear}</span>
+              <span className="text-xs uppercase font-bold text-slate-500 block">W roku {currentYear}</span>
               <strong className="text-lg sm:text-xl font-black text-slate-900 block mt-0.5">
                 {thisYearAmount.toLocaleString('pl-PL')} zł
               </strong>
-              <span className="text-[10px] text-slate-500 block">Roczna suma</span>
+              <span className="text-xs text-slate-500 block">Roczna suma</span>
             </div>
           </div>
 
@@ -341,7 +340,7 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
 
                   return (
                     <div key={key} className="space-y-1">
-                      <div className="flex justify-between items-center text-[11px]">
+                      <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-slate-700 flex items-center gap-1.5">
                           <span>{info.icon}</span>
                           <span>{info.label}</span>
@@ -374,7 +373,7 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value as any)}
-                className="text-[11px] p-1.5 rounded-xl bg-slate-100 border border-slate-200 font-semibold text-slate-700"
+                className="text-xs p-1.5 rounded-xl bg-slate-100 border border-slate-200 font-semibold text-slate-700"
               >
                 <option value="all">Wszystkie kategorie</option>
                 {Object.entries(categoryLabels).map(([k, v]) => (
@@ -400,11 +399,11 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
                       </span>
                       <div>
                         <strong className="text-slate-900 block leading-tight">{item.title}</strong>
-                        <span className="text-[11px] text-slate-400 block mt-0.5">
+                        <span className="text-xs text-slate-400 block mt-0.5">
                           {item.date} &bull; {categoryLabels[item.category]?.label || item.category}
                         </span>
                         {item.notes && (
-                          <span className="text-[11px] text-slate-500 italic block">{item.notes}</span>
+                          <span className="text-xs text-slate-500 italic block">{item.notes}</span>
                         )}
                       </div>
                     </div>

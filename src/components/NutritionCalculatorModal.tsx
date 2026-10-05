@@ -88,7 +88,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-900 to-slate-900 text-white flex items-center justify-between gap-3 border-b border-amber-800">
@@ -107,8 +107,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
-          >
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -118,7 +117,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
           {/* Main Results Highlight */}
           <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-500/10 via-teal-500/5 to-slate-50 border border-amber-200/80 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs uppercase font-bold tracking-wider text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full">
                 Zalecane zapotrzebowanie
               </span>
               <div className="text-3xl font-black text-slate-900 mt-1 flex items-baseline justify-center sm:justify-start gap-1">
@@ -131,11 +130,11 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
             </div>
 
             <div className="bg-white p-3.5 rounded-2xl border border-amber-200 shadow-sm shrink-0 min-w-36 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Dzienna porcja</span>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Dzienna porcja</span>
               <strong className="text-2xl font-black text-teal-700 block mt-0.5">
                 {dailyGrams} g
               </strong>
-              <span className="text-[11px] text-slate-500 block">
+              <span className="text-xs text-slate-500 block">
                 {mealsPerDay} posiłki po <strong>{portionGrams} g</strong>
               </span>
             </div>
@@ -151,7 +150,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
                   Waga zwierzaka (kg)
                 </label>
                 {weightDiff !== null && (
-                  <span className={`text-[11px] font-bold flex items-center gap-1 ${
+                  <span className={`text-xs font-bold flex items-center gap-1 ${
                     weightDiff > 0 ? 'text-amber-600' : weightDiff < 0 ? 'text-blue-600' : 'text-slate-400'
                   }`}>
                     {weightDiff > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : weightDiff < 0 ? <TrendingDown className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
@@ -200,7 +199,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
                   <button
                     type="button"
                     onClick={() => handleFoodTypePreset('dry')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                       foodType === 'dry' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
                     }`}
                   >
@@ -209,7 +208,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
                   <button
                     type="button"
                     onClick={() => handleFoodTypePreset('wet')}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                       foodType === 'wet' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
                     }`}
                   >
@@ -220,7 +219,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Kcal w 100g karmy</label>
+                  <label className="text-xs text-slate-500 block mb-1">Kcal w 100g karmy</label>
                   <input
                     type="number"
                     value={foodKcalPer100g}
@@ -232,7 +231,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Liczba posiłków dziennie</label>
+                  <label className="text-xs text-slate-500 block mb-1">Liczba posiłków dziennie</label>
                   <select
                     value={mealsPerDay}
                     onChange={(e) => setMealsPerDay(parseInt(e.target.value) || 2)}
@@ -253,7 +252,7 @@ export const NutritionCalculatorModal: React.FC<NutritionCalculatorModalProps> =
                 <Info className="w-3.5 h-3.5 text-teal-600" />
                 Wskazówka dietetyczna:
               </strong>
-              <p className="text-[11px] leading-relaxed text-teal-800">
+              <p className="text-xs leading-relaxed text-teal-800">
                 Pamiętaj o uwzględnieniu w bilansie smaczków i gryzaków treningowych (powinny stanowić max 10% dziennej puli kalorii). Kontroluj wagę co 2-3 tygodnie.
               </p>
             </div>

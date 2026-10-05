@@ -196,7 +196,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-fadeIn">
       <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -207,7 +207,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-extrabold text-gray-900">Oś Czasu Zdrowia</h2>
-                <span className="px-2 py-0.5 bg-teal-100 text-teal-800 rounded-full text-[10px] font-bold">
+                <span className="px-2 py-0.5 bg-teal-100 text-teal-800 rounded-full text-xs font-bold">
                   {pet.name}
                 </span>
               </div>
@@ -216,8 +216,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition cursor-pointer"
-          >
+            className="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition cursor-pointer" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -302,7 +301,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
                             {event.title}
                           </h4>
                           {event.subtitle && (
-                            <p className="text-[11px] text-gray-500 font-medium">
+                            <p className="text-xs text-gray-500 font-medium">
                               {event.subtitle}
                             </p>
                           )}
@@ -313,7 +312,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
                         <span className="text-xs font-mono font-bold text-gray-800 block">
                           {event.date}
                         </span>
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {formatRelativeTime(event.date)}
                         </span>
                       </div>
@@ -325,7 +324,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
                       </p>
                     )}
 
-                    <div className="flex items-center justify-between pt-1 text-[11px] text-gray-400">
+                    <div className="flex items-center justify-between pt-1 text-xs text-gray-400">
                       <span>{event.clinic || 'Wpis domowy'}</span>
                       {event.badge && (
                         <span className="px-2 py-0.5 bg-teal-50 text-teal-800 font-bold rounded-md border border-teal-100">

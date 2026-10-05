@@ -64,7 +64,7 @@ export const MicrochipVerifyModal: React.FC<MicrochipVerifyModalProps> = ({
   const europetnetSearchUrl = `https://www.europetnet.org/`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-teal-200 dark:border-slate-800 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-slate-900 px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-sm">
@@ -75,7 +75,7 @@ export const MicrochipVerifyModal: React.FC<MicrochipVerifyModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black tracking-tight">Weryfikacja Mikroczipa</h2>
-                <span className="text-[10px] font-black uppercase bg-teal-400 text-slate-950 px-2 py-0.5 rounded-full shadow-xs">
+                <span className="text-xs font-black uppercase bg-teal-400 text-slate-950 px-2 py-0.5 rounded-full shadow-xs">
                   SAFE-ANIMAL
                 </span>
               </div>
@@ -104,7 +104,7 @@ export const MicrochipVerifyModal: React.FC<MicrochipVerifyModalProps> = ({
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Numer Transpondera (Mikroczip)
               </span>
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+              <span className={`text-xs font-black px-2 py-0.5 rounded-full ${
                 isExact15Digits 
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                   : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
@@ -157,11 +157,11 @@ export const MicrochipVerifyModal: React.FC<MicrochipVerifyModalProps> = ({
                     <span className="font-extrabold text-sm text-teal-950 dark:text-teal-100 group-hover:text-teal-700">
                       SAFE-ANIMAL Polska
                     </span>
-                    <span className="text-[10px] bg-teal-200 dark:bg-teal-800 text-teal-900 dark:text-teal-100 font-bold px-1.5 py-0.2 rounded-md">
+                    <span className="text-xs bg-teal-200 dark:bg-teal-800 text-teal-900 dark:text-teal-100 font-bold px-1.5 py-0.2 rounded-md">
                       Główna baza
                     </span>
                   </div>
-                  <p className="text-[11px] text-teal-800/80 dark:text-teal-300">
+                  <p className="text-xs text-teal-800/80 dark:text-teal-300">
                     Sprawdź status rejestracji, dane właściciela i połączenie z EUROPETNET
                   </p>
                 </div>
@@ -185,7 +185,7 @@ export const MicrochipVerifyModal: React.FC<MicrochipVerifyModalProps> = ({
                   <span className="font-extrabold text-sm text-slate-900 dark:text-white group-hover:text-blue-600">
                     CBDZOE (Centralna Baza)
                   </span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Centralna Baza Danych Zwierząt Oznakowanych Elektronicznie
                   </p>
                 </div>
@@ -209,7 +209,7 @@ export const MicrochipVerifyModal: React.FC<MicrochipVerifyModalProps> = ({
                   <span className="font-extrabold text-sm text-slate-900 dark:text-white group-hover:text-indigo-600">
                     EUROPETNET (Baza Europejska)
                   </span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Wyszukiwanie transgraniczne w przypadku podróży zagranicznych
                   </p>
                 </div>
@@ -224,7 +224,7 @@ export const MicrochipVerifyModal: React.FC<MicrochipVerifyModalProps> = ({
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>Ważna informacja dla każdego opiekuna</span>
             </div>
-            <p className="leading-relaxed text-[11px]">
+            <p className="leading-relaxed text-xs">
               Samo wszczepienie czipa u weterynarza <strong>nie oznacza automatycznego przypisania Twojego numeru telefonu</strong>. Czip musi zostać wprowadzony do bazy (np. SAFE-ANIMAL). Jeśli zgubiony pupil trafi do schroniska lub lecznicy, czytnik odczyta tylko numer — aby z Tobą skontaktowano, czip musi być zarejestrowany.
             </p>
           </div>

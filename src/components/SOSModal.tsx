@@ -21,7 +21,7 @@ export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose, pet, onOpen
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-rose-100 flex flex-col max-h-[90vh]">
         {/* Urgent Header */}
         <div className="bg-gradient-to-r from-rose-600 to-red-600 px-6 py-5 text-white flex items-center justify-between">
@@ -36,8 +36,7 @@ export const SOSModal: React.FC<SOSModalProps> = ({ isOpen, onClose, pet, onOpen
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-white"
-          >
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-white" aria-label="Zamknij">
             <X className="w-5 h-5" />
           </button>
         </div>
