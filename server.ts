@@ -41,7 +41,7 @@ export async function createApp({ serveFrontend = true }: { serveFrontend?: bool
     "style-src 'self' 'unsafe-inline' https://accounts.google.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' https://*.googleapis.com https://accounts.google.com https://nominatim.openstreetmap.org https://*.firebaseapp.com${isProduction ? '' : ' ws: wss:'}`,
+    `connect-src 'self' https://*.googleapis.com https://accounts.google.com https://nominatim.openstreetmap.org https://*.firebaseapp.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io${isProduction ? '' : ' ws: wss:'}`,
     "frame-src https://accounts.google.com https://*.firebaseapp.com https://content.googleapis.com",
     "worker-src 'self' blob:",
     "media-src 'self' data: blob:",

@@ -38,6 +38,8 @@ jobs:
         run: npm test
 
       - name: Kompilacja aplikacji webowej (Vite)
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: npm run build
 
       - name: Synchronizacja Capacitor Android

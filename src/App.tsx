@@ -28,6 +28,7 @@ import { SOSModal } from './components/SOSModal';
 import { NewPetModal } from './components/NewPetModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { AlertsBanner } from './components/AlertsBanner';
+import { BackupReminderBanner } from './components/BackupReminderBanner';
 import { getUpcomingAlerts } from './services/notifications';
 import { usePWAInstall } from './hooks/usePWAInstall';
 
@@ -602,6 +603,8 @@ export default function App() {
           onNavigateToTab={(tab) => setCurrentTab(tab)}
           onDismissAlert={handleDismissAlert}
         />
+
+        <BackupReminderBanner hasPets={pets.length > 0} onOpenGoogleSync={() => setIsGoogleSyncOpen(true)} />
 
         {/* Main Body */}
         <main className="flex-1 w-full px-3 sm:px-4 py-3 sm:py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
