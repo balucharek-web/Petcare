@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polityka prywatności – PetCare</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:760px;margin:0 auto;padding:24px 18px 64px;line-height:1.6;color:#1f2937;background:#fff}
+h1{color:#0f766e;font-size:1.7rem}h2{margin-top:2rem;font-size:1.25rem;color:#115e59}h3{font-size:1.05rem;margin-top:1.4rem}
+code{background:#f1f5f9;padding:1px 5px;border-radius:4px}a{color:#0f766e}
+@media (prefers-color-scheme:dark){body{background:#0f172a;color:#e2e8f0}h1,h2,a{color:#5eead4}code{background:#1e293b}}
+</style>
+</head>
+<body>
+<h1>Polityka prywatności aplikacji PetCare</h1>
+<p><strong>Ostatnia aktualizacja:</strong> 4 października 2026 r.</p>
+<p><strong>Administrator danych:</strong> Arkadiusz Baluch, e-mail: baluch.arek@gmail.com</p>
+<p>Ta polityka opisuje, jakie dane przetwarza aplikacja PetCare (Android i wersja webowa), w jakim celu, gdzie są przechowywane i jak je usunąć.</p>
+<h2>1. Dane przechowywane w telefonie</h2>
+<p>Dane, które wpisujesz, zapisują się domyślnie tylko w pamięci urządzenia (IndexedDB lub localStorage). Są to:</p>
+<ul>
+<li>profile zwierząt: imię, gatunek, rasa, data urodzenia, waga, zdjęcie, numer chipa;</li>
+<li>dane zdrowotne zwierząt: szczepienia, leki i historia podanych dawek, wizyty, badania, choroby, notatki, wydatki;</li>
+<li>ustawienia aplikacji i przypomnień.</li>
+</ul>
+<p>Te dane nie opuszczają telefonu, dopóki sam nie włączysz jednej z funkcji opisanych niżej.</p>
+<h2>2. Funkcje, które wysyłają dane poza telefon (opcjonalne)</h2>
+<h3>2.1. Kopia na Dysku Google</h3>
+<p>Kopia trafia na Twoje własne konto Google, do folderu <code>petcare_kopiazapasowa</code>. Aplikacja ma uprawnienie <code>drive.file</code>, czyli dostęp tylko do plików, które sama utworzyła. Logowanie odbywa się przez Google (Firebase Authentication). Nie mamy dostępu do Twojego Dysku.</p>
+<h3>2.2. Konto synchronizacji PetCare</h3>
+<p>Synchronizacja między urządzeniami i przenoszenie danych kodem PIN lub QR wymagają konta (e-mail i hasło albo logowanie Google). Na serwerze PetCare zapisujemy:</p>
+<ul>
+<li>adres e-mail, imię (jeśli je podasz) i datę założenia konta;</li>
+<li>skrót (hash PBKDF2) hasła. Samego hasła nie przechowujemy;</li>
+<li>skróty tokenów sesji (tylko skrót SHA-256, maksymalnie 10 urządzeń, ważność 60 dni);</li>
+<li>kopię danych aplikacji z punktu 1, skompresowaną;</li>
+<li>tymczasowe kody parowania i transferu QR, ważne do 15 minut.</li>
+</ul>
+<p>Serwer działa w Google Cloud (Cloud Run i Firestore) w regionie europe-west3 (Frankfurt, UE). Połączenia są szyfrowane (HTTPS/TLS).</p>
+<h3>2.3. Analiza AI (skaner dokumentów, analiza karmy)</h3>
+<p>Zrobione przez Ciebie zdjęcie dokumentu weterynaryjnego, opakowania leku lub etykiety karmy, razem z imieniem i gatunkiem zwierzęcia, wysyłamy przez serwer PetCare do usługi Google Gemini API. Serwer nie zapisuje zdjęć: przetwarza je tylko na czas analizy, a wynik wraca do telefonu. Google przetwarza te dane zgodnie z warunkami Gemini API (<a href="https://ai.google.dev/gemini-api/terms">https://ai.google.dev/gemini-api/terms</a>). Przy bezpłatnym poziomie usługi Google może wykorzystywać przesłane treści do ulepszania swoich usług. Nie wysyłaj zdjęć zawierających dane osobowe, których nie chcesz udostępniać.</p>
+<h3>2.4. Wyszukiwanie weterynarzy w pobliżu</h3>
+<p>Po wybraniu tej funkcji przybliżona lub dokładna lokalizacja, na którą zgodziłeś się w telefonie, albo wpisany adres trafia do usługi OpenStreetMap Nominatim, bezpośrednio lub przez serwer PetCare. Usługa zwraca listę pobliskich gabinetów. Lokalizacji nie zapisujemy i nie śledzimy. Linki „Nawiguj” otwierają Mapy Google.</p>
+<h3>2.5. Raporty błędów (jeśli są włączone)</h3>
+<p>Jeżeli w danej wersji aplikacji włączono raportowanie błędów (Sentry), po awarii wysyłamy techniczny opis błędu: komunikat, ślad stosu, wersję aplikacji, model i system urządzenia. Przed wysłaniem raport jest czyszczony z adresów e-mail, tokenów, haseł i zdjęć. Nie zawiera danych zdrowotnych zwierząt. Celem jest wyłącznie naprawianie błędów.</p>
+<h3>2.6. Obrazy z zewnętrznych serwisów</h3>
+<p>Przykładowe zdjęcia zwierząt pochodzą z Unsplash. Awatary z inicjałami może generować serwis ui-avatars.com, który dostaje wtedy inicjały lub imię. Te serwisy widzą adres IP urządzenia, tak jak każda strona internetowa.</p>
+<h2>3. Uprawnienia Androida</h2>
+<ul>
+<li><strong>Aparat:</strong> zdjęcia zwierząt i skanowanie dokumentów oraz kodów QR. Tylko po Twoim działaniu.</li>
+<li><strong>Lokalizacja:</strong> wyszukiwanie weterynarzy w pobliżu. Tylko na żądanie.</li>
+<li><strong>Powiadomienia, dokładne alarmy, autostart:</strong> przypomnienia o lekach, szczepieniach i wizytach, także po ponownym uruchomieniu telefonu.</li>
+<li><strong>Internet:</strong> kopia, synchronizacja, AI i mapy.</li>
+</ul>
+<h2>4. Czego nie robimy</h2>
+<ul>
+<li>Nie sprzedajemy danych i nie udostępniamy ich reklamodawcom.</li>
+<li>Nie wyświetlamy reklam i nie używamy narzędzi do śledzenia ani profilowania.</li>
+<li>Nie zbieramy danych kontaktów, SMS-ów, plików spoza aplikacji ani historii przeglądania.</li>
+</ul>
+<h2>5. Okres przechowywania i usuwanie danych</h2>
+<ul>
+<li>Dane w telefonie usuniesz w ustawieniach aplikacji albo odinstalowując aplikację.</li>
+<li><strong>Konto synchronizacji i wszystkie dane na serwerze</strong> usuniesz w aplikacji: Więcej, potem „Prywatność i Bezpieczeństwo (Google Play)”, potem „Usuń konto i dane”. Możesz też wysłać prośbę na baluch.arek@gmail.com, a konto usuniemy w ciągu 30 dni. Usunięcie w aplikacji działa od razu i jest nieodwracalne.</li>
+<li>Kopię na Dysku Google usuniesz w aplikacji albo bezpośrednio na Dysku (folder <code>petcare_kopiazapasowa</code>).</li>
+<li>Kody PIN i QR wygasają same po 15 minutach, a sesje logowania po 60 dniach.</li>
+</ul>
+<h2>6. Twoje prawa (RODO)</h2>
+<p>Masz prawo do dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia danych (eksport do pliku JSON jest dostępny w aplikacji) i sprzeciwu. Możesz też złożyć skargę do Prezesa Urzędu Ochrony Danych Osobowych. Podstawą przetwarzania jest wykonanie usługi, o którą prosisz (art. 6 ust. 1 lit. b RODO), a w przypadku raportów błędów prawnie uzasadniony interes, czyli zapewnienie działania aplikacji (art. 6 ust. 1 lit. f).</p>
+<h2>7. Dzieci</h2>
+<p>Aplikacja nie jest skierowana do dzieci poniżej 13 lat i nie zbiera świadomie ich danych.</p>
+<h2>8. Zmiany polityki</h2>
+<p>O istotnych zmianach poinformujemy w aplikacji. Aktualna wersja jest dostępna pod adresem <a href="https://petcare-558255772316.europe-west3.run.app/privacy.html">https://petcare-558255772316.europe-west3.run.app/privacy.html</a> oraz w repozytorium projektu.</p>
+<h2>9. Kontakt</h2>
+<p>E-mail: baluch.arek@gmail.com<br>Projekt: <a href="https://github.com/balucharek-web/Petcare">https://github.com/balucharek-web/Petcare</a></p>
+</body>
+</html>

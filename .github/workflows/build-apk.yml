@@ -50,7 +50,12 @@ jobs:
 
       - name: Odczyt wersji aplikacji
         id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # versionCode rośnie z każdym buildem (Google Play wymaga większego numeru przy każdym wydaniu)
+          echo "ANDROID_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_NAME=$VERSION" >> "$GITHUB_ENV"
 
       - name: Przygotowanie klucza podpisującego z GitHub Secrets
         id: keystore

@@ -135,7 +135,7 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
               <div className="space-y-2 text-xs text-gray-700 leading-relaxed">
                 <h4 className="font-extrabold text-gray-900 text-sm">1. Administrator Danych</h4>
                 <p>
-                  Administratorem danych wprowadzonych do aplikacji jesteś wyłącznie Ty (Użytkownik). Dane przetwarzane są lokalnie na Twoim urządzeniu końcowym.
+                  Dane domyślnie zostają w Twoim telefonie. Dla funkcji, które wysyłają dane na serwer (konto synchronizacji, przenoszenie PIN/QR, analiza AI), administratorem jest twórca aplikacji, Arkadiusz Baluch (baluch.arek@gmail.com).
                 </p>
 
                 <h4 className="font-extrabold text-gray-900 text-sm pt-2">2. Cel Przetwarzania Danych</h4>
@@ -145,7 +145,7 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
 
                 <h4 className="font-extrabold text-gray-900 text-sm pt-2">3. Kopia w Chmurze</h4>
                 <p>
-                  Kopia zapasowa danych zapisywana jest wyłącznie w wybranej przez Ciebie usłudze chmurowej (Dysk Google / Prywatne repozytorium) z użyciem szyfrowanych kanałów TLS/SSL.
+                  Kopia zapasowa trafia na Twój Dysk Google albo, jeśli założysz konto synchronizacji, na serwer PetCare w Google Cloud (Frankfurt, UE). Zdjęcia do analizy AI są przesyłane do Google Gemini i nie są zapisywane na serwerze. Wszystkie połączenia są szyfrowane (TLS).
                 </p>
 
                 <h4 className="font-extrabold text-gray-900 text-sm pt-2">4. Prawa Użytkownika (RODO)</h4>
@@ -153,6 +153,15 @@ export const CommercialPrivacyModal: React.FC<CommercialPrivacyModalProps> = ({
                   Przysługuje Ci prawo do wglądu w dane, ich sprostowania, eksportu w czytelnym formacie maszynowym (JSON) oraz natychmiastowego i trwałego usunięcia wszystkich danych.
                 </p>
               </div>
+
+              <a
+                href="https://petcare-558255772316.europe-west3.run.app/privacy.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 underline"
+              >
+                Pełna polityka prywatności
+              </a>
 
               {/* Data Export Button */}
               <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
