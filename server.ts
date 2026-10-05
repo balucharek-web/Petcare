@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { normalizeMedicalScan } from './aiResult.ts';
 import { createSyncStore, type UserSyncRecord } from './syncStore.ts';
 
 dotenv.config();
@@ -137,16 +138,23 @@ export async function createApp({ serveFrontend = true }: { serveFrontend?: bool
     message: 'Przekroczono limit zapytań skanera AI. Odczekaj chwilę.',
   });
 
-  // Global daily cap on Gemini calls so a leaked client or bot cannot exhaust the API budget.
+  // Daily cap on Gemini calls shared by all Cloud Run instances (via the sync store), so a leaked
+  // client or bot cannot exhaust the API budget. Falls back to a per-process counter if the store fails.
   const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT ?? 1000);
-  let aiBudget = { day: new Date().toISOString().slice(0, 10), used: 0 };
-  const aiDailyBudget = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  let localAiBudget = { day: '', used: 0 };
+  const aiDailyBudget = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const today = new Date().toISOString().slice(0, 10);
-    if (aiBudget.day !== today) aiBudget = { day: today, used: 0 };
-    if (aiBudget.used >= AI_DAILY_LIMIT) {
+    let used: number;
+    try {
+      used = await syncStore.incrementAiUsage(today);
+    } catch (err) {
+      console.warn('[AI budget] Shared counter unavailable, using local counter:', err);
+      if (localAiBudget.day !== today) localAiBudget = { day: today, used: 0 };
+      used = ++localAiBudget.used;
+    }
+    if (used > AI_DAILY_LIMIT) {
       return res.status(429).json({ success: false, error: 'Dzienny limit analiz AI został wyczerpany. Spróbuj jutro.' });
     }
-    aiBudget.used++;
     next();
   };
 
@@ -883,22 +891,22 @@ KONTEKST PACJENTA W APLIKACJI:
 - Waga: ${cleanWeight ? `${cleanWeight} kg` : 'nieznana'}
 
 ZASADY ANALIZY:
-1. JEŚLI NA ZDJĘCIU JEST DOKUMENT WETERYNARYJNY (karta wizyty, zalecenia, recepta, wyniki):
-   - ZAWSZE ustaw "isValidMedicalDocument": true!
-2. WYKRYJ LEKI:
-   - Pełna nazwa (np. "FORTHYRON 800 mg (Lewotyroksyna sodowa)"),
-   - Dokładna dawka z druku oraz z ręcznych dopisków lekarza (np. "1/2 tabletki 2 x dziennie"),
-   - Szczegółowe instrukcje (np. "Podawać co 12 h o stałych porach, ok. pół godziny przed posiłkiem na czczo"),
-   - Czy lek przewlekły (np. na tarczycę/Forthyron -> isChronic: true),
-   - Godziny podania (np. 2x dziennie -> ["08:00", "20:00"]).
-3. WYKRYJ DANE WIZYTY I DIAGNOZĘ:
-   - Rozpoznanie/diagnoza (np. "Niedoczynność tarczycy"),
-   - Zalecenia kliniczne (np. objawy przedawkowania, stałe pory, leczenie do końca życia),
-   - Kontrola (np. "Kontrola hormonów tarczycy we krwi po 4-6 tygodniach, 4-6h po porannej dawce na czczo"),
-   - Dane lekarza (np. Mirosława Lewicka, tel. 0605 632 588, Mikołów),
-   - Data wizyty: UWAGA! W Polsce daty zapisuje się w formacie Dzień/Miesiąc/Rok (DD/MM/YYYY). Zapis np. '12/03/2026 11:39' oznacza BEZWZGLĘDNIE 12 MARCA 2026 ROKU (zwróć w visitInfo.date jako "2026-03-12", nigdy jako grudzień!).
-4. WYKRYJ DANE ZWIERZĘCIA Z NAGŁÓWKA:
-   - Imię pacjenta, gatunek, rasa, wiek, maść, płeć jeśli są na dokumencie.
+0. NIE ZMYŚLAJ. Zwracaj wyłącznie informacje, które faktycznie widać na zdjęciu. Pola, których nie da się odczytać, zostaw puste ("" lub []).
+1. JEŚLI NA ZDJĘCIU NIE MA DOKUMENTU WETERYNARYJNEGO, RECEPTY, WYNIKÓW ANI OPAKOWANIA LEKU (np. puste lub nieczytelne zdjęcie, zwierzę, krajobraz, inny przedmiot):
+   - ustaw "isValidMedicalDocument": false i "type": "invalid",
+   - zostaw puste listy "medications", "examParameters", "recommendations",
+   - w "summary" krótko opisz po polsku, co widać na zdjęciu.
+   Jeśli dokument weterynaryjny jest widoczny, ustaw "isValidMedicalDocument": true.
+2. WYKRYJ LEKI (tylko widoczne na dokumencie):
+   - pełna nazwa leku z mocą i substancją czynną, jeśli są podane,
+   - dokładna dawka z druku oraz z ręcznych dopisków lekarza,
+   - szczegółowe instrukcje podawania,
+   - czy lek jest przewlekły ("isChronic"),
+   - godziny podania wynikające z dawkowania (np. 2x dziennie -> ["08:00", "20:00"]).
+3. WYKRYJ DANE WIZYTY I DIAGNOZĘ: rozpoznanie, zalecenia, termin kontroli, dane lekarza i lecznicy.
+   - Data wizyty: w Polsce daty zapisuje się jako DD/MM/YYYY. Zapis '12/03/2026' oznacza 12 marca 2026 (zwróć "2026-03-12").
+4. WYKRYJ DANE ZWIERZĘCIA Z NAGŁÓWKA: imię, gatunek, rasa, wiek, maść, płeć, jeśli są na dokumencie.
+5. "detectedRawText": przepisz dosłownie odczytany tekst. Jeśli nie odczytano tekstu, zostaw pusty.
 
 Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
 {
@@ -1008,36 +1016,7 @@ Zwróć WYŁĄCZNIE poprawny format JSON w schemacie:
         });
       }
 
-      // Auto-validate medical document flag if meaningful medical content exists
-      const hasMeds = Array.isArray(parsed.medications) && parsed.medications.length > 0;
-      const hasExams = Array.isArray(parsed.examParameters) && parsed.examParameters.length > 0;
-      const hasDiagnosis = typeof parsed.diagnosis === 'string' && parsed.diagnosis.trim().length > 0;
-      const hasNotes = typeof parsed.doctorNotes === 'string' && parsed.doctorNotes.trim().length > 10;
-      const hasRecs = Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0;
-      const hasVisit = parsed.visitInfo && (parsed.visitInfo.doctorName || parsed.visitInfo.date);
-
-      if (hasMeds || hasExams || hasDiagnosis || hasNotes || hasRecs || hasVisit) {
-        parsed.isValidMedicalDocument = true;
-        if (!parsed.type || parsed.type === 'invalid') {
-          parsed.type = hasMeds ? 'medication' : hasExams ? 'exam_blood' : 'visit_recommendation';
-        }
-      }
-
-      // Normalize visit date if in Polish DD/MM/YYYY format
-      if (parsed.visitInfo && parsed.visitInfo.date) {
-        const rawDate = String(parsed.visitInfo.date).trim();
-        const dmy = rawDate.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
-        if (dmy) {
-          const day = dmy[1].padStart(2, '0');
-          const month = dmy[2].padStart(2, '0');
-          const year = dmy[3];
-          parsed.visitInfo.date = `${year}-${month}-${day}`;
-        }
-      }
-
-      if (!Array.isArray(parsed.medications)) parsed.medications = [];
-      if (!Array.isArray(parsed.examParameters)) parsed.examParameters = [];
-      if (!Array.isArray(parsed.recommendations)) parsed.recommendations = [];
+      parsed = normalizeMedicalScan(parsed);
 
       return res.json({
         success: true,
@@ -1093,6 +1072,7 @@ KONTEKST PACJENTA:
 - Zdefiniowane alergie w profilu: ${cleanAllergies || 'brak zdefiniowanych alergii'}
 
 WYTYCZNE DLA ANALIZY:
+0. NIE ZMYŚLAJ. Jeśli na zdjęciu nie widać etykiety karmy lub przysmaku (składu, opakowania), ustaw "isFoodLabel": false, zostaw pozostałe pola puste i w "summary" opisz, co widać. W przeciwnym razie "isFoodLabel": true.
 1. "ingredientsText": Przepisz DOKŁADNIE i wiernie całą listę składników z opakowania w języku polskim. Jeśli etykieta jest wielojęzyczna, wybierz wersję polską (lub przetłumacz na polski).
 2. "analyticalText": Przepisz skład analityczny (białko surowe, tłuszcz surowy, włókno, popiół, wapń, fosfor itp.).
 3. "meatPercentage": Oszacuj procent mięsa (np. "65%" lub "brak danych na etykiecie").
@@ -1106,6 +1086,7 @@ WYTYCZNE DLA ANALIZY:
 
 Zwróć WYŁĄCZNIE poprawny obiekt JSON:
 {
+  "isFoodLabel": boolean,
   "productName": string,
   "foodType": "sucha" | "mokra" | "przysmak" | "inna",
   "ingredientsText": string,
@@ -1166,16 +1147,15 @@ Zwróć WYŁĄCZNIE poprawny obiekt JSON:
       try {
         parsed = JSON.parse(response.text.trim());
       } catch {
-        parsed = {
-          text: response.text,
-          ingredientsText: response.text,
-          summary: 'Odczytano etykietę karmy.',
-          safeStatus: 'safe',
-          allergensDetected: [],
-          fillers: [],
-          grainFree: true,
-          macronutrients: { protein: 'b/d', fat: 'b/d', carbs: 'b/d' },
-        };
+        return res.status(502).json({ success: false, error: 'Nie udało się zinterpretować odpowiedzi modelu AI. Spróbuj ponownie.' });
+      }
+
+      if (!customPrompt && parsed.isFoodLabel === false) {
+        return res.json({
+          success: false,
+          notFoodLabel: true,
+          error: parsed.summary || 'Na zdjęciu nie rozpoznano etykiety karmy. Zrób ostre zdjęcie składu na opakowaniu.',
+        });
       }
 
       if (!parsed.text && parsed.ingredientsText) {

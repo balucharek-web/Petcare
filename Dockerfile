@@ -13,7 +13,7 @@ ENV NODE_ENV=production
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/server.ts /app/syncStore.ts /app/firebase-applet-config.json ./
+COPY --from=build /app/server.ts /app/syncStore.ts /app/aiResult.ts /app/firebase-applet-config.json ./
 USER node
 EXPOSE 8080
 CMD ["node", "server.ts"]
