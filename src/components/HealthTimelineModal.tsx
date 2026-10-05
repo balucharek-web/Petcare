@@ -55,6 +55,8 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<TimelineCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   // Build unified chronological event list
   const events = useMemo<TimelineEvent[]>(() => {
@@ -150,6 +152,10 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
       // Category filter
       if (selectedFilter !== 'all' && e.type !== selectedFilter) return false;
 
+      const day = (e.date || '').slice(0, 10);
+      if (dateFrom && (!day || day < dateFrom)) return false;
+      if (dateTo && (!day || day > dateTo)) return false;
+
       // Text query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -161,7 +167,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
       }
       return true;
     });
-  }, [events, selectedFilter, searchQuery]);
+  }, [events, selectedFilter, searchQuery, dateFrom, dateTo]);
 
   if (!isOpen) return null;
 
@@ -227,8 +233,10 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <label htmlFor="timeline-search" className="sr-only">Szukaj w historii</label>
               <input
-                type="text"
+                id="timeline-search"
+                type="search"
                 placeholder="Szukaj badania, leku, szczepionki..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -243,6 +251,44 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
               <ArrowUpDown className="w-3.5 h-3.5 text-teal-600" />
               <span>{sortOrder === 'desc' ? 'Najnowsze' : 'Najstarsze'}</span>
             </button>
+          </div>
+
+          {/* Date range */}
+          <div className="flex flex-wrap items-end gap-2 text-xs">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="timeline-date-from" className="font-bold text-gray-600">Od</label>
+              <input
+                id="timeline-date-from"
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={e => setDateFrom(e.target.value)}
+                className="px-2.5 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-hidden focus:border-teal-500"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="timeline-date-to" className="font-bold text-gray-600">Do</label>
+              <input
+                id="timeline-date-to"
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={e => setDateTo(e.target.value)}
+                className="px-2.5 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-hidden focus:border-teal-500"
+              />
+            </div>
+            {(dateFrom || dateTo || searchQuery || selectedFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => { setDateFrom(''); setDateTo(''); setSearchQuery(''); setSelectedFilter('all'); }}
+                className="px-3 py-2 min-h-[36px] rounded-xl font-bold text-teal-700 bg-teal-50 border border-teal-100 hover:bg-teal-100 cursor-pointer"
+              >
+                Wyczyść filtry
+              </button>
+            )}
+            <span className="ml-auto text-gray-500 font-semibold" aria-live="polite">
+              {filteredEvents.length} z {events.length}
+            </span>
           </div>
 
           {/* Filter Pills */}
@@ -277,7 +323,7 @@ export const HealthTimelineModal: React.FC<HealthTimelineModalProps> = ({
               <History className="w-10 h-10 text-gray-300 mx-auto" />
               <p className="text-sm font-bold text-gray-700">Brak zdarzeń medycznych</p>
               <p className="text-xs text-gray-400">
-                {searchQuery ? 'Brak wyników pasujących do wyszukiwania.' : 'Dodaj pierwsze szczepienie, badanie lub wizytę w aplikacji.'}
+                {searchQuery || dateFrom || dateTo || selectedFilter !== 'all' ? 'Brak wyników dla wybranych filtrów.' : 'Dodaj pierwsze szczepienie, badanie lub wizytę w aplikacji.'}
               </p>
             </div>
           ) : (
